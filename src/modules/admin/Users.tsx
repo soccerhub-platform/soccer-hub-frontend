@@ -12,9 +12,12 @@ const roleLabels: Record<Role, string> = {
   DISPATCHER: 'Диспетчер',
 };
 
+/**
+ * User management page.  Administrators can view a list of user
+ * accounts and toggle their active status.  */
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<AdminAccount[]>(SAMPLE_USERS);
-
+  
   const toggleActive = (id: string) => {
     setUsers((prev) =>
       prev.map((u) => (u.id === id ? { ...u, active: !u.active } : u))

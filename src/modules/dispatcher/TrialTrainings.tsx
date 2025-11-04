@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { TrialTraining, TrialTrainingStatus } from '../../shared/types';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
+// Sample trial training data for demonstration.  Replace with API data
+// when backend integration is available.
 const SAMPLE_TRAININGS: TrialTraining[] = [
   { id: '1', clientId: '1', date: '2025-11-05T15:00:00', status: 'SCHEDULED' },
   { id: '2', clientId: '2', date: '2025-11-06T16:00:00', status: 'COMPLETED' },
@@ -15,6 +18,10 @@ const statusLabels: Record<TrialTrainingStatus, string> = {
   NO_SHOW: 'Не пришел',
 };
 
+/**
+ * Trial trainings management page.  Displays a list of all trial
+ * training appointments with their scheduled date and current
+ * status.  Includes simple filtering by status.  */
 const TrialTrainingsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<TrialTrainingStatus | 'ALL'>('ALL');
   
@@ -22,6 +29,7 @@ const TrialTrainingsPage: React.FC = () => {
     return statusFilter === 'ALL' || training.status === statusFilter;
   });
 
+  // Format date in a readable way.  Assumes locale RU for Russian.
   const formatDate = (iso: string) => {
     const dt = new Date(iso);
     return dt.toLocaleString('ru-RU', {
@@ -34,20 +42,38 @@ const TrialTrainingsPage: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-dispatcher-700 mb-4">Пробные тренировки</h2>
+      <h2 className="text-xl font-bold text-dispatcher-700 mb-4">
+        Пробные тренировки
+      </h2>
       <div className="mb-4 max-w-xs">
-        <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700">Статус</label>
-        <select
-          id="statusFilter"
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-dispatcher-500 focus:border-dispatcher-500"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as any)}
+        <label
+          htmlFor="statusFilter"
+          className="block text-sm font-medium text-gray-700"
         >
-          <option value="ALL">Все</option>
-          {Object.keys(statusLabels).map((status) => (
-            <option key={status} value={status}>{statusLabels[status as TrialTrainingStatus]}</option>
-          ))}
-        </select>
+          Статус
+        </label>
+        {/* Контейнер с относительным позиционированием для стилизованного select */}
+        <div className="relative mt-1">
+          <select
+            id="statusFilter"
+            className="block w-full appearance-none bg-white px-3 py-2 pr-8 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-dispatcher-500 focus:border-dispatcher-500"
+            value={statusFilter}
+            onChange={(e) =>
+              setStatusFilter(e.target.value as TrialTrainingStatus | 'ALL')
+            }
+          >
+            <option value="ALL">Все</option>
+            {Object.keys(statusLabels).map((status) => (
+              <option key={status} value={status}>
+                {statusLabels[status as TrialTrainingStatus]}
+              </option>
+            ))}
+          </select>
+          {/* SVG‑стрелка поверх поля, не реагирующая на события мыши */}
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+            <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+          </div>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 bg-white shadow rounded">

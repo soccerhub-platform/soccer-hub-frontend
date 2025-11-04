@@ -11,15 +11,14 @@ import ProtectedRoute from '../../shared/ProtectedRoute';
 /**
  * Defines routes for the admin module.  Admins have access to
  * contracts, payments and user management.  Unauthenticated or
- * unauthorized users are redirected to `/admin/login`.
- */
+ * unauthorized users are redirected to `/admin/login`.  */
 const AdminRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Admin login */}
       <Route path="login" element={<Login />} />
       {/* Protected area requiring ADMIN role */}
-      <Route element={<ProtectedRoute role="ADMIN" redirectTo="/admin/login" />}>
+      <Route element={<ProtectedRoute role="ADMIN" redirectTo="/admin/login" />}>        
         <Route element={<AdminLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="contracts" element={<ContractsPage />} />

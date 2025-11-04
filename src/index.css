@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
+/* Additional global styles can be placed here.  The base, components
+ * and utilities directives from Tailwind CSS are required to
+ * initialise Tailwind.  */
+
+html,
+body,
+#root {
   height: 100%;
 }

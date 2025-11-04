@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../shared/AuthContext';
 
+/**
+ * Login page for administrators.  Uses a purple colour scheme.  On
+ * successful login the user is redirected to the admin dashboard
+ * or their original destination.  */
 const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');

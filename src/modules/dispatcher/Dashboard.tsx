@@ -1,6 +1,18 @@
 import React from 'react';
+// Import icons to visually represent each statistic
+import {
+  UserPlusIcon,
+  UserGroupIcon,
+  CalendarDaysIcon,
+} from '@heroicons/react/24/outline';
 
+/**
+ * Dashboard page for dispatchers.  Displays key metrics such as
+ * number of new clients and a list of upcoming trial trainings.
+ * In a real application these values would be fetched from the
+ * server.  */
 const Dashboard: React.FC = () => {
+  // Placeholder data.  Replace with data fetched from API or state.
   const stats = {
     newClients: 4,
     totalClients: 27,
@@ -11,17 +23,35 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-dispatcher-700">Панель диспетчера</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 bg-white shadow rounded">
-          <div className="text-sm text-gray-500">Новых клиентов</div>
-          <div className="text-2xl font-bold text-dispatcher-700">{stats.newClients}</div>
+        {/* Card for new clients */}
+        <div className="p-4 bg-white shadow rounded flex items-center space-x-4">
+          <div className="p-2 bg-dispatcher-100 rounded-full">
+            <UserPlusIcon className="h-6 w-6 text-dispatcher-500" />
+          </div>
+          <div>
+            <div className="text-sm text-gray-500">Новых клиентов</div>
+            <div className="text-2xl font-bold text-dispatcher-700">{stats.newClients}</div>
+          </div>
         </div>
-        <div className="p-4 bg-white shadow rounded">
-          <div className="text-sm text-gray-500">Всего клиентов</div>
-          <div className="text-2xl font-bold text-dispatcher-700">{stats.totalClients}</div>
+        {/* Card for total clients */}
+        <div className="p-4 bg-white shadow rounded flex items-center space-x-4">
+          <div className="p-2 bg-dispatcher-100 rounded-full">
+            <UserGroupIcon className="h-6 w-6 text-dispatcher-500" />
+          </div>
+          <div>
+            <div className="text-sm text-gray-500">Всего клиентов</div>
+            <div className="text-2xl font-bold text-dispatcher-700">{stats.totalClients}</div>
+          </div>
         </div>
-        <div className="p-4 bg-white shadow rounded">
-          <div className="text-sm text-gray-500">Ближайшие тренировки</div>
-          <div className="text-2xl font-bold text-dispatcher-700">{stats.upcomingTrainings}</div>
+        {/* Card for upcoming trial trainings */}
+        <div className="p-4 bg-white shadow rounded flex items-center space-x-4">
+          <div className="p-2 bg-dispatcher-100 rounded-full">
+            <CalendarDaysIcon className="h-6 w-6 text-dispatcher-500" />
+          </div>
+          <div>
+            <div className="text-sm text-gray-500">Ближайшие тренировки</div>
+            <div className="text-2xl font-bold text-dispatcher-700">{stats.upcomingTrainings}</div>
+          </div>
         </div>
       </div>
       <div>

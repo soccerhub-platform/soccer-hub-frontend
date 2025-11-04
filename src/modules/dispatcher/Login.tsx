@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../shared/AuthContext';
 
+/**
+ * Login page for dispatchers.  Uses a blue colour scheme to
+ * differentiate from the administrator login.  On successful
+ * authentication the user is redirected to the dispatcher
+ * dashboard or the location they attempted to visit.  */
 const DispatcherLogin: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -12,6 +17,9 @@ const DispatcherLogin: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await login(username, password);
+    // If the user was redirected to login from a protected route,
+    // location.state.from holds the original destination.  Otherwise
+    // go to the dashboard.
     const from = (location.state as any)?.from?.pathname || '/dispatcher/dashboard';
     navigate(from, { replace: true });
   };

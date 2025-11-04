@@ -21,36 +21,41 @@ const statusLabels: Record<Contract['status'], string> = {
   CANCELLED: 'Отменен',
 };
 
-const ContractsPage: React.FC = () => (
-  <div>
-    <h2 className="text-xl font-bold text-admin-700 mb-4">Контракты</h2>
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 bg-white shadow rounded">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Клиент</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Тренер</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Начало</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Конец</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {SAMPLE_CONTRACTS.map((contract) => (
-            <tr key={contract.id} className="hover:bg-admin-100">
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contract.id}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contract.client}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contract.coach}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contract.start}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contract.end}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{statusLabels[contract.status]}</td>
+/**
+ * Contracts management page.  Displays a table of existing
+ * contracts with the ability to view their status.  */
+const ContractsPage: React.FC = () => {
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-admin-700 mb-4">Контракты</h2>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 bg-white shadow rounded">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Клиент</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Тренер</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Начало</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Конец</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {SAMPLE_CONTRACTS.map((contract) => (
+              <tr key={contract.id} className="hover:bg-admin-100">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contract.id}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contract.client}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contract.coach}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contract.start}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contract.end}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{statusLabels[contract.status]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default ContractsPage;
