@@ -1,32 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Client, ClientStatus } from '../../shared/types';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
-
-/**
- * Hard‑coded sample clients.  Replace with data fetched from the
- * backend when connected.
- */
-const SAMPLE_CLIENTS: Client[] = [
-  { id: '1', name: 'Иван Иванов', phone: '+77010000001', status: 'NEW' },
-  { id: '2', name: 'Алла Петрова', phone: '+77010000002', status: 'CONTACTED' },
-  { id: '3', name: 'Борис Сидоров', phone: '+77010000003', status: 'QUALIFIED' },
-  { id: '4', name: 'Диана Смирнова', phone: '+77010000004', status: 'CLIENT' },
-];
+import { useAuth } from '../../shared/AuthContext';
 
 const statusLabels: Record<ClientStatus, string> = {
   NEW: 'Новый',
-  CONTACTED: 'Связались',
-  QUALIFIED: 'Квалифицирован',
-  CONVERTED: 'Конвертирован',
-  REJECTED: 'Отклонён',
-  CLIENT: 'Клиент',
+  IN_PROGRESS: 'В работе',
+  NO_RESPONSE: 'Нет связи',
+  REJECTED: 'Отказ',
+  TRIAL_SCHEDULED: 'Назначен пробный',
+  TRIAL_COMPLETED: 'Пробный проведён',
+  TRIAL_FAILED: 'Пробный неудачный',
+  CONTRACT_PENDING: 'Оформление договора',
+  ACTIVE: 'Активный',
+  PAUSED: 'Приостановлен',
+  INACTIVE: 'Неактивный',
 };
 
+
 const ClientsPage: React.FC = () => {
+  const { user } = useAuth();
+  
+  const [clients, setClients] = useState<Client[]>([]);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClientStatus | 'ALL'>('ALL');
 
-  const filtered = SAMPLE_CLIENTS.filter((client) => {
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await fetch('/api/client/all', {
+          headers: {
+            Authorization: `Bearer ${user?.accessToken}`,
+          }
+        }); // adjust URL if needed
+        const data = await response.json();
+        setClients(data);
+      } catch (error) {
+        console.error('Failed to fetch clients', error);
+      }
+    };
+    fetchClients();
+  }, []);
+
+  const filtered = clients.filter((client) => {
     const matchesQuery = client.name.toLowerCase().includes(query.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || client.status === statusFilter;
     return matchesQuery && matchesStatus;

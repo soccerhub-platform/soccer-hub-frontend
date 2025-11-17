@@ -55,7 +55,7 @@ const DispatcherLayout: React.FC = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         <header className="flex items-center justify-between bg-white p-4 shadow">
-          <div className="text-dispatcher-700 font-semibold">Добро пожаловать{user ? `, ${user.username}` : ''}</div>
+          <div className="text-dispatcher-700 font-semibold">Добро пожаловать{user ? `, ${user.email}` : ''}</div>
           <button
             onClick={handleLogout}
             className="px-3 py-1 bg-dispatcher-500 text-white rounded-md hover:bg-dispatcher-700"

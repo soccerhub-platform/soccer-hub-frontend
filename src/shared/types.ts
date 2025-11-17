@@ -6,11 +6,16 @@
 // Possible statuses for a client or lead in the sales funnel.
 export type ClientStatus =
   | 'NEW'
-  | 'CONTACTED'
-  | 'QUALIFIED'
-  | 'CONVERTED'
+  | 'IN_PROGRESS'
+  | 'NO_RESPONSE'
   | 'REJECTED'
-  | 'CLIENT';
+  | 'TRIAL_SCHEDULED'
+  | 'TRIAL_COMPLETED'
+  | 'TRIAL_FAILED'
+  | 'CONTRACT_PENDING'
+  | 'ACTIVE'
+  | 'PAUSED'
+  | 'INACTIVE';
 
 export interface Client {
   id: string;
