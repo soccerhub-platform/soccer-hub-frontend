@@ -6,6 +6,8 @@ import ClientsPage from './Clients';
 import TrialTrainingsPage from './TrialTrainings';
 import DispatcherLayout from './DispatcherLayout';
 import ProtectedRoute from '../../shared/ProtectedRoute';
+import ClubsAndBranchesPage from './ClubsAndBranchesPage';
+import AdminsPage from './AdminsPage';
 
 /**
  * Defines all routes for the dispatcher module.  Unauthenticated
@@ -21,6 +23,8 @@ const DispatcherRoutes: React.FC = () => {
       <Route element={<ProtectedRoute role="DISPATCHER" redirectTo="/dispatcher/login" />}>        
         <Route element={<DispatcherLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path='clubs' element={<ClubsAndBranchesPage />} />
+          <Route path="admins" element={<AdminsPage />} />
           <Route path="clients" element={<ClientsPage />} />
           <Route path="trial-trainings" element={<TrialTrainingsPage />} />
           {/* Default when accessing /dispatcher root */}

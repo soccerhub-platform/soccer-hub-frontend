@@ -54,3 +54,19 @@ export interface AdminAccount {
   role: 'ADMIN' | 'DISPATCHER';
   active: boolean;
 }
+
+export interface Club {
+  id: string;
+  name: string;
+  slug: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface Branch {
+  id: string;
+  clubId: string;
+  name: string;
+  address?: string;
+}

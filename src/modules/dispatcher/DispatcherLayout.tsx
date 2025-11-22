@@ -42,6 +42,14 @@ const DispatcherLayout: React.FC = () => {
             <HomeIcon className="h-5 w-5 mr-3" />
             <span>Панель</span>
           </NavLink>
+          <NavLink to="/dispatcher/clubs" className={linkClasses}>
+            <UserGroupIcon className="h-5 w-5 mr-3" />
+            <span>Клубы и филиалы</span>
+          </NavLink>
+          <NavLink to="/dispatcher/admins" className={linkClasses}>
+            <UserGroupIcon className="h-5 w-5 mr-3" />
+            <span>Администраторы</span>
+          </NavLink>
           <NavLink to="/dispatcher/clients" className={linkClasses}>
             <UserGroupIcon className="h-5 w-5 mr-3" />
             <span>Клиенты</span>
