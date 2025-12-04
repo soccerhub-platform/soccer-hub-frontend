@@ -1,25 +1,33 @@
-import React, { useEffect, useState } from 'react';
+// ============ FULL REDESIGNED AdminsPage.tsx ============
+
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../shared/AuthContext';
-import { PlusIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { PlusIcon } from '@heroicons/react/24/outline';
+
+// Интерфейсы соответствуют бэку
+interface BranchAssignment {
+    branchId: string;
+    branchName: string;
+    clubId: string;
+    clubName: string;
+}
 
 interface AdminView {
     adminId: string;
-    userId: string;
     firstName: string;
     lastName: string;
-    email: string;
+    email: string | null;
     phone?: string;
-    clubId: string;
-    clubName?: string;
-    branchId: string;
-    branchName?: string;
     active: boolean;
+    branches: BranchAssignment[];
 }
 
 interface BranchOption {
     branchId: string;
     name: string;
 }
+
+type StatusFilter = 'all' | 'active' | 'inactive';
 
 const AdminsPage: React.FC = () => {
     const { user } = useAuth();
@@ -28,14 +36,17 @@ const AdminsPage: React.FC = () => {
     const [branches, setBranches] = useState<BranchOption[]>([]);
 
     const [loading, setLoading] = useState(false);
-    const [loadingBranches, setLoadingBranches] = useState(false);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     const [selectedAdmin, setSelectedAdmin] = useState<AdminView | null>(null);
-    const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+    // фильтры
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
     // форма создания
     const [createForm, setCreateForm] = useState({
@@ -53,21 +64,19 @@ const AdminsPage: React.FC = () => {
         phone: '',
     });
 
-    // форма смены филиала
+    // id филиала для назначения
     const [assignBranchId, setAssignBranchId] = useState<string>('');
 
-    const authHeaders: Record<string, string> = user?.accessToken
+    const authHeaders: HeadersInit = user?.accessToken
         ? { Authorization: `Bearer ${user.accessToken}` }
         : {};
 
-    // ---- загрузка админов ----
+    // ---------- Загрузка админов ----------
     const loadAdmins = async () => {
         try {
             setLoading(true);
             const res = await fetch('http://localhost:8080/dispatcher/admin', {
-                headers: {
-                    ...authHeaders,
-                },
+                headers: { ...authHeaders },
             });
 
             const data = await res.json();
@@ -81,75 +90,71 @@ const AdminsPage: React.FC = () => {
                     email: a.email,
                     phone: a.phone,
                     active: a.isActive ?? a.active,
-
-                    clubId: a.club?.id ?? '',
-                    clubName: a.club?.name ?? '',
-
-                    branchId: a.branch?.id ?? '',
-                    branchName: a.branch?.name ?? ''
+                    branches: Array.isArray(a.branches)
+                        ? a.branches.map((b: any) => ({
+                              branchId: b.branchId,
+                              branchName: b.branchName,
+                              clubId: b.clubId,
+                              clubName: b.clubName,
+                          }))
+                        : [],
                 }))
             );
-        } catch (e) {
-            console.error('Failed to load admins', e);
         } finally {
             setLoading(false);
         }
     };
 
-    // ---- загрузка филиалов ----
+    // ---------- Загрузка филиалов ----------
     const loadBranches = async () => {
-        try {
-            setLoadingBranches(true);
-            const res = await fetch('http://localhost:8080/dispatcher/branch', {
-                headers: {
-                    ...authHeaders,
-                },
-            });
-
-            const data = await res.json();
-            const rawBranches: any[] = Array.isArray(data)
-                ? data
-                : (data?.branches ?? []);
-
-            setBranches(
-                rawBranches.map((b) => ({
-                    branchId: b.branchId,
-                    name: b.name,
-                }))
-            );
-        } catch (e) {
-            console.error('Failed to load branches', e);
-        } finally {
-            setLoadingBranches(false);
-        }
+        const res = await fetch('http://localhost:8080/dispatcher/branch', {
+            headers: { ...authHeaders },
+        });
+        const data = await res.json();
+        const raw = Array.isArray(data) ? data : data.branches ?? [];
+        setBranches(raw.map((b: any) => ({ branchId: b.branchId, name: b.name })));
     };
 
-    // начальная загрузка
     useEffect(() => {
         if (!user?.accessToken) return;
         loadAdmins();
         loadBranches();
     }, [user?.accessToken]);
 
-    // ---- создание администратора ----
+    // ---------- Derived: фильтрация ----------
+    const filteredAdmins = useMemo(() => {
+        const term = search.trim().toLowerCase();
+
+        return admins.filter((a) => {
+            if (statusFilter === 'active' && !a.active) return false;
+            if (statusFilter === 'inactive' && a.active) return false;
+
+            if (!term) return true;
+
+            const fullName = `${a.firstName ?? ''} ${a.lastName ?? ''}`.toLowerCase();
+            const email = (a.email ?? '').toLowerCase();
+            const phone = (a.phone ?? '').toLowerCase();
+
+            return (
+                fullName.includes(term) ||
+                email.includes(term) ||
+                phone.includes(term)
+            );
+        });
+    }, [admins, search, statusFilter]);
+
+    const totalAdmins = admins.length;
+    const activeAdmins = admins.filter((a) => a.active).length;
+
+    // ---------- Создание ----------
     const handleCreateAdmin = async () => {
-        try {
-            const res = await fetch('http://localhost:8080/dispatcher/admin/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeaders,
-                },
-                body: JSON.stringify(createForm),
-            });
+        const res = await fetch('http://localhost:8080/dispatcher/admin/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
+            body: JSON.stringify(createForm),
+        });
 
-            if (!res.ok) {
-                alert('Ошибка создания администратора');
-                return;
-            }
-
-            await res.json().catch(() => null);
-
+        if (res.ok) {
             setShowCreateModal(false);
             setCreateForm({
                 email: '',
@@ -158,69 +163,13 @@ const AdminsPage: React.FC = () => {
                 phone: '',
                 assignedBranch: '',
             });
-
             await loadAdmins();
-        } catch (e) {
-            console.error('Failed to create admin', e);
+        } else {
+            alert('Ошибка создания администратора');
         }
     };
 
-    // ---- смена статуса ----
-    const toggleStatus = async (adminId: string, nextActive: boolean) => {
-        try {
-            const res = await fetch(
-                `http://localhost:8080/dispatcher/admin/${adminId}/status`,
-                {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...authHeaders,
-                    },
-                    body: JSON.stringify({ active: nextActive }),
-                }
-            );
-
-            if (!res.ok) {
-                alert('Ошибка изменения статуса');
-                return;
-            }
-
-            await res.json().catch(() => null);
-            await loadAdmins();
-        } catch (e) {
-            console.error('Failed to change status', e);
-        }
-    };
-
-    // ---- удаление ----
-    const handleDeleteAdmin = async (adminId: string) => {
-        if (!window.confirm('Удалить администратора?')) return;
-
-        try {
-            const res = await fetch(
-                `http://localhost:8080/dispatcher/admin/${adminId}`,
-                {
-                    method: 'DELETE',
-                    headers: {
-                        ...authHeaders,
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
-
-            if (!res.ok) {
-                alert('Ошибка удаления администратора');
-                return;
-            }
-
-            await res.json().catch(() => null);
-            await loadAdmins();
-        } catch (e) {
-            console.error('Failed to delete admin', e);
-        }
-    };
-
-    // ---- открыть модалку редактирования ----
+    // ---------- Редактирование ----------
     const openEditModal = (admin: AdminView) => {
         setSelectedAdmin(admin);
         setEditForm({
@@ -231,326 +180,475 @@ const AdminsPage: React.FC = () => {
         setShowEditModal(true);
     };
 
-    // ---- редактирование администратора ----
     const handleEditAdmin = async () => {
         if (!selectedAdmin) return;
 
-        try {
-            const res = await fetch(
-                `http://localhost:8080/dispatcher/admin/${selectedAdmin.adminId}`,
-                {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...authHeaders,
-                    },
-                    body: JSON.stringify(editForm),
-                }
-            );
-
-            if (!res.ok) {
-                alert('Ошибка сохранения изменений');
-                return;
+        const res = await fetch(
+            `http://localhost:8080/dispatcher/admin/${selectedAdmin.adminId}`,
+            {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                body: JSON.stringify(editForm),
             }
+        );
 
-            await res.json().catch(() => null);
+        if (res.ok) {
             setShowEditModal(false);
             setSelectedAdmin(null);
             await loadAdmins();
-        } catch (e) {
-            console.error('Failed to edit admin', e);
+        } else {
+            alert('Ошибка сохранения');
         }
     };
 
-    // ---- открыть модалку смены филиала ----
+    // ---------- Статус ----------
+    const toggleStatus = async (adminId: string, nextActive: boolean) => {
+        const res = await fetch(
+            `http://localhost:8080/dispatcher/admin/${adminId}/status`,
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                body: JSON.stringify({ active: nextActive }),
+            }
+        );
+        if (res.ok) {
+            await loadAdmins();
+        } else {
+            alert('Ошибка смены статуса');
+        }
+    };
+
+    // ---------- Назначить филиал ----------
     const openAssignBranchModal = (admin: AdminView) => {
         setSelectedAdmin(admin);
-        setAssignBranchId(admin.branchId);
+        setAssignBranchId('');
         setShowAssignModal(true);
     };
 
-    // ---- смена филиала ----
     const handleAssignBranch = async () => {
         if (!selectedAdmin || !assignBranchId) return;
 
-        try {
-            const res = await fetch(
-                `http://localhost:8080/dispatcher/admin/${selectedAdmin.adminId}/assign-branch`,
-                {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...authHeaders,
-                    },
-                    body: JSON.stringify({ branchId: assignBranchId }),
-                }
-            );
-
-            if (!res.ok) {
-                alert('Ошибка смены филиала');
-                return;
+        const res = await fetch(
+            `http://localhost:8080/dispatcher/admin/${selectedAdmin.adminId}/assign-branch`,
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                body: JSON.stringify({ branchId: assignBranchId }),
             }
+        );
 
-            await res.json().catch(() => null);
+        if (res.ok) {
             setShowAssignModal(false);
             setSelectedAdmin(null);
             await loadAdmins();
-        } catch (e) {
-            console.error('Failed to assign branch', e);
+        } else {
+            alert('Ошибка назначения филиала');
         }
+    };
+
+    // ---------- Удалить филиал ----------
+    const handleUnassignBranch = async (adminId: string, branchId: string) => {
+        if (!window.confirm('Удалить этот филиал у администратора?')) return;
+
+        const res = await fetch(
+            `http://localhost:8080/dispatcher/admin/${adminId}/unassign-branch`,
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                body: JSON.stringify({ branchId }),
+            }
+        );
+
+        if (res.ok) {
+            // Закрываем модалку, обновляем список
+            setShowDetailsModal(false);
+            setSelectedAdmin(null);
+            await loadAdmins();
+        } else {
+            alert('Ошибка удаления филиала');
+        }
+    };
+
+    // ---------- Helpers ----------
+    const getInitials = (admin: AdminView) => {
+        const f = admin.firstName?.[0] ?? '';
+        const l = admin.lastName?.[0] ?? '';
+        return (f + l).toUpperCase();
     };
 
     return (
         <div className="space-y-6">
-            {/* header */}
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-dispatcher-700">Администраторы филиалов</h2>
+            {/* HEADER */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                        Администраторы
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                        Управляйте доступом администраторов и привязкой к филиалам.
+                    </p>
+                </div>
+
                 <button
                     onClick={() => setShowCreateModal(true)}
-                    className="inline-flex items-center px-4 py-2 bg-dispatcher-500 text-white rounded-md hover:bg-dispatcher-700 transition-colors"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium shadow hover:bg-indigo-700 transition"
                 >
                     <PlusIcon className="w-5 h-5 mr-2" />
                     Добавить администратора
                 </button>
             </div>
 
-            {/* table */}
-            <div className="bg-white shadow rounded-lg p-4">
+            {/* STATS + FILTERS */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Статистика */}
+                <div className="col-span-1 flex gap-4">
+                    <div className="flex-1 bg-white/80 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-sm px-4 py-3">
+                        <div className="text-xs font-medium text-gray-500 uppercase">
+                            Всего администраторов
+                        </div>
+                        <div className="mt-1 text-2xl font-semibold text-gray-900">
+                            {totalAdmins}
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-white/80 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-sm px-4 py-3">
+                        <div className="text-xs font-medium text-gray-500 uppercase">
+                            Активны
+                        </div>
+                        <div className="mt-1 text-2xl font-semibold text-emerald-600">
+                            {activeAdmins}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Поиск */}
+                <div className="col-span-1 lg:col-span-2 flex flex-col sm:flex-row gap-3 items-stretch">
+                    <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                            Поиск по имени, email или телефону
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Например: Алексей, +7701..., mail@example.com"
+                                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="sm:w-56">
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                            Статус
+                        </label>
+                        <div className="inline-flex w-full rounded-xl border border-gray-200 bg-gray-50 p-0.5">
+                            <button
+                                type="button"
+                                onClick={() => setStatusFilter('all')}
+                                className={`flex-1 text-xs sm:text-sm px-2 py-1.5 rounded-lg transition ${
+                                    statusFilter === 'all'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-800'
+                                }`}
+                            >
+                                Все
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setStatusFilter('active')}
+                                className={`flex-1 text-xs sm:text-sm px-2 py-1.5 rounded-lg transition ${
+                                    statusFilter === 'active'
+                                        ? 'bg-white text-emerald-700 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-800'
+                                }`}
+                            >
+                                Активны
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setStatusFilter('inactive')}
+                                className={`flex-1 text-xs sm:text-sm px-2 py-1.5 rounded-lg transition ${
+                                    statusFilter === 'inactive'
+                                        ? 'bg-white text-rose-700 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-800'
+                                }`}
+                            >
+                                Отключены
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* TABLE / LIST */}
+            <div className="bg-white/80 backdrop-blur-sm shadow-md rounded-2xl p-5 border border-gray-100">
                 {loading ? (
                     <div className="text-sm text-gray-500">Загрузка администраторов...</div>
-                ) : admins.length === 0 ? (
-                    <div className="text-sm text-gray-500">
-                        Пока нет администраторов. Создайте первого.
+                ) : filteredAdmins.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                        <div className="text-4xl mb-2">😶‍🌫️</div>
+                        <p className="text-sm text-gray-500">
+                            По текущим фильтрам администраторы не найдены.
+                        </p>
+                        <button
+                            onClick={() => {
+                                setSearch('');
+                                setStatusFilter('all');
+                            }}
+                            className="mt-3 text-xs text-indigo-600 hover:text-indigo-800"
+                        >
+                            Сбросить фильтры
+                        </button>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gray-50/80">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        Имя
+                                        Администратор
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        Email
+                                        Контакты
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        Телефон
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        Клуб
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        Филиал
+                                        Филиалы
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                         Статус
                                     </th>
-                                    <th className="px-4 py-3" />
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {admins.map((a) => (
-                                    <tr key={a.adminId}
-                                        className="hover:bg-dispatcher-50 cursor-pointer"
-                                        onClick={() => {
-                                            setSelectedAdmin(a);
-                                            setShowDetailsModal(true);
-                                        }}
-                                    >
-                                        <td className="px-4 py-3 text-sm">
-                                            {a.firstName} {a.lastName}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">{a.email}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">{a.phone}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">{a.clubName}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">{a.branchName}</td>
-                                        <td className="px-4 py-3">
-                                            <span
-                                                className={`inline-flex px-2 py-1 rounded text-xs font-semibold ${a.active
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : 'bg-red-100 text-red-700'
+                            <tbody className="divide-y divide-gray-100">
+                                {filteredAdmins.map((a) => {
+                                    const branchesCount = a.branches.length;
+                                    const firstBranch = a.branches[0];
+
+                                    return (
+                                        <tr
+                                            key={a.adminId}
+                                            className="hover:bg-indigo-50/40 cursor-pointer transition-colors"
+                                            onClick={() => {
+                                                setSelectedAdmin(a);
+                                                setShowDetailsModal(true);
+                                            }}
+                                        >
+                                            <td className="px-4 py-3 text-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-semibold">
+                                                        {getInitials(a)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">
+                                                            {a.firstName} {a.lastName}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500">
+                                                            ID: {a.adminId.slice(0, 8)}…
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-700">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span>{a.email || '—'}</span>
+                                                    <span className="text-xs text-gray-500">
+                                                        {a.phone || 'Телефон не указан'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-700">
+                                                {branchesCount === 0 && (
+                                                    <span className="text-xs text-gray-400">
+                                                        Не привязан к филиалам
+                                                    </span>
+                                                )}
+                                                {branchesCount > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {firstBranch && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                                {firstBranch.branchName}
+                                                            </span>
+                                                        )}
+                                                        {branchesCount > 1 && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+                                                                + ещё {branchesCount - 1}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <span
+                                                    className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                                        a.active
+                                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                                            : 'bg-rose-50 text-rose-700 border border-rose-100'
                                                     }`}
-                                            >
-                                                {a.active ? 'Активен' : 'Отключён'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                >
+                                                    {a.active ? 'Активен' : 'Отключён'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
                 )}
             </div>
 
-            {/* CREATE MODAL */}
-            {showCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-dispatcher-700">
-                                Добавить администратора
-                            </h3>
+            {/* DETAILS MODAL */}
+            {showDetailsModal && selectedAdmin && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+                    onClick={() => {
+                        setShowDetailsModal(false);
+                        setSelectedAdmin(null);
+                    }}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-7 border border-gray-100"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-semibold">
+                                    {getInitials(selectedAdmin)}
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900">
+                                        {selectedAdmin.firstName} {selectedAdmin.lastName}
+                                    </h3>
+                                    <p className="text-xs text-gray-500">
+                                        ID: {selectedAdmin.adminId}
+                                    </p>
+                                </div>
+                            </div>
+
                             <button
-                                onClick={() => setShowCreateModal(false)}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="text-gray-400 text-2xl leading-none hover:text-gray-600"
+                                onClick={() => {
+                                    setShowDetailsModal(false);
+                                    setSelectedAdmin(null);
+                                }}
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-600">Email*</label>
-                                <input
-                                    type="email"
-                                    className="w-full border rounded px-3 py-2 text-sm"
-                                    value={createForm.email}
-                                    onChange={(e) =>
-                                        setCreateForm((f) => ({ ...f, email: e.target.value }))
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-600">Телефон</label>
-                                <input
-                                    type="text"
-                                    className="w-full border rounded px-3 py-2 text-sm"
-                                    value={createForm.phone}
-                                    onChange={(e) =>
-                                        setCreateForm((f) => ({ ...f, phone: e.target.value }))
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-600">Имя*</label>
-                                <input
-                                    type="text"
-                                    className="w-full border rounded px-3 py-2 text-sm"
-                                    value={createForm.firstName}
-                                    onChange={(e) =>
-                                        setCreateForm((f) => ({ ...f, firstName: e.target.value }))
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-600">Фамилия</label>
-                                <input
-                                    type="text"
-                                    className="w-full border rounded px-3 py-2 text-sm"
-                                    value={createForm.lastName}
-                                    onChange={(e) =>
-                                        setCreateForm((f) => ({ ...f, lastName: e.target.value }))
-                                    }
-                                />
+                        {/* Status tag */}
+                        <div className="mt-3">
+                            <span
+                                className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                                    selectedAdmin.active
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                        : 'bg-rose-50 text-rose-700 border border-rose-100'
+                                }`}
+                            >
+                                {selectedAdmin.active ? 'Активен' : 'Отключён'}
+                            </span>
+                        </div>
+
+                        {/* Info Section */}
+                        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                <p className="text-xs font-medium text-gray-500 uppercase">
+                                    Email
+                                </p>
+                                <p className="mt-1 font-medium text-gray-800">
+                                    {selectedAdmin.email || '—'}
+                                </p>
                             </div>
 
-                            <div className="space-y-1 md:col-span-2">
-                                <label className="text-xs text-gray-600">Филиал*</label>
-                                <select
-                                    className="w-full border rounded px-3 py-2 text-sm"
-                                    value={createForm.assignedBranch}
-                                    onChange={(e) =>
-                                        setCreateForm((f) => ({ ...f, assignedBranch: e.target.value }))
-                                    }
-                                >
-                                    <option value="">Выберите филиал</option>
-                                    {branches.map((b) => (
-                                        <option key={b.branchId} value={b.branchId}>
-                                            {b.name}
-                                        </option>
+                            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                <p className="text-xs font-medium text-gray-500 uppercase">
+                                    Телефон
+                                </p>
+                                <p className="mt-1 font-medium text-gray-800">
+                                    {selectedAdmin.phone || '—'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Branches */}
+                        <div className="mt-6">
+                            <div className="flex items-center justify-between">
+                                <h4 className="font-semibold text-gray-800 text-sm">
+                                    Филиалы ({selectedAdmin.branches.length})
+                                </h4>
+                            </div>
+
+                            {selectedAdmin.branches.length === 0 ? (
+                                <p className="text-sm text-gray-500 mt-2">
+                                    Администратор пока не привязан ни к одному филиалу.
+                                </p>
+                            ) : (
+                                <div className="space-y-2 mt-3 max-h-60 overflow-y-auto pr-1">
+                                    {selectedAdmin.branches.map((b) => (
+                                        <div
+                                            key={b.branchId}
+                                            className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200"
+                                        >
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {b.branchName}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    {b.clubName || 'Клуб не указан'}
+                                                </p>
+                                            </div>
+                                            <button
+                                                className="text-xs font-medium text-rose-600 hover:text-rose-800"
+                                                onClick={() =>
+                                                    handleUnassignBranch(
+                                                        selectedAdmin.adminId,
+                                                        b.branchId
+                                                    )
+                                                }
+                                            >
+                                                Удалить
+                                            </button>
+                                        </div>
                                     ))}
-                                </select>
-                            </div>
-                        </div>
+                                </div>
+                            )}
 
-                        <div className="flex justify-end space-x-2 pt-2">
-                            <button
-                                onClick={() => setShowCreateModal(false)}
-                                className="px-4 py-2 text-sm border rounded-md"
-                            >
-                                Отмена
-                            </button>
-                            <button
-                                onClick={handleCreateAdmin}
-                                className="px-4 py-2 text-sm bg-dispatcher-500 text-white rounded-md hover:bg-dispatcher-700"
-                            >
-                                Создать
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* EDIT MODAL */}
-            {showEditModal && selectedAdmin && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-dispatcher-700">
-                                Редактировать администратора
-                            </h3>
                             <button
                                 onClick={() => {
-                                    setShowEditModal(false);
-                                    setSelectedAdmin(null);
+                                    setShowDetailsModal(false);
+                                    openAssignBranchModal(selectedAdmin);
                                 }}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="mt-3 w-full bg-indigo-600 text-white py-2.5 rounded-xl hover:bg-indigo-700 text-sm font-medium shadow-sm"
                             >
-                                ✕
+                                + Назначить филиал
                             </button>
                         </div>
 
-                        <div className="space-y-3">
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-600">Имя</label>
-                                <input
-                                    type="text"
-                                    className="w-full border rounded px-3 py-2 text-sm"
-                                    value={editForm.firstName}
-                                    onChange={(e) =>
-                                        setEditForm((f) => ({ ...f, firstName: e.target.value }))
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-600">Фамилия</label>
-                                <input
-                                    type="text"
-                                    className="w-full border rounded px-3 py-2 text-sm"
-                                    value={editForm.lastName}
-                                    onChange={(e) =>
-                                        setEditForm((f) => ({ ...f, lastName: e.target.value }))
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-600">Телефон</label>
-                                <input
-                                    type="text"
-                                    className="w-full border rounded px-3 py-2 text-sm"
-                                    value={editForm.phone}
-                                    onChange={(e) =>
-                                        setEditForm((f) => ({ ...f, phone: e.target.value }))
-                                    }
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end space-x-2 pt-2">
+                        {/* Actions */}
+                        <div className="space-y-2 mt-6 border-t pt-4">
                             <button
                                 onClick={() => {
-                                    setShowEditModal(false);
-                                    setSelectedAdmin(null);
+                                    setShowDetailsModal(false);
+                                    openEditModal(selectedAdmin);
                                 }}
-                                className="px-4 py-2 text-sm border rounded-md"
+                                className="w-full py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-medium shadow-sm"
                             >
-                                Отмена
+                                ✏️ Редактировать данные
                             </button>
+
                             <button
-                                onClick={handleEditAdmin}
-                                className="px-4 py-2 text-sm bg-dispatcher-500 text-white rounded-md hover:bg-dispatcher-700"
+                                onClick={() => {
+                                    toggleStatus(selectedAdmin.adminId, !selectedAdmin.active);
+                                    setShowDetailsModal(false);
+                                }}
+                                className={`w-full py-2.5 rounded-xl text-sm font-medium text-white shadow-sm ${
+                                    selectedAdmin.active
+                                        ? 'bg-yellow-500 hover:bg-yellow-600'
+                                        : 'bg-emerald-600 hover:bg-emerald-700'
+                                }`}
                             >
-                                Сохранить
+                                {selectedAdmin.active ? '⛔ Отключить' : '✔️ Включить'}
                             </button>
                         </div>
                     </div>
@@ -559,34 +657,27 @@ const AdminsPage: React.FC = () => {
 
             {/* ASSIGN BRANCH MODAL */}
             {showAssignModal && selectedAdmin && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-dispatcher-700">
-                                Сменить филиал
-                            </h3>
-                            <button
-                                onClick={() => {
-                                    setShowAssignModal(false);
-                                    setSelectedAdmin(null);
-                                }}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                ✕
-                            </button>
-                        </div>
+                <div
+                    className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
+                    onClick={() => setShowAssignModal(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            Назначить филиал
+                        </h3>
+                        <p className="mt-1 text-xs text-gray-500">
+                            Администратор: {selectedAdmin.firstName} {selectedAdmin.lastName}
+                        </p>
 
-                        <div className="space-y-2">
-                            <div className="text-sm text-gray-700">
-                                Администратор:{' '}
-                                <span className="font-semibold">
-                                    {selectedAdmin.firstName} {selectedAdmin.lastName}
-                                </span>
-                            </div>
-
-                            <label className="text-xs text-gray-600">Новый филиал</label>
+                        <div className="mt-4">
+                            <label className="block text-xs font-medium text-gray-500 mb-1">
+                                Филиал
+                            </label>
                             <select
-                                className="w-full border rounded px-3 py-2 text-sm"
+                                className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 value={assignBranchId}
                                 onChange={(e) => setAssignBranchId(e.target.value)}
                             >
@@ -599,19 +690,17 @@ const AdminsPage: React.FC = () => {
                             </select>
                         </div>
 
-                        <div className="flex justify-end space-x-2 pt-2">
+                        <div className="flex justify-end space-x-2 mt-5">
                             <button
-                                onClick={() => {
-                                    setShowAssignModal(false);
-                                    setSelectedAdmin(null);
-                                }}
-                                className="px-4 py-2 text-sm border rounded-md"
+                                className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50"
+                                onClick={() => setShowAssignModal(false)}
                             >
                                 Отмена
                             </button>
+
                             <button
+                                className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 shadow-sm"
                                 onClick={handleAssignBranch}
-                                className="px-4 py-2 text-sm bg-dispatcher-500 text-white rounded-md hover:bg-dispatcher-700"
                             >
                                 Сохранить
                             </button>
@@ -620,128 +709,200 @@ const AdminsPage: React.FC = () => {
                 </div>
             )}
 
-            {/* DETAILS MODAL */}
-            {showDetailsModal && selectedAdmin && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn"
-                    onClick={() => {
-                    setShowDetailsModal(false);
-                    setSelectedAdmin(null);
-                    }}
-                >
-                    <div
-                    className="bg-white rounded-2xl shadow-xl w-full max-w-xl p-6 space-y-6 animate-slideUp"
-                    onClick={(e) => e.stopPropagation()}
-                    >
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-dispatcher-500 text-white rounded-full flex items-center justify-center text-lg font-semibold">
-                            {selectedAdmin.firstName[0]}
-                            {selectedAdmin.lastName ? selectedAdmin.lastName[0] : ''}
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-semibold text-gray-800">
+            {/* EDIT MODAL */}
+            {showEditModal && selectedAdmin && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-100">
+                        
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            Редактировать администратора
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">
                             {selectedAdmin.firstName} {selectedAdmin.lastName}
-                            </h3>
-                            <p className="text-sm text-gray-500">{selectedAdmin.email}</p>
-                        </div>
-                        </div>
-
-                        <button
-                        onClick={() => {
-                            setShowDetailsModal(false);
-                            setSelectedAdmin(null);
-                        }}
-                        className="text-gray-400 hover:text-gray-600 text-2xl"
-                        >
-                        ✕
-                        </button>
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex justify-start">
-                        <span
-                        className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            selectedAdmin.active
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                        >
-                        {selectedAdmin.active ? 'Активен' : 'Отключён'}
-                        </span>
-                    </div>
-
-                    {/* Info Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                        <p className="text-gray-500">Телефон</p>
-                        <p className="font-medium text-gray-800">
-                            {selectedAdmin.phone || '—'}
                         </p>
+
+                        <div className="space-y-4 mt-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500">
+                                    Имя
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm
+                                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                                            transition"
+                                    placeholder="Имя"
+                                    value={editForm.firstName}
+                                    onChange={(e) =>
+                                        setEditForm({ ...editForm, firstName: e.target.value })
+                                    }
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500">
+                                    Фамилия
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm
+                                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                                            transition"
+                                    placeholder="Фамилия"
+                                    value={editForm.lastName}
+                                    onChange={(e) =>
+                                        setEditForm({ ...editForm, lastName: e.target.value })
+                                    }
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500">
+                                    Телефон
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm
+                                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                                            transition"
+                                    placeholder="+7..."
+                                    value={editForm.phone}
+                                    onChange={(e) =>
+                                        setEditForm({ ...editForm, phone: e.target.value })
+                                    }
+                                />
+                            </div>
                         </div>
 
-                        <div>
-                        <p className="text-gray-500">Клуб</p>
-                        <p className="font-medium text-gray-800">
-                            {selectedAdmin.clubName || '—'}
-                        </p>
-                        </div>
+                        <div className="flex justify-end space-x-2 pt-6">
+                            <button
+                                className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm 
+                                        text-gray-700 hover:bg-gray-50 transition"
+                                onClick={() => setShowEditModal(false)}
+                            >
+                                Отмена
+                            </button>
 
-                        <div>
-                        <p className="text-gray-500">Филиал</p>
-                        <p className="font-medium text-gray-800">
-                            {selectedAdmin.branchName || '—'}
-                        </p>
+                            <button
+                                className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium
+                                        shadow-sm hover:bg-blue-700 transition"
+                                onClick={handleEditAdmin}
+                            >
+                                Сохранить
+                            </button>
                         </div>
                     </div>
+                </div>
+            )}
 
-                    {/* Action Buttons */}
-                    <div className="space-y-2 pt-3">
-                        <button
-                        onClick={() => {
-                            setShowDetailsModal(false);
-                            openEditModal(selectedAdmin);
-                        }}
-                        className="w-full py-2 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 transition"
-                        >
-                        ✏️ Редактировать
-                        </button>
+            {/* CREATE MODAL */}
+            {showCreateModal && (
+                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            Создать администратора
+                        </h3>
 
-                        <button
-                        onClick={() => {
-                            setShowDetailsModal(false);
-                            openAssignBranchModal(selectedAdmin);
-                        }}
-                        className="w-full py-2 bg-indigo-500 text-white font-medium rounded-md hover:bg-indigo-600 transition"
-                        >
-                        🏢 Сменить филиал
-                        </button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500">
+                                    Email*
+                                </label>
+                                <input
+                                    type="email"
+                                    placeholder="admin@mail.com"
+                                    className="border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    value={createForm.email}
+                                    onChange={(e) =>
+                                        setCreateForm({ ...createForm, email: e.target.value })
+                                    }
+                                />
+                            </div>
 
-                        <button
-                        onClick={() => {
-                            toggleStatus(selectedAdmin.adminId, !selectedAdmin.active);
-                            setShowDetailsModal(false);
-                        }}
-                        className={`w-full py-2 text-white font-medium rounded-md transition ${
-                            selectedAdmin.active
-                            ? 'bg-yellow-500 hover:bg-yellow-600'
-                            : 'bg-green-500 hover:bg-green-600'
-                        }`}
-                        >
-                        {selectedAdmin.active ? '⛔ Отключить' : '✔️ Включить'}
-                        </button>
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500">
+                                    Телефон
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="+7..."
+                                    className="border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    value={createForm.phone}
+                                    onChange={(e) =>
+                                        setCreateForm({ ...createForm, phone: e.target.value })
+                                    }
+                                />
+                            </div>
 
-                        <button
-                        onClick={() => {
-                            handleDeleteAdmin(selectedAdmin.adminId);
-                            setShowDetailsModal(false);
-                        }}
-                        className="w-full py-2 bg-red-500 text-white font-medium rounded-md hover:bg-red-600 transition"
-                        >
-                        🗑 Удалить
-                        </button>
-                    </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500">
+                                    Имя*
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Имя"
+                                    className="border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    value={createForm.firstName}
+                                    onChange={(e) =>
+                                        setCreateForm({ ...createForm, firstName: e.target.value })
+                                    }
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500">
+                                    Фамилия
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Фамилия"
+                                    className="border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    value={createForm.lastName}
+                                    onChange={(e) =>
+                                        setCreateForm({ ...createForm, lastName: e.target.value })
+                                    }
+                                />
+                            </div>
+
+                            <div className="space-y-1 sm:col-span-2">
+                                <label className="text-xs font-medium text-gray-500">
+                                    Филиал*
+                                </label>
+                                <select
+                                    className="border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    value={createForm.assignedBranch}
+                                    onChange={(e) =>
+                                        setCreateForm({
+                                            ...createForm,
+                                            assignedBranch: e.target.value,
+                                        })
+                                    }
+                                >
+                                    <option value="">Выберите филиал</option>
+                                    {branches.map((b) => (
+                                        <option key={b.branchId} value={b.branchId}>
+                                            {b.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-2 mt-5">
+                            <button
+                                className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50"
+                                onClick={() => setShowCreateModal(false)}
+                            >
+                                Отмена
+                            </button>
+
+                            <button
+                                className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 shadow-sm"
+                                onClick={handleCreateAdmin}
+                            >
+                                Создать
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -750,3 +911,5 @@ const AdminsPage: React.FC = () => {
 };
 
 export default AdminsPage;
+
+// ============================================================

@@ -78,7 +78,7 @@ const ClubsAndBranchesPage: React.FC = () => {
           name: c.name,
           slug: c.slug,
           email: c.email,
-          phone: c.phone,
+          phone: c.phoneNumber,
           address: c.address,
         }))
       );
@@ -134,7 +134,9 @@ const ClubsAndBranchesPage: React.FC = () => {
       setClubForm({ name: "", slug: "", email: "", phone: "", address: "" });
 
       loadClubs();
-    } catch {}
+    } catch {
+      // ошибки уже показываются через apiRequest/toast, если так настроено
+    }
   };
 
   // ---- Создать филиал ----
@@ -174,6 +176,7 @@ const ClubsAndBranchesPage: React.FC = () => {
       });
 
       toast.success("Клуб удалён");
+      setExpandedClubId((prev) => (prev === clubId ? null : prev));
       loadClubs();
       loadBranches();
     } catch {}
@@ -194,7 +197,7 @@ const ClubsAndBranchesPage: React.FC = () => {
     } catch {}
   };
 
-  // ---- Раскрытие карточки клуба ----
+  // ---- Раскрытие строки клуба ----
   const toggleClubExpand = (clubId: string) =>
     setExpandedClubId((prev) => (prev === clubId ? null : clubId));
 
@@ -202,161 +205,263 @@ const ClubsAndBranchesPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-dispatcher-700">
-          Клубы и филиалы
-        </h2>
+        <div>
+          <h2 className="text-xl font-bold text-dispatcher-700">
+            Клубы и филиалы
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Управляйте клубами и их филиалами в едином интерфейсе.
+          </p>
+        </div>
         <button
           onClick={() => setShowCreateClubModal(true)}
-          className="inline-flex items-center px-4 py-2 bg-dispatcher-500 text-white rounded-md hover:bg-dispatcher-700 transition"
+          className="inline-flex items-center px-4 py-2 bg-dispatcher-500 text-white rounded-xl shadow-sm hover:bg-dispatcher-700 transition-colors"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
           Создать клуб
         </button>
       </div>
 
-      {/* Clubs list */}
-      <div className="bg-white shadow rounded-lg p-4">
+      {/* Main Table */}
+      <div className="bg-white shadow rounded-2xl p-4 md:p-5">
         {loadingClubs ? (
           <div className="text-sm text-gray-500">Загрузка клубов...</div>
         ) : clubs.length === 0 ? (
-          <div className="text-sm text-gray-500">Клубов пока нет.</div>
+          <div className="text-sm text-gray-500">
+            Клубов пока нет. Создайте первый клуб.
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {clubs.map((club) => {
-              const clubBranches = branches.filter(
-                (b) => b.clubId === club.id
-              );
-              const isExpanded = expandedClubId === club.id;
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Клуб
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Контакты
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Адрес
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Филиалы
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Действия
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {clubs.map((club) => {
+                  const clubBranches = branches.filter(
+                    (b) => b.clubId === club.id
+                  );
+                  const isExpanded = expandedClubId === club.id;
 
-              return (
-                <div
-                  key={club.id}
-                  className="border border-gray-200 rounded-lg shadow-sm bg-white flex flex-col"
-                >
-                  <button
-                    onClick={() => toggleClubExpand(club.id)}
-                    className="w-full flex items-start justify-between p-4 text-left hover:bg-dispatcher-50 rounded-t-lg transition"
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="p-2 bg-dispatcher-100 rounded-full">
-                        <BuildingOffice2Icon className="h-6 w-6 text-dispatcher-600" />
-                      </div>
-
-                      <div>
-                        <div className="text-base font-semibold text-dispatcher-700">
-                          {club.name}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          slug: {club.slug}
-                        </div>
-
-                        {club.address && (
-                          <div className="flex items-center text-xs text-gray-500 mt-1">
-                            <MapPinIcon className="h-4 w-4 mr-1" />
-                            {club.address}
+                  return (
+                    <React.Fragment key={club.id}>
+                      {/* Основная строка клуба */}
+                      <tr
+                        className="hover:bg-dispatcher-50 cursor-pointer transition-colors"
+                        onClick={() => toggleClubExpand(club.id)}
+                      >
+                        {/* Клуб + slug */}
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="hidden sm:flex h-9 w-9 rounded-full bg-dispatcher-100 items-center justify-center">
+                              <BuildingOffice2Icon className="h-5 w-5 text-dispatcher-700" />
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-800">
+                                {club.name}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                slug: {club.slug}
+                              </div>
+                            </div>
                           </div>
-                        )}
+                        </td>
 
-                        {(club.phone || club.email) && (
-                          <div className="flex flex-col text-xs text-gray-500 mt-1 space-y-0.5">
+                        {/* Контакты */}
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex flex-col text-xs text-gray-600 space-y-0.5">
                             {club.phone && (
                               <span className="flex items-center">
-                                <PhoneIcon className="h-4 w-4 mr-1" />
+                                <PhoneIcon className="h-4 w-4 mr-1 text-gray-400" />
                                 {club.phone}
                               </span>
                             )}
                             {club.email && (
                               <span className="flex items-center">
-                                <EnvelopeIcon className="h-4 w-4 mr-1" />
+                                <EnvelopeIcon className="h-4 w-4 mr-1 text-gray-400" />
                                 {club.email}
                               </span>
                             )}
+                            {!club.phone && !club.email && (
+                              <span className="text-gray-400">
+                                Контакты не указаны
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
+                        </td>
 
-                    <div className="flex items-center space-x-2">
-                      <ChevronDownIcon
-                        className={`h-5 w-5 text-gray-400 transition-transform ${
-                          isExpanded ? "rotate-180" : ""
-                        }`}
-                      />
+                        {/* Адрес */}
+                        <td className="px-4 py-3 text-sm">
+                          {club.address ? (
+                            <div className="flex items-center text-xs text-gray-600">
+                              <MapPinIcon className="h-4 w-4 mr-1 text-gray-400" />
+                              <span className="truncate">{club.address}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Не указан
+                            </span>
+                          )}
+                        </td>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteClub(club.id);
-                        }}
-                        className="text-red-500 hover:text-red-700 font-bold"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </button>
+                        {/* Кол-во филиалов */}
+                        <td className="px-4 py-3 text-sm">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+                            {clubBranches.length}{" "}
+                            <span className="ml-1 hidden sm:inline">
+                              филиал(ов)
+                            </span>
+                          </span>
+                        </td>
 
-                  {/* Expanded */}
-                  {isExpanded && (
-                    <div className="border-t border-gray-100 px-4 pb-4 pt-2 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-700">
-                          Филиалы ({clubBranches.length})
-                        </span>
-
-                        <button
-                          onClick={() => {
-                            setBranchClubId(club.id);
-                            setShowCreateBranchModal(true);
-                          }}
-                          className="inline-flex items-center text-xs px-2 py-1 bg-dispatcher-500 text-white rounded hover:bg-dispatcher-700"
+                        {/* Actions */}
+                        <td
+                          className="px-4 py-3 text-sm text-right"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <PlusIcon className="h-4 w-4 mr-1" />
-                          Филиал
-                        </button>
-                      </div>
-
-                      {loadingBranches ? (
-                        <div className="text-xs text-gray-500">
-                          Загрузка филиалов...
-                        </div>
-                      ) : clubBranches.length === 0 ? (
-                        <div className="text-xs text-gray-500">
-                          Нет филиалов.
-                        </div>
-                      ) : (
-                        <ul className="space-y-1">
-                          {clubBranches.map((b) => (
-                            <li
-                              key={b.id}
-                              className="flex items-start justify-between text-xs bg-gray-50 rounded px-2 py-1"
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setBranchClubId(club.id);
+                                setShowCreateBranchModal(true);
+                              }}
+                              className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-dispatcher-100 text-dispatcher-700 hover:bg-dispatcher-200"
                             >
-                              <div>
-                                <div className="font-semibold text-gray-700">
-                                  {b.name}
-                                </div>
-                                {b.address && (
-                                  <div className="flex items-center text-gray-500">
-                                    <MapPinIcon className="h-3 w-3 mr-1" />
-                                    {b.address}
-                                  </div>
-                                )}
+                              <PlusIcon className="h-4 w-4 mr-1" />
+                              Филиал
+                            </button>
+
+                            <button
+                              onClick={() => deleteClub(club.id)}
+                              className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100"
+                            >
+                              ✕ Удалить
+                            </button>
+
+                            <button
+                              onClick={() => toggleClubExpand(club.id)}
+                              className="p-1.5 rounded-full hover:bg-gray-100"
+                            >
+                              <ChevronDownIcon
+                                className={`h-5 w-5 text-gray-400 transition-transform ${
+                                  isExpanded ? "rotate-180" : ""
+                                }`}
+                              />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Вложенный блок с филиалами */}
+                      {isExpanded && (
+                        <tr className="bg-gray-50/60">
+                          <td
+                            className="px-4 pb-4 pt-1 text-sm text-gray-700"
+                            colSpan={5}
+                          >
+                            <div className="mt-2 rounded-xl border border-gray-200 bg-white p-3 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-semibold text-gray-800">
+                                  Филиалы клуба "{club.name}"
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setBranchClubId(club.id);
+                                    setShowCreateBranchModal(true);
+                                  }}
+                                  className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-dispatcher-500 text-white hover:bg-dispatcher-700"
+                                >
+                                  <PlusIcon className="h-4 w-4 mr-1" />
+                                  Добавить филиал
+                                </button>
                               </div>
 
-                              <button
-                                onClick={() => deleteBranch(b.id)}
-                                className="text-red-500 hover:text-red-700 font-bold ml-2"
-                              >
-                                ✕
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
+                              {loadingBranches ? (
+                                <div className="text-xs text-gray-500">
+                                  Загрузка филиалов...
+                                </div>
+                              ) : clubBranches.length === 0 ? (
+                                <div className="text-xs text-gray-500">
+                                  У этого клуба пока нет филиалов.
+                                </div>
+                              ) : (
+                                <div className="overflow-x-auto">
+                                  <table className="min-w-full text-xs">
+                                    <thead>
+                                      <tr className="border-b border-gray-200 bg-gray-50">
+                                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase">
+                                          Название
+                                        </th>
+                                        <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase">
+                                          Адрес
+                                        </th>
+                                        <th className="px-3 py-2 text-right font-medium text-gray-500 uppercase">
+                                          Действия
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {clubBranches.map((b) => (
+                                        <tr
+                                          key={b.id}
+                                          className="border-b border-gray-100 hover:bg-gray-50"
+                                        >
+                                          <td className="px-3 py-2 font-medium text-gray-800">
+                                            {b.name}
+                                          </td>
+                                          <td className="px-3 py-2 text-gray-600">
+                                            {b.address ? (
+                                              <div className="flex items-center">
+                                                <MapPinIcon className="h-3 w-3 mr-1 text-gray-400" />
+                                                <span className="truncate">
+                                                  {b.address}
+                                                </span>
+                                              </div>
+                                            ) : (
+                                              <span className="text-gray-400">
+                                                Не указан
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="px-3 py-2 text-right">
+                                            <button
+                                              onClick={() => deleteBranch(b.id)}
+                                              className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100"
+                                            >
+                                              ✕ Удалить
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -399,11 +504,11 @@ const ModalWrapper = ({
 }) => {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 animate-slideUp"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 md:p-7 animate-slideUp"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -417,13 +522,21 @@ const CreateClubModal = ({
   setForm,
   onSave,
   onClose,
-}: any) => (
+}: {
+  form: any;
+  setForm: (f: any) => void;
+  onSave: () => void;
+  onClose: () => void;
+}) => (
   <>
     <div className="flex items-center justify-between mb-4">
       <h3 className="text-lg font-semibold text-dispatcher-700">
         Создать клуб
       </h3>
-      <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+      <button
+        onClick={onClose}
+        className="text-gray-400 hover:text-gray-600 text-xl"
+      >
         ✕
       </button>
     </div>
@@ -436,35 +549,39 @@ const CreateClubModal = ({
         ["phone", "Телефон"],
       ].map(([key, label]) => (
         <div key={key} className="space-y-1">
-          <label className="text-xs text-gray-600">{label}</label>
+          <span className="block text-xs font-medium text-gray-600">
+            {label}
+          </span>
           <input
             type="text"
-            className="w-full border rounded px-3 py-2 text-sm"
+            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
             value={form[key]}
             onChange={(e) => setForm({ ...form, [key]: e.target.value })}
           />
         </div>
       ))}
 
-      {/* Address */}
       <div className="space-y-1 md:col-span-2">
-        <label className="text-xs text-gray-600">Адрес</label>
+        <span className="block text-xs font-medium text-gray-600">Адрес</span>
         <input
           type="text"
-          className="w-full border rounded px-3 py-2 text-sm"
+          className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
           value={form.address}
           onChange={(e) => setForm({ ...form, address: e.target.value })}
         />
       </div>
     </div>
 
-    <div className="flex justify-end space-x-2 pt-4">
-      <button onClick={onClose} className="px-4 py-2 text-sm border rounded-md">
+    <div className="flex justify-end space-x-2 pt-5">
+      <button
+        onClick={onClose}
+        className="px-4 py-2 text-sm border border-gray-300 rounded-xl hover:bg-gray-50"
+      >
         Отмена
       </button>
       <LoaderButton
         onClick={onSave}
-        className="px-4 py-2 bg-dispatcher-500 text-white rounded-md hover:bg-dispatcher-700"
+        className="px-4 py-2 text-sm bg-dispatcher-500 text-white rounded-xl hover:bg-dispatcher-700"
       >
         Создать
       </LoaderButton>
@@ -477,47 +594,60 @@ const CreateBranchModal = ({
   setForm,
   onSave,
   onClose,
-}: any) => (
+}: {
+  form: any;
+  setForm: (f: any) => void;
+  onSave: () => void;
+  onClose: () => void;
+}) => (
   <>
     <div className="flex items-center justify-between mb-4">
       <h3 className="text-lg font-semibold text-dispatcher-700">
         Создать филиал
       </h3>
-      <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+      <button
+        onClick={onClose}
+        className="text-gray-400 hover:text-gray-600 text-xl"
+      >
         ✕
       </button>
     </div>
 
     <div className="space-y-3">
       <div className="space-y-1">
-        <label className="text-xs text-gray-600">Название*</label>
+        <span className="block text-xs font-medium text-gray-600">
+          Название*
+        </span>
         <input
           type="text"
-          className="w-full border rounded px-3 py-2 text-sm"
+          className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs text-gray-600">Адрес</label>
+        <span className="block text-xs font-medium text-gray-600">Адрес</span>
         <input
           type="text"
-          className="w-full border rounded px-3 py-2 text-sm"
+          className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
           value={form.address}
           onChange={(e) => setForm({ ...form, address: e.target.value })}
         />
       </div>
     </div>
 
-    <div className="flex justify-end space-x-2 pt-4">
-      <button onClick={onClose} className="px-4 py-2 text-sm border rounded-md">
+    <div className="flex justify-end space-x-2 pt-5">
+      <button
+        onClick={onClose}
+        className="px-4 py-2 text-sm border border-gray-300 rounded-xl hover:bg-gray-50"
+      >
         Отмена
       </button>
 
       <LoaderButton
         onClick={onSave}
-        className="px-4 py-2 bg-dispatcher-500 text-white rounded-md hover:bg-dispatcher-700"
+        className="px-4 py-2 text-sm bg-dispatcher-500 text-white rounded-xl hover:bg-dispatcher-700"
       >
         Создать
       </LoaderButton>
