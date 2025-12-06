@@ -48,6 +48,10 @@ const AdminsPage: React.FC = () => {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
+    // admin deletion
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteInput, setDeleteInput] = useState('');
+
     // форма создания
     const [createForm, setCreateForm] = useState({
         email: '',
@@ -246,9 +250,9 @@ const AdminsPage: React.FC = () => {
         }
     };
 
-    // ---------- Удалить филиал ----------
+    // ---------- Открепить филиал от админа ----------
     const handleUnassignBranch = async (adminId: string, branchId: string) => {
-        if (!window.confirm('Удалить этот филиал у администратора?')) return;
+        if (!window.confirm('Открепить этот филиал у администратора?')) return;
 
         const res = await fetch(
             `http://localhost:8080/dispatcher/admin/${adminId}/unassign-branch`,
@@ -265,7 +269,35 @@ const AdminsPage: React.FC = () => {
             setSelectedAdmin(null);
             await loadAdmins();
         } else {
-            alert('Ошибка удаления филиала');
+            alert('Ошибка откреплении филиала');
+        }
+    };
+
+    // ---------- Удаление админа --------------
+    const handleDeleteAdmin = async () => {
+        if (!selectedAdmin) return;
+
+        if (deleteInput !== selectedAdmin.adminId) {
+            alert("ID неверный. Удаление не подтверждено.");
+            return;
+        }
+
+        const res = await fetch(
+            `http://localhost:8080/dispatcher/admin/${selectedAdmin.adminId}`,
+            {
+                method: 'DELETE',
+                headers: { ...authHeaders }
+            }
+        );
+
+        if (res.ok) {
+            setShowDeleteModal(false);
+            setShowDetailsModal(false);
+            setSelectedAdmin(null);
+            setDeleteInput('');
+            await loadAdmins();
+        } else {
+            alert("Ошибка удаления администратора");
         }
     };
 
@@ -650,6 +682,15 @@ const AdminsPage: React.FC = () => {
                             >
                                 {selectedAdmin.active ? '⛔ Отключить' : '✔️ Включить'}
                             </button>
+                            <button
+                                onClick={() => {
+                                    setDeleteInput('');
+                                    setShowDeleteModal(true);
+                                }}
+                                className="w-full py-2.5 bg-rose-600 text-white rounded-xl hover:bg-rose-700 text-sm font-medium shadow-sm"
+                            >
+                                🗑 Удалить администратора
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -901,6 +942,56 @@ const AdminsPage: React.FC = () => {
                                 onClick={handleCreateAdmin}
                             >
                                 Создать
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showDeleteModal && selectedAdmin && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+                    onClick={() => setShowDeleteModal(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            Подтверждение удаления
+                        </h3>
+
+                        <p className="text-sm text-gray-600 mt-2">
+                            Это действие <span className="font-semibold text-rose-600">невозможно отменить</span>.
+                            Чтобы удалить администратора, введите его ID:
+                        </p>
+
+                        <div className="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-3">
+                            <code className="text-xs text-gray-700">{selectedAdmin.adminId}</code>
+                        </div>
+
+                        <input
+                            type="text"
+                            placeholder="Введите ID администратора"
+                            className="mt-4 w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm
+                                    focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                            value={deleteInput}
+                            onChange={(e) => setDeleteInput(e.target.value)}
+                        />
+
+                        <div className="flex justify-end gap-2 mt-6">
+                            <button
+                                onClick={() => setShowDeleteModal(false)}
+                                className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                                Отмена
+                            </button>
+
+                            <button
+                                onClick={handleDeleteAdmin}
+                                className="px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-medium hover:bg-rose-700 shadow-sm"
+                                disabled={deleteInput.length === 0}
+                            >
+                                Удалить
                             </button>
                         </div>
                     </div>
