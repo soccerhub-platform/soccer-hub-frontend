@@ -7,6 +7,7 @@ import PaymentsPage from './Payments';
 import UsersPage from './Users';
 import AdminLayout from './AdminLayout';
 import ProtectedRoute from '../../shared/ProtectedRoute';
+import CoachesPage from './сoaches/CoachesPage';
 
 /**
  * Defines routes for the admin module.  Admins have access to
@@ -24,6 +25,7 @@ const AdminRoutes: React.FC = () => {
           <Route path="contracts" element={<ContractsPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="coaches" element={<CoachesPage />} />
           <Route index element={<Dashboard />} />
         </Route>
       </Route>

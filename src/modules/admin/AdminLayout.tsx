@@ -6,6 +6,7 @@ import {
   DocumentTextIcon,
   CreditCardIcon,
   UserIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../shared/AuthContext';
 
@@ -40,6 +41,10 @@ const AdminLayout: React.FC = () => {
             <HomeIcon className="h-5 w-5 mr-3" />
             <span>Панель</span>
           </NavLink>
+          <NavLink to="/admin/coaches" className={linkClasses}>
+            <UserGroupIcon className="h-5 w-5 mr-3" />
+            <span>Тренеры</span>
+          </NavLink>
           <NavLink to="/admin/contracts" className={linkClasses}>
             <DocumentTextIcon className="h-5 w-5 mr-3" />
             <span>Контракты</span>
@@ -57,7 +62,7 @@ const AdminLayout: React.FC = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         <header className="flex items-center justify-between bg-white p-4 shadow">
-          <div className="text-admin-700 font-semibold">Здравствуйте{user ? `, ${user.username}` : ''}</div>
+          <div className="text-admin-700 font-semibold">Здравствуйте{user ? `, ${user.email}` : ''}</div>
           <button
             onClick={handleLogout}
             className="px-3 py-1 bg-admin-500 text-white rounded-md hover:bg-admin-700"
