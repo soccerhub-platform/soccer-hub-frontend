@@ -69,9 +69,11 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
 
     setLoading(true);
     try {
-      const coach = await CoachApi.create(form, token);
-      await CoachApi.assignBranch(coach.id, branchId, token);
-
+      const coach = await CoachApi.create(
+        {
+          ...form,
+          branchId,
+        }, token);
       toast.success('Тренер успешно создан');
       onClose();
       onCreated();

@@ -8,6 +8,7 @@ import UsersPage from './Users';
 import AdminLayout from './AdminLayout';
 import ProtectedRoute from '../../shared/ProtectedRoute';
 import CoachesPage from './сoaches/CoachesPage';
+import ChangePasswordPage from '../../shared/components/ChangePassword';
 
 /**
  * Defines routes for the admin module.  Admins have access to
@@ -18,6 +19,8 @@ const AdminRoutes: React.FC = () => {
     <Routes>
       {/* Admin login */}
       <Route path="login" element={<Login />} />
+      <Route path="change-password" element={<ChangePasswordPage />} />
+
       {/* Protected area requiring ADMIN role */}
       <Route element={<ProtectedRoute role="ADMIN" redirectTo="/admin/login" />}>        
         <Route element={<AdminLayout />}>

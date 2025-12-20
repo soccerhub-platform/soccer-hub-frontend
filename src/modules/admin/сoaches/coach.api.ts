@@ -11,6 +11,14 @@ export interface Coach {
   active: boolean;
 }
 
+export interface CreateCoachRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  branchId: string;
+}
+
 export interface Page<T> {
   content: T[];
   totalElements: number;
@@ -34,7 +42,7 @@ async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> 
 }
 
 export const CoachApi = {
-  create(payload: Partial<Coach>, token: string): Promise<Coach> {
+  create(payload: CreateCoachRequest, token: string): Promise<Coach> {
     return fetchJson<Coach>(BASE, {
       method: 'POST',
       headers: {

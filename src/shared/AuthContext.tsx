@@ -4,6 +4,7 @@ export interface User {
   email: string;
   roles: string[];        // массив ролей, гибко на будущее
   accessToken: string;
+  passwordChangeRequired?: boolean;
 }
 
 export type Role = string;
@@ -43,6 +44,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       email,
       roles: [role],          // сохраняем выбранную роль
       accessToken: data.accessToken,
+      passwordChangeRequired: data.passwordChangeRequired,
     };
 
     localStorage.setItem('football-crm:user', JSON.stringify(newUser));

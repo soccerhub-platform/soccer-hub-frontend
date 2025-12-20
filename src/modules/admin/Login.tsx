@@ -18,12 +18,23 @@ const AdminLogin: React.FC = () => {
     e.preventDefault();
 
     try {
-      await login(email, password, 'ADMIN');      // передаём роль ADMIN
-      const from = (location.state as any)?.from?.pathname || '/admin/dashboard';
+      await login(email, password, 'ADMIN');
+
+      const raw = localStorage.getItem('football-crm:user');
+      const savedUser = raw ? JSON.parse(raw) : null;
+
+      if (savedUser?.passwordChangeRequired) {
+        navigate('/admin/change-password?redirect=/admin/login', { replace: true });
+        return;
+      }
+
+      const from =
+        (location.state as any)?.from?.pathname || '/admin/dashboard';
+
       navigate(from, { replace: true });
     } catch (err) {
-      alert("Ошибка входа");
-      console.error(err);
+      alert('Ошибка входа. Проверьте данные.')
+      console.error('Ошибка входа. Проверьте данные.');
     }
   };
 

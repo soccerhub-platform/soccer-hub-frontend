@@ -52,6 +52,11 @@ const AdminsPage: React.FC = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteInput, setDeleteInput] = useState('');
 
+    // reset password
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+    const [resetPasswordValue, setResetPasswordValue] = useState<string | null>(null);
+    const [resetLoading, setResetLoading] = useState(false);
+
     // форма создания
     const [createForm, setCreateForm] = useState({
         email: '',
@@ -270,6 +275,33 @@ const AdminsPage: React.FC = () => {
             await loadAdmins();
         } else {
             alert('Ошибка откреплении филиала');
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!selectedAdmin) return;
+
+        setResetLoading(true);
+        try {
+            const res = await fetch(
+            `http://localhost:8080/dispatcher/admin/${selectedAdmin.adminId}/reset-password`,
+            {
+                method: 'POST',
+                headers: { ...authHeaders },
+            }
+            );
+
+            if (!res.ok) {
+            throw new Error();
+            }
+
+            const data = await res.json();
+            setResetPasswordValue(data.temporaryPassword);
+        } catch {
+            alert('Ошибка сброса пароля');
+            setShowResetPasswordModal(false);
+        } finally {
+            setResetLoading(false);
         }
     };
 
@@ -684,6 +716,15 @@ const AdminsPage: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => {
+                                    setShowDetailsModal(false);
+                                    setShowResetPasswordModal(true);
+                                }}
+                                className="w-full py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 text-sm font-medium shadow-sm"
+                            >
+                                🔐 Сбросить пароль
+                            </button>
+                            <button
+                                onClick={() => {
                                     setDeleteInput('');
                                     setShowDeleteModal(true);
                                 }}
@@ -944,6 +985,73 @@ const AdminsPage: React.FC = () => {
                                 Создать
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {showResetPasswordModal && selectedAdmin && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div
+                    className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                    >
+                    <h3 className="text-lg font-semibold text-gray-900">
+                        Сброс пароля администратора
+                    </h3>
+
+                    {!resetPasswordValue ? (
+                        <>
+                        <p className="text-sm text-gray-600 mt-2">
+                            Будет создан временный пароль. Все активные сессии администратора будут завершены.
+                        </p>
+
+                        <div className="flex justify-end gap-2 mt-6">
+                            <button
+                            className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm"
+                            onClick={() => setShowResetPasswordModal(false)}
+                            >
+                            Отмена
+                            </button>
+
+                            <button
+                            onClick={handleResetPassword}
+                            disabled={resetLoading}
+                            className="px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700"
+                            >
+                            {resetLoading ? 'Сброс...' : 'Сбросить пароль'}
+                            </button>
+                        </div>
+                        </>
+                    ) : (
+                        <>
+                        <p className="text-sm text-gray-600 mt-2">
+                            Временный пароль (показан один раз):
+                        </p>
+
+                        <div className="mt-3 bg-gray-100 border border-gray-200 rounded-xl p-3">
+                            <code className="text-sm font-semibold text-gray-900">
+                            {resetPasswordValue}
+                            </code>
+                        </div>
+
+                        <p className="text-xs text-rose-600 mt-2">
+                            Сохраните пароль сейчас. Повторно он показан не будет.
+                        </p>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                            onClick={() => {
+                                setShowResetPasswordModal(false);
+                                setResetPasswordValue(null);
+                                setSelectedAdmin(null);
+                            }}
+                            className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium"
+                            >
+                            Готово
+                            </button>
+                        </div>
+                        </>
+                    )}
                     </div>
                 </div>
             )}
