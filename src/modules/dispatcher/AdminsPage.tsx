@@ -42,6 +42,9 @@ const AdminsPage: React.FC = () => {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
 
+    const [createdAdminPassword, setCreatedAdminPassword] = useState<string | null>(null);
+    const [showCreatedPasswordModal, setShowCreatedPasswordModal] = useState(false);
+
     const [selectedAdmin, setSelectedAdmin] = useState<AdminView | null>(null);
 
     // фильтры
@@ -157,25 +160,33 @@ const AdminsPage: React.FC = () => {
 
     // ---------- Создание ----------
     const handleCreateAdmin = async () => {
+        
         const res = await fetch('http://localhost:8080/dispatcher/admin/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify(createForm),
         });
 
-        if (res.ok) {
-            setShowCreateModal(false);
-            setCreateForm({
-                email: '',
-                firstName: '',
-                lastName: '',
-                phone: '',
-                assignedBranch: '',
-            });
-            await loadAdmins();
-        } else {
+        if (!res.ok) {
             alert('Ошибка создания администратора');
+            return;
         }
+
+        const data = await res.json();
+
+        setCreatedAdminPassword(data.tempPassword);
+        setShowCreatedPasswordModal(true);
+        
+        setShowCreateModal(false);
+        setCreateForm({
+            email: '',
+            firstName: '',
+            lastName: '',
+            phone: '',
+            assignedBranch: '',
+        });
+
+        await loadAdmins();
     };
 
     // ---------- Редактирование ----------
@@ -985,6 +996,42 @@ const AdminsPage: React.FC = () => {
                                 Создать
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {showCreatedPasswordModal && createdAdminPassword && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                        Администратор создан
+                    </h3>
+
+                    <p className="text-sm text-gray-600 mt-2">
+                        Временный пароль (показан <b>один раз</b>):
+                    </p>
+
+                    <div className="mt-3 bg-gray-100 border border-gray-200 rounded-xl p-3">
+                        <code className="text-sm font-semibold text-gray-900">
+                        {createdAdminPassword}
+                        </code>
+                    </div>
+
+                    <p className="text-xs text-rose-600 mt-2">
+                        Сохраните пароль сейчас. Повторно он показан не будет.
+                    </p>
+
+                    <div className="flex justify-end mt-6">
+                        <button
+                        onClick={() => {
+                            setShowCreatedPasswordModal(false);
+                            setCreatedAdminPassword(null);
+                        }}
+                        className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium"
+                        >
+                        Готово
+                        </button>
+                    </div>
                     </div>
                 </div>
             )}
