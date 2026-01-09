@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { useAdminBranch } from "../context/BranchContext";
+import { useAdminBranch } from "../BranchContext";
 
 const BranchGuard: React.FC = () => {
   const { isResolved, branchId } = useAdminBranch();

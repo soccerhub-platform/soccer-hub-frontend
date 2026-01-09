@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { BuildingOfficeIcon } from "@heroicons/react/24/outline";
 
 import { useAuth } from "../../../shared/AuthContext";
-import { useAdminBranch } from "../context/BranchContext";
+import { useAdminBranch } from "../BranchContext";
 import { BranchApi, Branch } from "./branch.api";
 
 /* ================= UI MODEL ================= */

@@ -11,7 +11,7 @@ import CoachesPage from './сoaches/CoachesPage';
 import ChangePasswordPage from '../../shared/components/ChangePassword';
 import GroupsPage from './groups/GroupsPage';
 import GroupDetailsPage from './groups/GroupDetailsPage';
-import { AdminBranchProvider } from './context/BranchContext';
+import { AdminBranchProvider } from './BranchContext';
 import BranchSelectPage from './branches/BranchSelectPage';
 import BranchGuard from './branches/BranchGuard';
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../shared/AuthContext';
-import { useAdminBranch } from '../context/BranchContext';
+import { useAdminBranch } from '../BranchContext';
 import { CoachApi } from './coach.api';
 import LoaderButton from '../../../shared/LoaderButton';
 import toast from 'react-hot-toast';

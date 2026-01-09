@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { PlusIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 
 import { useAuth } from '../../../shared/AuthContext';
-import { useAdminBranch } from '../context/BranchContext';
+import { useAdminBranch } from '../BranchContext';
 import { CoachApi, Coach, Page } from './coach.api';
 import { PageTable } from '../../../shared/components/PageTable';
 

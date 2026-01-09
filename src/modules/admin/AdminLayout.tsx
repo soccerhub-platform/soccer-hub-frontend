@@ -10,7 +10,7 @@ import {
   ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../shared/AuthContext";
-import { useAdminBranch } from "./context/BranchContext";
+import { useAdminBranch } from "./BranchContext";
 
 const AdminLayout: React.FC = () => {
   const { logout, user } = useAuth();
