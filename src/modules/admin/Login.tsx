@@ -29,7 +29,7 @@ const AdminLogin: React.FC = () => {
       }
 
       const from =
-        (location.state as any)?.from?.pathname || '/admin/dashboard';
+        (location.state as any)?.from?.pathname || '/admin/branch-select';
 
       navigate(from, { replace: true });
     } catch (err) {

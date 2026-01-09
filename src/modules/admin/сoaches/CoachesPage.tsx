@@ -1,64 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../../shared/AuthContext';
 import { PlusIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 
+import { useAuth } from '../../../shared/AuthContext';
+import { useAdminBranch } from '../context/BranchContext';
 import { CoachApi, Coach, Page } from './coach.api';
 import { PageTable } from '../../../shared/components/PageTable';
 
 import CreateCoachModal from './CreateCoachModal';
 import CoachDetailsModal from './CoachDetailsModal';
 
-/* ================= TYPES ================= */
-
-interface Branch {
-  branchId: string;
-  name: string;
-  address?: string;
-  clubId: string;
-}
-
-/* ================= PAGE ================= */
-
 const CoachesPage: React.FC = () => {
   const { user } = useAuth();
   const token = user?.accessToken!;
-
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState('');
+  const { branchId } = useAdminBranch();
 
   const [page, setPage] = useState(0);
   const [size] = useState(10);
   const [pageData, setPageData] = useState<Page<Coach> | null>(null);
-
   const [loading, setLoading] = useState(false);
+
   const [showCreate, setShowCreate] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
 
-  /* ---------- LOAD BRANCHES ---------- */
-  const loadBranches = async () => {
-    try {
-      const res = await fetch('http://localhost:8080/admin/branch', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setBranches(data?.branches ?? []);
-    } catch (e) {
-      console.error('Failed to load branches', e);
-      setBranches([]);
-    }
-  };
-
-  /* ---------- LOAD COACHES (PAGEABLE) ---------- */
   const loadCoaches = async () => {
-    if (!selectedBranch) {
-      setPageData(null);
-      return;
-    }
+    if (!branchId) return;
 
     setLoading(true);
     try {
       const data = await CoachApi.listByBranch(
-        selectedBranch,
+        branchId,
         token,
         page,
         size
@@ -72,20 +42,21 @@ const CoachesPage: React.FC = () => {
     }
   };
 
-  /* ---------- EFFECTS ---------- */
   useEffect(() => {
-    loadBranches();
-  }, []);
-
-  useEffect(() => {
-    setPage(0); // reset page when branch changes
-  }, [selectedBranch]);
+    setPage(0);
+  }, [branchId]);
 
   useEffect(() => {
     loadCoaches();
-  }, [selectedBranch, page]);
+  }, [branchId, page]);
 
-  /* ================= UI ================= */
+  if (!branchId) {
+    return (
+      <div className="bg-white p-6 rounded-xl border text-sm text-gray-500">
+        Сначала выберите филиал
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -94,7 +65,7 @@ const CoachesPage: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-admin-700">Тренеры</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Управление тренерами по филиалам
+            Управление тренерами текущего филиала
           </p>
         </div>
 
@@ -105,26 +76,6 @@ const CoachesPage: React.FC = () => {
           <PlusIcon className="h-5 w-5 mr-2" />
           Добавить тренера
         </button>
-      </div>
-
-      {/* FILTER */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border">
-        <label className="block text-xs font-medium text-gray-600 mb-1">
-          Филиал
-        </label>
-        <select
-          value={selectedBranch}
-          onChange={(e) => setSelectedBranch(e.target.value)}
-          className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-admin-500 focus:border-admin-500"
-        >
-          <option value="">Выберите филиал</option>
-          {branches.map((b) => (
-            <option key={b.branchId} value={b.branchId}>
-              {b.name}
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* TABLE */}
@@ -176,7 +127,6 @@ const CoachesPage: React.FC = () => {
         />
       )}
 
-      {/* CREATE MODAL */}
       {showCreate && (
         <CreateCoachModal
           onClose={() => setShowCreate(false)}
@@ -184,7 +134,6 @@ const CoachesPage: React.FC = () => {
         />
       )}
 
-      {/* DETAILS MODAL */}
       {selectedCoach && (
         <CoachDetailsModal
           coach={selectedCoach}

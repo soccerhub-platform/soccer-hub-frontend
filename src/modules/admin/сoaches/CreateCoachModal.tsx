@@ -1,31 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../../shared/AuthContext';
+import { useAdminBranch } from '../context/BranchContext';
 import { CoachApi } from './coach.api';
 import LoaderButton from '../../../shared/LoaderButton';
 import toast from 'react-hot-toast';
-
-/* ================= TYPES ================= */
-
-interface Branch {
-  branchId: string;
-  name: string;
-}
-
-/* ================= PROPS ================= */
 
 interface Props {
   onClose: () => void;
   onCreated: () => void;
 }
 
-/* ================= MODAL ================= */
-
 const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const { user } = useAuth();
   const token = user?.accessToken!;
-
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchId, setBranchId] = useState('');
+  const { branchId } = useAdminBranch();
 
   const [form, setForm] = useState({
     firstName: '',
@@ -36,44 +24,32 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
 
   const [loading, setLoading] = useState(false);
 
-  /* ---------- LOAD BRANCHES ---------- */
-  const loadBranches = async () => {
-    try {
-      const res = await fetch('http://localhost:8080/admin/branch', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const data = await res.json();
-      setBranches(data.branches ?? []);
-    } catch {
-      toast.error('Не удалось загрузить филиалы');
-    }
-  };
-
-  useEffect(() => {
-    loadBranches();
-  }, []);
-
-  /* ---------- SUBMIT ---------- */
   const handleSubmit = async () => {
+    if (!branchId) {
+      toast.error('Филиал не выбран');
+      return;
+    }
+
     if (
       !form.firstName.trim() ||
       !form.lastName.trim() ||
       !form.email.trim() ||
-      !form.phone.trim() ||
-      !branchId
+      !form.phone.trim()
     ) {
-      toast.error('Заполните все поля и выберите филиал');
+      toast.error('Заполните все поля');
       return;
     }
 
     setLoading(true);
     try {
-      const coach = await CoachApi.create(
+      await CoachApi.create(
         {
           ...form,
           branchId,
-        }, token);
+        },
+        token
+      );
+
       toast.success('Тренер успешно создан');
       onClose();
       onCreated();
@@ -85,15 +61,13 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
     }
   };
 
-  /* ================= UI ================= */
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-slideUp"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
@@ -133,33 +107,13 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
             onChange={(v) => setForm({ ...form, phone: v })}
             placeholder="+7..."
           />
-
-          {/* BRANCH SELECT */}
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-600">
-              Филиал*
-            </label>
-            <select
-              value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-admin-500 focus:border-admin-500"
-            >
-              <option value="">Выберите филиал</option>
-              {branches.map((b) => (
-                <option key={b.branchId} value={b.branchId}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
         {/* ACTIONS */}
         <div className="flex justify-end gap-2 pt-5">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-xl hover:bg-gray-50"
+            className="px-4 py-2 text-sm border rounded-xl hover:bg-gray-50"
             disabled={loading}
           >
             Отмена
@@ -204,8 +158,8 @@ const Input = ({
       placeholder={placeholder}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm
-                 focus:outline-none focus:ring-2 focus:ring-admin-500 focus:border-admin-500"
+      className="w-full border rounded-xl px-3.5 py-2.5 text-sm
+                 focus:outline-none focus:ring-2 focus:ring-admin-500"
     />
   </div>
 );
