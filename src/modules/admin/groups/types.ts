@@ -1,20 +1,3 @@
-export interface GroupFiltersValue {
-  search: string;
-  branchId: string;
-  status: string;
-}
-
-export interface Group {
-  id: string;
-  name: string;
-  branch: string;
-  ageRange: string;
-  level: string;
-  coachesCount: number;
-  scheduleDays: string[];
-  status: "ACTIVE" | "PAUSED" | "STOPPED";
-}
-
 export interface Coach {
   id: string;
   firstName: string;

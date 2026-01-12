@@ -1,13 +1,58 @@
-import React, { useState } from "react";
-import GroupsTable from "./components/GroupsTable";
+import React, { useEffect, useMemo, useState } from "react";
 import GroupFilters from "./components/GroupFilters";
+import GroupsTable from "./components/GroupsTable";
+import { useAuth } from "../../../shared/AuthContext";
+import { GroupApi, GroupApiModel } from "./group.api";
+import { useAdminBranch } from "../BranchContext";
 
 const GroupsPage: React.FC = () => {
+  const { user } = useAuth();
+  const token = user?.accessToken!;
+  const { branchId } = useAdminBranch();
+
+  const [groups, setGroups] = useState<GroupApiModel[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const [filters, setFilters] = useState({
     search: "",
-    branchId: "",
     status: "",
   });
+
+  useEffect(() => {
+    if (!branchId) return;
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await GroupApi.listByBranch(branchId, token);
+        setGroups(data);
+      } catch (e) {
+        console.error("Failed to load groups", e);
+        setGroups([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [branchId, token]);
+
+  const filteredGroups = useMemo(() => {
+    return groups.filter((g) => {
+      if (
+        filters.search &&
+        !g.name.toLowerCase().includes(filters.search.toLowerCase())
+      ) {
+        return false;
+      }
+
+      if (filters.status && g.status !== filters.status) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [groups, filters]);
 
   return (
     <div className="space-y-6">
@@ -25,11 +70,15 @@ const GroupsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Filters */}
       <GroupFilters value={filters} onChange={setFilters} />
 
-      {/* Table */}
-      <GroupsTable filters={filters} />
+      {loading ? (
+        <div className="bg-white p-4 rounded-xl border text-sm text-gray-500">
+          Загрузка групп…
+        </div>
+      ) : (
+        <GroupsTable groups={filteredGroups} />
+      )}
     </div>
   );
 };
