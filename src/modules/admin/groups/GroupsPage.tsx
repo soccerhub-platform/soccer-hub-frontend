@@ -4,6 +4,7 @@ import GroupsTable from "./components/GroupsTable";
 import { useAuth } from "../../../shared/AuthContext";
 import { GroupApi, GroupApiModel } from "./group.api";
 import { useAdminBranch } from "../BranchContext";
+import CreateGroupModal from "./components/CreateGroupModal";
 
 const GroupsPage: React.FC = () => {
   const { user } = useAuth();
@@ -12,6 +13,8 @@ const GroupsPage: React.FC = () => {
 
   const [groups, setGroups] = useState<GroupApiModel[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const [showCreate, setShowCreate] = useState(false);
 
   const [filters, setFilters] = useState({
     search: "",
@@ -65,7 +68,10 @@ const GroupsPage: React.FC = () => {
           </p>
         </div>
 
-        <button className="px-4 py-2 rounded-xl bg-admin-500 text-white text-sm font-medium hover:bg-admin-700">
+        <button
+          onClick={() => setShowCreate(true)}
+          className="px-4 py-2 rounded-xl bg-admin-500 text-white text-sm font-medium hover:bg-admin-700"
+        >
           + Создать группу
         </button>
       </div>
@@ -78,6 +84,19 @@ const GroupsPage: React.FC = () => {
         </div>
       ) : (
         <GroupsTable groups={filteredGroups} />
+      )}
+
+      {showCreate && (
+        <CreateGroupModal
+          onClose={() => setShowCreate(false)}
+          onCreated={() => {
+            setShowCreate(false);
+            // перезагрузка списка
+            if (branchId) {
+              GroupApi.listByBranch(branchId, token).then(setGroups);
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -57,15 +57,18 @@ export const CoachApi = {
     branchId: string,
     token: string,
     page = 0,
-    size = 10
+    size = 10,
+    search?: string
   ): Promise<Page<Coach>> {
+    const qs = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+      ...(search ? { search } : {}),
+    });
+
     return fetchJson<Page<Coach>>(
-      `${BASE}/all/branch/${branchId}?page=${page}&size=${size}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      `${BASE}/all/branch/${branchId}?${qs}`,
+      { headers: { Authorization: `Bearer ${token}` } }
     );
   },
 
