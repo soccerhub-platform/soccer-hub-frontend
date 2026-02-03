@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import GroupCoachesTab from "./GroupCoachesTab";
-import GroupScheduleTab from "./GroupScheduleTab";
+import GroupScheduleTab from "../schedule/GroupScheduleTab";
 
 type TabId = "coaches" | "schedule";
 
