@@ -1,7 +1,8 @@
 import { Coach } from "../сoaches/coach.api";
+import { getApiUrl } from "../../../shared/api";
 
-const ORG_GROUP_BASE = "http://localhost:8080/organization/groups";
-const ADMIN_GROUP_BASE = "http://localhost:8080/admin/groups";
+const ORG_GROUP_BASE = getApiUrl("/organization/groups");
+const ADMIN_GROUP_BASE = getApiUrl("/admin/groups");
 
 /* ================= TYPES ================= */
 

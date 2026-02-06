@@ -1,6 +1,7 @@
 // src/admin/branches/branch.api.ts
+import { getApiUrl } from "../../../shared/api";
 
-const BASE = "http://localhost:8080/admin/branches";
+const BASE = getApiUrl("/admin/branches");
 
 /* ================= API TYPES ================= */
 

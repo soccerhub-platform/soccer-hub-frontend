@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../shared/AuthContext';
+import { getApiUrl } from '../api';
 import toast from 'react-hot-toast';
 
 const ChangePasswordPage: React.FC = () => {
@@ -23,7 +24,7 @@ const ChangePasswordPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8080/auth/change-password', {
+      const res = await fetch(getApiUrl('/auth/change-password'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

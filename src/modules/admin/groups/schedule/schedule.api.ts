@@ -3,9 +3,10 @@ import {
   CreateScheduleBatchCommand,
   UpdateScheduleBatchCommand,
 } from "./schedule.types";
+import { getApiUrl } from "../../../../shared/api";
 
-const ORG_BASE = "http://localhost:8080/organization";
-const ADMIN_BASE = "http://localhost:8080/admin";
+const ORG_BASE = getApiUrl("/organization");
+const ADMIN_BASE = getApiUrl("/admin");
 
 async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const res = await fetch(input, init);

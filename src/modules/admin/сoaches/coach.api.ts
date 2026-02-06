@@ -1,4 +1,6 @@
-const BASE = 'http://localhost:8080/admin/coach';
+import { getApiUrl } from '../../../shared/api';
+
+const BASE = getApiUrl('/admin/coach');
 
 /* ================= TYPES ================= */
 

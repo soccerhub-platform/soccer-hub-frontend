@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { getApiUrl } from "../../shared/api";
 
 type BranchId = string;
 
@@ -47,7 +48,7 @@ export const AdminBranchProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         const { accessToken } = JSON.parse(tokenRaw);
 
-        const res = await fetch("http://localhost:8080/admin/branches", {
+        const res = await fetch(getApiUrl("/admin/branches"), {
             headers: { Authorization: `Bearer ${accessToken}` },
         });
 

@@ -2,6 +2,15 @@ import axios from 'axios';
 import { User } from './AuthContext';
 import toast from "react-hot-toast";
 
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
+
+export const getApiUrl = (path: string) => {
+  if (!path) return API_BASE_URL;
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${normalized}`;
+};
+
 export async function apiRequest(url: string, options: RequestInit = {}, success?: string) {
   try {
     const res = await fetch(url, options);
@@ -49,7 +58,7 @@ export async function apiRequest(url: string, options: RequestInit = {}, success
  * server.  The request interceptor attaches a dummy Authorization
  * header if a user is present in localStorage.  */
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
 });
 
 // Attach a token (if any) to outgoing requests.  In a real

@@ -8,7 +8,7 @@ import {
   EnvelopeIcon,
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
-import { apiRequest } from "../../shared/api";
+import { apiRequest, getApiUrl } from "../../shared/api";
 import toast from "react-hot-toast";
 import LoaderButton from "../../shared/LoaderButton";
 
@@ -66,7 +66,7 @@ const ClubsAndBranchesPage: React.FC = () => {
   const loadClubs = async () => {
     setLoadingClubs(true);
     try {
-      const data = await apiRequest("http://localhost:8080/dispatcher/club", {
+      const data = await apiRequest(getApiUrl("/dispatcher/club"), {
         headers: { ...authHeaders },
       });
 
@@ -91,7 +91,7 @@ const ClubsAndBranchesPage: React.FC = () => {
   const loadBranches = async () => {
     setLoadingBranches(true);
     try {
-      const data = await apiRequest("http://localhost:8080/dispatcher/branch", {
+      const data = await apiRequest(getApiUrl("/dispatcher/branch"), {
         headers: { ...authHeaders },
       });
 
@@ -120,7 +120,7 @@ const ClubsAndBranchesPage: React.FC = () => {
   // ---- Создать клуб ----
   const handleCreateClub = async () => {
     try {
-      await apiRequest("http://localhost:8080/dispatcher/club/create", {
+      await apiRequest(getApiUrl("/dispatcher/club/create"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,7 +144,7 @@ const ClubsAndBranchesPage: React.FC = () => {
     if (!branchClubId) return;
 
     try {
-      await apiRequest("http://localhost:8080/dispatcher/branch/create", {
+      await apiRequest(getApiUrl("/dispatcher/branch/create"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -170,7 +170,7 @@ const ClubsAndBranchesPage: React.FC = () => {
     if (!confirm("Удалить клуб?")) return;
 
     try {
-      await apiRequest(`http://localhost:8080/dispatcher/club/${clubId}`, {
+      await apiRequest(getApiUrl(`/dispatcher/club/${clubId}`), {
         method: "DELETE",
         headers: { ...authHeaders },
       });
@@ -187,7 +187,7 @@ const ClubsAndBranchesPage: React.FC = () => {
     if (!confirm("Удалить филиал?")) return;
 
     try {
-      await apiRequest(`http://localhost:8080/dispatcher/branch/${branchId}`, {
+      await apiRequest(getApiUrl(`/dispatcher/branch/${branchId}`), {
         method: "DELETE",
         headers: { ...authHeaders },
       });

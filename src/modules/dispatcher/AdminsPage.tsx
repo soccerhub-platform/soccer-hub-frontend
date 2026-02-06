@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../shared/AuthContext';
+import { getApiUrl } from '../../shared/api';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
 // Интерфейсы соответствуют бэку
@@ -87,7 +88,7 @@ const AdminsPage: React.FC = () => {
     const loadAdmins = async () => {
         try {
             setLoading(true);
-            const res = await fetch('http://localhost:8080/dispatcher/admin', {
+            const res = await fetch(getApiUrl('/dispatcher/admin'), {
                 headers: { ...authHeaders },
             });
 
@@ -119,7 +120,7 @@ const AdminsPage: React.FC = () => {
 
     // ---------- Загрузка филиалов ----------
     const loadBranches = async () => {
-        const res = await fetch('http://localhost:8080/dispatcher/branch', {
+        const res = await fetch(getApiUrl('/dispatcher/branch'), {
             headers: { ...authHeaders },
         });
         const data = await res.json();
@@ -161,7 +162,7 @@ const AdminsPage: React.FC = () => {
     // ---------- Создание ----------
     const handleCreateAdmin = async () => {
         
-        const res = await fetch('http://localhost:8080/dispatcher/admin/register', {
+        const res = await fetch(getApiUrl('/dispatcher/admin/register'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify(createForm),
@@ -204,7 +205,7 @@ const AdminsPage: React.FC = () => {
         if (!selectedAdmin) return;
 
         const res = await fetch(
-            `http://localhost:8080/dispatcher/admin/${selectedAdmin.adminId}`,
+            getApiUrl(`/dispatcher/admin/${selectedAdmin.adminId}`),
             {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', ...authHeaders },
@@ -224,7 +225,7 @@ const AdminsPage: React.FC = () => {
     // ---------- Статус ----------
     const toggleStatus = async (adminId: string, nextActive: boolean) => {
         const res = await fetch(
-            `http://localhost:8080/dispatcher/admin/${adminId}/status`,
+            getApiUrl(`/dispatcher/admin/${adminId}/status`),
             {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', ...authHeaders },
@@ -249,7 +250,7 @@ const AdminsPage: React.FC = () => {
         if (!selectedAdmin || !assignBranchId) return;
 
         const res = await fetch(
-            `http://localhost:8080/dispatcher/admin/${selectedAdmin.adminId}/assign-branch`,
+            getApiUrl(`/dispatcher/admin/${selectedAdmin.adminId}/assign-branch`),
             {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', ...authHeaders },
@@ -271,7 +272,7 @@ const AdminsPage: React.FC = () => {
         if (!window.confirm('Открепить этот филиал у администратора?')) return;
 
         const res = await fetch(
-            `http://localhost:8080/dispatcher/admin/${adminId}/unassign-branch`,
+            getApiUrl(`/dispatcher/admin/${adminId}/unassign-branch`),
             {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', ...authHeaders },
@@ -295,7 +296,7 @@ const AdminsPage: React.FC = () => {
         setResetLoading(true);
         try {
             const res = await fetch(
-            `http://localhost:8080/dispatcher/admin/${selectedAdmin.adminId}/reset-password`,
+            getApiUrl(`/dispatcher/admin/${selectedAdmin.adminId}/reset-password`),
             {
                 method: 'POST',
                 headers: { ...authHeaders },
@@ -326,7 +327,7 @@ const AdminsPage: React.FC = () => {
         }
 
         const res = await fetch(
-            `http://localhost:8080/dispatcher/admin/${selectedAdmin.adminId}`,
+            getApiUrl(`/dispatcher/admin/${selectedAdmin.adminId}`),
             {
                 method: 'DELETE',
                 headers: { ...authHeaders }
