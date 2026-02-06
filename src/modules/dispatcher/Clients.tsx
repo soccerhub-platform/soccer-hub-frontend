@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Client, ClientStatus } from '../../shared/types';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '../../shared/AuthContext';
+import { apiRequest, getApiUrl } from '../../shared/api';
 
 const statusLabels: Record<ClientStatus, string> = {
   NEW: 'Новый',
@@ -19,39 +19,53 @@ const statusLabels: Record<ClientStatus, string> = {
 
 
 const ClientsPage: React.FC = () => {
-  const { user } = useAuth();
-  
   const [clients, setClients] = useState<Client[]>([]);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClientStatus | 'ALL'>('ALL');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchClients = async () => {
+    const loadClients = async () => {
       try {
-        const response = await fetch('/api/client/all', {
-          headers: {
-            Authorization: `Bearer ${user?.accessToken}`,
-          }
-        }); // adjust URL if needed
-        const data = await response.json();
-        setClients(data);
+        setError(null);
+        const data = await apiRequest(getApiUrl('/api/client/all'));
+        setClients(Array.isArray(data) ? data : data?.content ?? []);
       } catch (error) {
         console.error('Failed to fetch clients', error);
+        setError('Не удалось загрузить клиентов');
+      } finally {
+        setLoading(false);
       }
     };
-    fetchClients();
+    loadClients();
   }, []);
 
-  const filtered = clients.filter((client) => {
-    const matchesQuery = client.name.toLowerCase().includes(query.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || client.status === statusFilter;
-    return matchesQuery && matchesStatus;
-  });
+  const filtered = useMemo(() => {
+    return clients.filter((client) => {
+      const matchesQuery = client.name.toLowerCase().includes(query.toLowerCase());
+      const matchesStatus = statusFilter === 'ALL' || client.status === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
+  }, [clients, query, statusFilter]);
 
   return (
-    <div>
-      <h2 className="text-xl font-bold text-dispatcher-700 mb-4">Клиенты</h2>
-      <div className="flex flex-col md:flex-row md:items-end md:space-x-4 mb-4 space-y-2 md:space-y-0">
+    <div className="space-y-4">
+      <div>
+        <h2 className="heading-font text-2xl font-semibold text-dispatcher-700">
+          Клиенты
+        </h2>
+        <p className="text-sm text-slate-500 mt-1">
+          Управляйте клиентской базой и статусами заявок.
+        </p>
+      </div>
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+      <div className="glass-card rounded-2xl p-4">
+        <div className="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-2 md:space-y-0">
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700" htmlFor="search">
             Поиск
@@ -91,8 +105,9 @@ const ClientsPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 bg-white shadow rounded">
+      </div>
+      <div className="overflow-x-auto glass-card rounded-2xl p-3">
+        <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -107,6 +122,13 @@ const ClientsPage: React.FC = () => {
             </tr>
           </thead>
             <tbody className="divide-y divide-gray-200">
+              {loading && (
+                <tr>
+                  <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">
+                    Загрузка клиентов...
+                  </td>
+                </tr>
+              )}
               {filtered.map((client) => (
                 <tr key={client.id} className="hover:bg-dispatcher-100">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -120,7 +142,7 @@ const ClientsPage: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <tr>
                   <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">
                     Нет клиентов, соответствующих критериям

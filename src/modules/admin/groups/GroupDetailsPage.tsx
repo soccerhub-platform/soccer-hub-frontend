@@ -9,6 +9,7 @@ import {
 } from "./group.api";
 import GroupTabs from "./components/GroupTabs";
 import GroupSummary from "./components/GroupSummary";
+import toast from "react-hot-toast";
 
 /* ================= STATUS BADGE ================= */
 
@@ -41,7 +42,7 @@ const GroupDetailsPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const token = user?.accessToken!;
+  const token = user?.accessToken;
 
   const [group, setGroup] = useState<GroupApiModel | null>(null);
   const [summary, setSummary] = useState<GroupSummaryModel | null>(null);
@@ -52,6 +53,7 @@ const GroupDetailsPage: React.FC = () => {
   /* ================= LOAD ================= */
 
   useEffect(() => {
+    if (!token) return;
     if (!groupId) return;
 
     setLoading(true);
@@ -86,13 +88,17 @@ const GroupDetailsPage: React.FC = () => {
       setGroup({ ...group, status });
     } catch (e) {
       console.error(e);
-      alert("Не удалось изменить статус группы");
+      toast.error("Не удалось изменить статус группы");
     } finally {
       setUpdating(false);
     }
   };
 
   /* ================= UI ================= */
+
+  if (!token) {
+    return <div className="text-sm text-red-500">Нет авторизации</div>;
+  }
 
   if (loading) {
     return (

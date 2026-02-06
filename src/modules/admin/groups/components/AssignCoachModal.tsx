@@ -3,6 +3,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "../../../../shared/AuthContext";
 import { CoachApi, Coach } from "../../сoaches/coach.api";
 import { GroupApi } from "../group.api";
+import toast from "react-hot-toast";
 
 interface Props {
   groupId: string;
@@ -22,7 +23,7 @@ const AssignCoachModal: React.FC<Props> = ({
   onAssigned,
 }) => {
   const { user } = useAuth();
-  const token = user?.accessToken!;
+  const token = user?.accessToken;
 
   const [data, setData] = useState<any>(null);
   const [page, setPage] = useState(0);
@@ -32,6 +33,10 @@ const AssignCoachModal: React.FC<Props> = ({
   const [roles, setRoles] = useState<Record<string, "MAIN" | "ASSISTANT">>({});
 
   const load = async () => {
+    if (!token) {
+      toast.error("Нет авторизации");
+      return;
+    }
     const res = await CoachApi.listByBranch(
       branchId,
       token,
@@ -43,9 +48,13 @@ const AssignCoachModal: React.FC<Props> = ({
 
   useEffect(() => {
     load();
-  }, [page]);
+  }, [page, branchId, token]);
 
   const assign = async (coachId: string) => {
+    if (!token) {
+      toast.error("Нет авторизации");
+      return;
+    }
     const role = roles[coachId] ?? "ASSISTANT";
 
     setAssigningId(coachId);
@@ -55,9 +64,9 @@ const AssignCoachModal: React.FC<Props> = ({
       onClose();
     } catch (e: any) {
       if (e.message?.includes("already assigned")) {
-        alert("Тренер уже назначен в эту группу");
+        toast.error("Тренер уже назначен в эту группу");
       } else {
-        alert("Не удалось назначить тренера");
+        toast.error("Не удалось назначить тренера");
       }
     } finally {
       setAssigningId(null);

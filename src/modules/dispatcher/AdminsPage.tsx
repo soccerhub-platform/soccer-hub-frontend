@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../shared/AuthContext';
 import { getApiUrl } from '../../shared/api';
 import { PlusIcon } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
 
 // Интерфейсы соответствуют бэку
 interface BranchAssignment {
@@ -84,6 +85,12 @@ const AdminsPage: React.FC = () => {
         ? { Authorization: `Bearer ${user.accessToken}` }
         : {};
 
+    const isValidEmail = (value: string) =>
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+    const isValidPhone = (value: string) =>
+        value.length === 0 || /^[+0-9()\s-]{7,}$/.test(value);
+
     // ---------- Загрузка админов ----------
     const loadAdmins = async () => {
         try {
@@ -113,6 +120,9 @@ const AdminsPage: React.FC = () => {
                         : [],
                 }))
             );
+        } catch (error) {
+            console.error(error);
+            toast.error('Не удалось загрузить администраторов');
         } finally {
             setLoading(false);
         }
@@ -120,12 +130,17 @@ const AdminsPage: React.FC = () => {
 
     // ---------- Загрузка филиалов ----------
     const loadBranches = async () => {
-        const res = await fetch(getApiUrl('/dispatcher/branch'), {
-            headers: { ...authHeaders },
-        });
-        const data = await res.json();
-        const raw = Array.isArray(data) ? data : data.branches ?? [];
-        setBranches(raw.map((b: any) => ({ branchId: b.branchId, name: b.name })));
+        try {
+            const res = await fetch(getApiUrl('/dispatcher/branch'), {
+                headers: { ...authHeaders },
+            });
+            const data = await res.json();
+            const raw = Array.isArray(data) ? data : data.branches ?? [];
+            setBranches(raw.map((b: any) => ({ branchId: b.branchId, name: b.name })));
+        } catch (error) {
+            console.error(error);
+            toast.error('Не удалось загрузить филиалы');
+        }
     };
 
     useEffect(() => {
@@ -161,22 +176,53 @@ const AdminsPage: React.FC = () => {
 
     // ---------- Создание ----------
     const handleCreateAdmin = async () => {
-        
+        if (!createForm.email.trim() || !isValidEmail(createForm.email.trim())) {
+            toast.error('Укажите корректный email');
+            return;
+        }
+        if (!createForm.firstName.trim()) {
+            toast.error('Имя обязательно');
+            return;
+        }
+        if (!createForm.lastName.trim()) {
+            toast.error('Фамилия обязательна');
+            return;
+        }
+        if (!isValidPhone(createForm.phone.trim())) {
+            toast.error('Неверный формат телефона');
+            return;
+        }
+        if (!createForm.assignedBranch) {
+            toast.error('Выберите филиал');
+            return;
+        }
+
+        const payload = {
+            ...createForm,
+            email: createForm.email.trim(),
+            firstName: createForm.firstName.trim(),
+            lastName: createForm.lastName.trim(),
+            phone: createForm.phone.trim(),
+        };
+
         const res = await fetch(getApiUrl('/dispatcher/admin/register'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...authHeaders },
-            body: JSON.stringify(createForm),
+            body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
-            alert('Ошибка создания администратора');
+            toast.error('Ошибка создания администратора');
             return;
         }
 
         const data = await res.json();
-
-        setCreatedAdminPassword(data.tempPassword);
-        setShowCreatedPasswordModal(true);
+        if (data?.tempPassword) {
+            setCreatedAdminPassword(data.tempPassword);
+            setShowCreatedPasswordModal(true);
+        } else {
+            toast.success('Администратор создан');
+        }
         
         setShowCreateModal(false);
         setCreateForm({
@@ -203,13 +249,25 @@ const AdminsPage: React.FC = () => {
 
     const handleEditAdmin = async () => {
         if (!selectedAdmin) return;
+        if (!editForm.firstName.trim() || !editForm.lastName.trim()) {
+            toast.error('Имя и фамилия обязательны');
+            return;
+        }
+        if (!isValidPhone(editForm.phone.trim())) {
+            toast.error('Неверный формат телефона');
+            return;
+        }
 
         const res = await fetch(
             getApiUrl(`/dispatcher/admin/${selectedAdmin.adminId}`),
             {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', ...authHeaders },
-                body: JSON.stringify(editForm),
+                body: JSON.stringify({
+                    firstName: editForm.firstName.trim(),
+                    lastName: editForm.lastName.trim(),
+                    phone: editForm.phone.trim(),
+                }),
             }
         );
 
@@ -218,7 +276,7 @@ const AdminsPage: React.FC = () => {
             setSelectedAdmin(null);
             await loadAdmins();
         } else {
-            alert('Ошибка сохранения');
+            toast.error('Ошибка сохранения');
         }
     };
 
@@ -235,7 +293,7 @@ const AdminsPage: React.FC = () => {
         if (res.ok) {
             await loadAdmins();
         } else {
-            alert('Ошибка смены статуса');
+            toast.error('Ошибка смены статуса');
         }
     };
 
@@ -247,7 +305,10 @@ const AdminsPage: React.FC = () => {
     };
 
     const handleAssignBranch = async () => {
-        if (!selectedAdmin || !assignBranchId) return;
+        if (!selectedAdmin || !assignBranchId) {
+            toast.error('Выберите филиал');
+            return;
+        }
 
         const res = await fetch(
             getApiUrl(`/dispatcher/admin/${selectedAdmin.adminId}/assign-branch`),
@@ -263,7 +324,7 @@ const AdminsPage: React.FC = () => {
             setSelectedAdmin(null);
             await loadAdmins();
         } else {
-            alert('Ошибка назначения филиала');
+            toast.error('Ошибка назначения филиала');
         }
     };
 
@@ -286,7 +347,7 @@ const AdminsPage: React.FC = () => {
             setSelectedAdmin(null);
             await loadAdmins();
         } else {
-            alert('Ошибка откреплении филиала');
+            toast.error('Ошибка открепления филиала');
         }
     };
 
@@ -310,7 +371,7 @@ const AdminsPage: React.FC = () => {
             const data = await res.json();
             setResetPasswordValue(data.temporaryPassword);
         } catch {
-            alert('Ошибка сброса пароля');
+            toast.error('Ошибка сброса пароля');
             setShowResetPasswordModal(false);
         } finally {
             setResetLoading(false);
@@ -322,7 +383,7 @@ const AdminsPage: React.FC = () => {
         if (!selectedAdmin) return;
 
         if (deleteInput !== selectedAdmin.adminId) {
-            alert("ID неверный. Удаление не подтверждено.");
+            toast.error("ID неверный. Удаление не подтверждено.");
             return;
         }
 
@@ -341,7 +402,7 @@ const AdminsPage: React.FC = () => {
             setDeleteInput('');
             await loadAdmins();
         } else {
-            alert("Ошибка удаления администратора");
+            toast.error("Ошибка удаления администратора");
         }
     };
 
@@ -357,7 +418,7 @@ const AdminsPage: React.FC = () => {
             {/* HEADER */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                    <h2 className="heading-font text-2xl font-bold text-gray-900 tracking-tight">
                         Администраторы
                     </h2>
                     <p className="text-sm text-gray-500 mt-1">
@@ -835,7 +896,7 @@ const AdminsPage: React.FC = () => {
 
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500">
-                                    Фамилия
+                                    Фамилия*
                                 </label>
                                 <input
                                     type="text"

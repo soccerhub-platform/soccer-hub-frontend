@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { GroupApi } from "../group.api";
 import { useAuth } from "../../../../shared/AuthContext";
 import { useAdminBranch } from "../../BranchContext";
+import toast from "react-hot-toast";
 
 interface Props {
   onClose: () => void;
@@ -16,7 +17,7 @@ const LEVELS = [
 
 const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const { user } = useAuth();
-  const token = user?.accessToken!;
+  const token = user?.accessToken;
   const { branchId } = useAdminBranch();
 
   const [form, setForm] = useState({
@@ -31,7 +32,39 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
-    if (!form.name.trim()) return;
+    if (!token) {
+      toast.error("Нет авторизации");
+      return;
+    }
+    if (!branchId) {
+      toast.error("Филиал не выбран");
+      return;
+    }
+    if (!form.name.trim()) {
+      toast.error("Название обязательно");
+      return;
+    }
+
+    const ageFrom = form.ageFrom ? Number(form.ageFrom) : undefined;
+    const ageTo = form.ageTo ? Number(form.ageTo) : undefined;
+    const capacity = form.capacity ? Number(form.capacity) : undefined;
+
+    if (ageFrom !== undefined && (!Number.isFinite(ageFrom) || ageFrom <= 0)) {
+      toast.error("Возраст от должен быть положительным числом");
+      return;
+    }
+    if (ageTo !== undefined && (!Number.isFinite(ageTo) || ageTo <= 0)) {
+      toast.error("Возраст до должен быть положительным числом");
+      return;
+    }
+    if (ageFrom !== undefined && ageTo !== undefined && ageFrom > ageTo) {
+      toast.error("Возраст от не может быть больше возраста до");
+      return;
+    }
+    if (capacity !== undefined && (!Number.isFinite(capacity) || capacity <= 0)) {
+      toast.error("Вместимость должна быть положительным числом");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -39,10 +72,10 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
         {
           name: form.name,
           description: form.description || undefined,
-          branchId: branchId!,
-          ageFrom: form.ageFrom ? Number(form.ageFrom) : undefined,
-          ageTo: form.ageTo ? Number(form.ageTo) : undefined,
-          capacity: form.capacity ? Number(form.capacity) : undefined,
+          branchId,
+          ageFrom,
+          ageTo,
+          capacity,
           level: form.level,
         },
         token
@@ -52,7 +85,7 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
       onCreated();
     } catch (e) {
       console.error(e);
-      alert("Не удалось создать группу");
+      toast.error("Не удалось создать группу");
     } finally {
       setLoading(false);
     }

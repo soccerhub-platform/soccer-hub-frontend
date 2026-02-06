@@ -12,7 +12,7 @@ interface Props {
 
 const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const { user } = useAuth();
-  const token = user?.accessToken!;
+  const token = user?.accessToken;
   const { branchId } = useAdminBranch();
 
   const [form, setForm] = useState({
@@ -25,6 +25,10 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+    if (!token) {
+      toast.error('Нет авторизации');
+      return;
+    }
     if (!branchId) {
       toast.error('Филиал не выбран');
       return;
@@ -37,6 +41,16 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
       !form.phone.trim()
     ) {
       toast.error('Заполните все поля');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      toast.error('Неверный формат email');
+      return;
+    }
+
+    if (!/^[+0-9()\s-]{7,}$/.test(form.phone)) {
+      toast.error('Неверный формат телефона');
       return;
     }
 

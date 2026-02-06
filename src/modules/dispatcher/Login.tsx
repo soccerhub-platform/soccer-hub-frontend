@@ -30,11 +30,16 @@ const DispatcherLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-dispatcher-100">
-      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-dispatcher-700">
-          Диспетчер вход
-        </h1>
+    <div className="min-h-screen flex items-center justify-center app-bg-dispatcher px-4">
+      <div className="glass-card rounded-3xl p-8 w-full max-w-md">
+        <div className="mb-6">
+          <div className="heading-font text-2xl font-semibold text-dispatcher-700">
+            Диспетчер
+          </div>
+          <p className="text-sm text-slate-500 mt-1">
+            Вход в рабочее пространство
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* EMAIL */}
@@ -79,7 +84,7 @@ const DispatcherLogin: React.FC = () => {
           <LoaderButton
             type="submit"
             loading={loading}
-            className="w-full bg-dispatcher-500 text-white hover:bg-dispatcher-700"
+            className="w-full bg-dispatcher-500 text-white hover:bg-dispatcher-700 rounded-xl"
           >
             Войти
           </LoaderButton>

@@ -29,7 +29,7 @@ const ROLE_STYLES: Record<string, string> = {
 
 const GroupCoachesTab: React.FC<Props> = ({ groupId, groupStatus }) => {
   const { user } = useAuth();
-  const token = user?.accessToken!;
+  const token = user?.accessToken;
   const { branchId } = useAdminBranch();
 
   const [coaches, setCoaches] = useState<GroupCoachApiModel[]>([]);
@@ -40,6 +40,7 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, groupStatus }) => {
   const actionsDisabled = groupStatus === "STOPPED";
 
   const loadCoaches = async () => {
+    if (!token) return;
     setLoading(true);
     try {
       const res = await GroupApi.getCoaches(groupId, token);
@@ -51,9 +52,10 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, groupStatus }) => {
 
   useEffect(() => {
     loadCoaches();
-  }, [groupId]);
+  }, [groupId, token]);
 
   const removeCoach = async (groupCoachId: string) => {
+    if (!token) return;
     if (!confirm("Убрать тренера из группы?")) return;
 
     setRemovingId(groupCoachId);
@@ -68,6 +70,10 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, groupStatus }) => {
   };
 
   const assignedCoachIds = coaches.map((c) => c.coachId);
+
+  if (!token) {
+    return <div className="text-sm text-red-500">Нет авторизации</div>;
+  }
 
   return (
     <div className="space-y-5">

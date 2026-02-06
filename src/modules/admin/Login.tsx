@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../shared/AuthContext';
+import toast from 'react-hot-toast';
 
 /**
  * Login page for administrators. Uses a purple colour scheme.
@@ -33,15 +34,22 @@ const AdminLogin: React.FC = () => {
 
       navigate(from, { replace: true });
     } catch (err) {
-      alert('Ошибка входа. Проверьте данные.')
+      toast.error('Ошибка входа. Проверьте данные.');
       console.error('Ошибка входа. Проверьте данные.');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-admin-100">
-      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-admin-700">Админ вход</h1>
+    <div className="min-h-screen flex items-center justify-center app-bg-admin px-4">
+      <div className="glass-card rounded-3xl p-8 w-full max-w-md">
+        <div className="mb-6">
+          <div className="heading-font text-2xl font-semibold text-admin-700">
+            Администратор
+          </div>
+          <p className="text-sm text-slate-500 mt-1">
+            Безопасный вход в CRM
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -82,7 +90,7 @@ const AdminLogin: React.FC = () => {
           {/* SUBMIT BUTTON */}
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-admin-500 text-white rounded-md
+            className="w-full py-2.5 px-4 bg-admin-500 text-white rounded-xl
                        hover:bg-admin-700 focus:outline-none"
           >
             Войти

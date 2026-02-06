@@ -13,7 +13,22 @@ export const getApiUrl = (path: string) => {
 
 export async function apiRequest(url: string, options: RequestInit = {}, success?: string) {
   try {
-    const res = await fetch(url, options);
+    const headers = new Headers(options.headers ?? {});
+    if (!headers.has('Authorization')) {
+      try {
+        const raw = localStorage.getItem('football-crm:user');
+        if (raw) {
+          const user = JSON.parse(raw) as User;
+          if (user?.accessToken) {
+            headers.set('Authorization', `Bearer ${user.accessToken}`);
+          }
+        }
+      } catch {
+        // ignore auth parse errors
+      }
+    }
+
+    const res = await fetch(url, { ...options, headers });
 
     if (!res.ok) {
       let msg = "Произошла ошибка";

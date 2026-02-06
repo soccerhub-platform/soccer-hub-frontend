@@ -8,7 +8,7 @@ import CreateGroupModal from "./components/CreateGroupModal";
 
 const GroupsPage: React.FC = () => {
   const { user } = useAuth();
-  const token = user?.accessToken!;
+  const token = user?.accessToken;
   const { branchId } = useAdminBranch();
 
   const [groups, setGroups] = useState<GroupApiModel[]>([]);
@@ -22,7 +22,7 @@ const GroupsPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!branchId) return;
+    if (!branchId || !token) return;
 
     const load = async () => {
       setLoading(true);
@@ -57,12 +57,18 @@ const GroupsPage: React.FC = () => {
     });
   }, [groups, filters]);
 
+  if (!token) {
+    return <div className="text-sm text-red-500">Нет авторизации</div>;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Группы</h1>
+          <h1 className="heading-font text-2xl font-semibold text-gray-800">
+            Группы
+          </h1>
           <p className="text-sm text-gray-500 mt-1">
             Управление тренировочными группами
           </p>
@@ -92,7 +98,7 @@ const GroupsPage: React.FC = () => {
           onCreated={() => {
             setShowCreate(false);
             // перезагрузка списка
-            if (branchId) {
+            if (branchId && token) {
               GroupApi.listByBranch(branchId, token).then(setGroups);
             }
           }}

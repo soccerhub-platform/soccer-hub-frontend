@@ -62,6 +62,20 @@ const ClubsAndBranchesPage: React.FC = () => {
     ? { Authorization: `Bearer ${user.accessToken}` }
     : {};
 
+  const normalizeSlug = (value: string) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/-+/g, "-");
+
+  const isValidEmail = (value: string) =>
+    value.length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+  const isValidPhone = (value: string) =>
+    value.length === 0 || /^[+0-9()\s-]{7,}$/.test(value);
+
   // ---- Загрузка клубов ----
   const loadClubs = async () => {
     setLoadingClubs(true);
@@ -119,14 +133,43 @@ const ClubsAndBranchesPage: React.FC = () => {
 
   // ---- Создать клуб ----
   const handleCreateClub = async () => {
+    if (!clubForm.name.trim()) {
+      toast.error("Название клуба обязательно");
+      return;
+    }
+    if (!clubForm.slug.trim()) {
+      toast.error("Укажите slug клуба");
+      return;
+    }
+    if (!/^[a-z0-9-]+$/.test(clubForm.slug)) {
+      toast.error("Slug должен содержать только латиницу, цифры и дефисы");
+      return;
+    }
+    if (!isValidEmail(clubForm.email)) {
+      toast.error("Неверный формат email");
+      return;
+    }
+    if (!isValidPhone(clubForm.phone)) {
+      toast.error("Неверный формат телефона");
+      return;
+    }
+
     try {
+      const payload = {
+        ...clubForm,
+        name: clubForm.name.trim(),
+        slug: normalizeSlug(clubForm.slug),
+        email: clubForm.email.trim(),
+        phone: clubForm.phone.trim(),
+        address: clubForm.address.trim(),
+      };
       await apiRequest(getApiUrl("/dispatcher/club/create"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...authHeaders,
         },
-        body: JSON.stringify(clubForm),
+        body: JSON.stringify(payload),
       });
 
       toast.success("Клуб успешно создан");
@@ -142,6 +185,10 @@ const ClubsAndBranchesPage: React.FC = () => {
   // ---- Создать филиал ----
   const handleCreateBranch = async () => {
     if (!branchClubId) return;
+    if (!branchForm.name.trim()) {
+      toast.error("Название филиала обязательно");
+      return;
+    }
 
     try {
       await apiRequest(getApiUrl("/dispatcher/branch/create"), {
@@ -152,7 +199,8 @@ const ClubsAndBranchesPage: React.FC = () => {
         },
         body: JSON.stringify({
           clubId: branchClubId,
-          ...branchForm,
+          name: branchForm.name.trim(),
+          address: branchForm.address.trim(),
         }),
       });
 
@@ -206,7 +254,7 @@ const ClubsAndBranchesPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-dispatcher-700">
+          <h2 className="heading-font text-2xl font-semibold text-dispatcher-700">
             Клубы и филиалы
           </h2>
           <p className="text-sm text-gray-500 mt-1">
@@ -223,7 +271,7 @@ const ClubsAndBranchesPage: React.FC = () => {
       </div>
 
       {/* Main Table */}
-      <div className="bg-white shadow rounded-2xl p-4 md:p-5">
+      <div className="glass-card rounded-2xl p-4 md:p-5">
         {loadingClubs ? (
           <div className="text-sm text-gray-500">Загрузка клубов...</div>
         ) : clubs.length === 0 ? (
@@ -474,6 +522,7 @@ const ClubsAndBranchesPage: React.FC = () => {
             setForm={setClubForm}
             onSave={handleCreateClub}
             onClose={() => setShowCreateClubModal(false)}
+            normalizeSlug={normalizeSlug}
           />
         </ModalWrapper>
       )}
@@ -522,11 +571,13 @@ const CreateClubModal = ({
   setForm,
   onSave,
   onClose,
+  normalizeSlug,
 }: {
   form: any;
   setForm: (f: any) => void;
   onSave: () => void;
   onClose: () => void;
+  normalizeSlug: (value: string) => string;
 }) => (
   <>
     <div className="flex items-center justify-between mb-4">
@@ -542,24 +593,57 @@ const CreateClubModal = ({
     </div>
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {[
-        ["name", "Название*"],
-        ["slug", "Slug*"],
-        ["email", "Email"],
-        ["phone", "Телефон"],
-      ].map(([key, label]) => (
-        <div key={key} className="space-y-1">
-          <span className="block text-xs font-medium text-gray-600">
-            {label}
-          </span>
-          <input
-            type="text"
-            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
-            value={form[key]}
-            onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-          />
-        </div>
-      ))}
+      <div className="space-y-1">
+        <span className="block text-xs font-medium text-gray-600">Название*</span>
+        <input
+          type="text"
+          className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
+          value={form.name}
+          onChange={(e) => {
+            const value = e.target.value;
+            setForm({
+              ...form,
+              name: value,
+              slug: form.slug ? form.slug : normalizeSlug(value),
+            });
+          }}
+          required
+        />
+      </div>
+
+      <div className="space-y-1">
+        <span className="block text-xs font-medium text-gray-600">Slug*</span>
+        <input
+          type="text"
+          placeholder="my-club"
+          className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
+          value={form.slug}
+          onChange={(e) =>
+            setForm({ ...form, slug: normalizeSlug(e.target.value) })
+          }
+          required
+        />
+      </div>
+
+      <div className="space-y-1">
+        <span className="block text-xs font-medium text-gray-600">Email</span>
+        <input
+          type="email"
+          className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-1">
+        <span className="block text-xs font-medium text-gray-600">Телефон</span>
+        <input
+          type="text"
+          className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+        />
+      </div>
 
       <div className="space-y-1 md:col-span-2">
         <span className="block text-xs font-medium text-gray-600">Адрес</span>
@@ -623,6 +707,7 @@ const CreateBranchModal = ({
           className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
+          required
         />
       </div>
 

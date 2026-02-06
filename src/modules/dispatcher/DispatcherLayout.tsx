@@ -33,10 +33,17 @@ const DispatcherLayout: React.FC = () => {
     }`;
 
   return (
-    <div className="min-h-screen flex bg-dispatcher-100">
+    <div className="min-h-screen flex app-bg-dispatcher">
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg">
-        <div className="p-4 text-dispatcher-700 font-bold text-xl">Football CRM</div>
+      <aside className="w-64 bg-white/90 backdrop-blur border-r border-slate-100 shadow-lg">
+        <div className="p-5">
+          <div className="heading-font text-dispatcher-700 font-semibold text-lg tracking-tight">
+            Football CRM
+          </div>
+          <div className="text-xs text-slate-500 mt-1">
+            Dispatcher Desk
+          </div>
+        </div>
         <nav className="mt-4 space-y-1">
           <NavLink to="/dispatcher/dashboard" className={linkClasses} end>
             <HomeIcon className="h-5 w-5 mr-3" />
@@ -62,14 +69,21 @@ const DispatcherLayout: React.FC = () => {
       </aside>
       {/* Main content */}
       <div className="flex-1 flex flex-col">
-        <header className="flex items-center justify-between bg-white p-4 shadow">
-          <div className="text-dispatcher-700 font-semibold">Добро пожаловать{user ? `, ${user.email}` : ''}</div>
+        <header className="px-6 pt-5">
+          <div className="flex items-center justify-between">
+            <div className="glass-card rounded-2xl px-4 py-2.5">
+              <div className="heading-font text-dispatcher-700 font-semibold">
+                Добро пожаловать{user ? `, ${user.email}` : ''}
+              </div>
+              <div className="text-xs text-slate-500">Рабочее место диспетчера</div>
+            </div>
           <button
             onClick={handleLogout}
-            className="px-3 py-1 bg-dispatcher-500 text-white rounded-md hover:bg-dispatcher-700"
+            className="px-3 py-2 bg-dispatcher-500 text-white rounded-xl hover:bg-dispatcher-700 shadow-sm"
           >
             Выйти
           </button>
+          </div>
         </header>
         <main className="p-6 flex-1 overflow-y-auto">
           <Outlet />

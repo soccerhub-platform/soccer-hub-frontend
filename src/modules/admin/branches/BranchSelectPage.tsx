@@ -6,7 +6,8 @@ import { BuildingOfficeIcon } from "@heroicons/react/24/outline";
 
 import { useAuth } from "../../../shared/AuthContext";
 import { useAdminBranch } from "../BranchContext";
-import { BranchApi, Branch } from "./branch.api";
+import { BranchApi } from "./branch.api";
+import toast from "react-hot-toast";
 
 /* ================= UI MODEL ================= */
 
@@ -23,7 +24,7 @@ export default function BranchSelectPage() {
   const [loading, setLoading] = useState(true);
 
   const { user } = useAuth();
-  const token = user?.accessToken!;
+  const token = user?.accessToken;
 
   const { setBranch, setBranchesCount } = useAdminBranch();
   const navigate = useNavigate();
@@ -54,21 +55,27 @@ export default function BranchSelectPage() {
       }
     };
 
-    if (token) loadBranches();
+    if (!token) {
+      toast.error("Нет авторизации");
+      return;
+    }
+    loadBranches();
   }, [token, navigate, setBranch, setBranchesCount]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-admin-100">
-        <div className="text-sm text-gray-500">Загрузка филиалов…</div>
+      <div className="min-h-screen flex items-center justify-center app-bg-admin">
+        <div className="glass-card rounded-2xl px-6 py-4 text-sm text-gray-500">
+          Загрузка филиалов…
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-admin-100">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-        <h1 className="text-xl font-semibold text-gray-800 mb-2">
+    <div className="min-h-screen flex items-center justify-center app-bg-admin px-4">
+      <div className="glass-card rounded-3xl p-8 w-full max-w-md">
+        <h1 className="heading-font text-2xl font-semibold text-gray-800 mb-2">
           Выберите филиал
         </h1>
         <p className="text-sm text-gray-500 mb-6">

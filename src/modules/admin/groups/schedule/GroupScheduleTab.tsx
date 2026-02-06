@@ -6,21 +6,27 @@ import ScheduleBatchCard from "./ScheduleBatchCard";
 import EditScheduleModal from "./EditScheduleModal";
 import { GroupScheduleDto, ScheduleBatch } from "./schedule.types";
 import { GroupApi, GroupCoachApiModel } from "../group.api";
+import toast from "react-hot-toast";
 
 const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   const { user } = useAuth();
-  const token = user!.accessToken;
+  const token = user?.accessToken;
 
   const [schedules, setSchedules] = useState<GroupScheduleDto[]>([]);
   const [coaches, setCoaches] = useState<GroupCoachApiModel[]>([]);
   const [editingBatch, setEditingBatch] = useState<ScheduleBatch | null>(null);
 
   useEffect(() => {
+    if (!token) {
+      toast.error("Нет авторизации");
+      return;
+    }
     reload();
     GroupApi.getCoaches(groupId, token).then((r) => setCoaches(r.coaches));
-  }, [groupId]);
+  }, [groupId, token]);
 
   const reload = async () => {
+    if (!token) return;
     const data = await ScheduleApi.listByGroup(groupId, token);
     setSchedules(data);
   };
@@ -48,6 +54,10 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
     coachName: coachMap[b.coachId],
   }));
 
+  if (!token) {
+    return <div className="text-sm text-red-500">Нет авторизации</div>;
+  }
+
   return (
     <div className="space-y-5">
       {/* HEADER */}
@@ -63,7 +73,7 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-admin-500 text-white text-sm"
           onClick={() => {
             if (coachOptions.length === 0) {
-              alert("Сначала назначьте тренера группе");
+              toast.error("Сначала назначьте тренера группе");
               return;
             }
 
