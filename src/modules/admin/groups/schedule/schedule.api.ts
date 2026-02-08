@@ -29,6 +29,23 @@ export const ScheduleApi = {
     );
   },
 
+  listByGroupAndBranch(
+    groupId: string,
+    branchId: string,
+    token: string,
+    status?: "ACTIVE" | "CANCELLED"
+  ) {
+    const qs = new URLSearchParams({
+      "group-id": groupId,
+      "branch-id": branchId,
+      ...(status ? { status } : {}),
+    });
+    return fetchJson<GroupScheduleDto[]>(
+      `${ORG_BASE}/schedules?${qs.toString()}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  },
+
   createGroupSchedule(groupId: string, payload: CreateScheduleBatchCommand, token: string) {
     return fetchJson<void>(`${ADMIN_BASE}/groups/${groupId}/schedule`, {
       method: "POST",
@@ -66,6 +83,24 @@ export const ScheduleApi = {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
+    });
+  },
+
+  cancelSchedule(scheduleId: string, token: string): Promise<void> {
+    return fetchJson<void>(`${ADMIN_BASE}/groups/schedule/${scheduleId}/cancel`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  activateSchedule(scheduleId: string, token: string): Promise<void> {
+    return fetchJson<void>(`${ADMIN_BASE}/groups/schedule/${scheduleId}/activate`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
   },
 
