@@ -12,6 +12,7 @@ export const LEAD_COLUMN_ORDER = [
 export type LeadStatus = (typeof LEAD_COLUMN_ORDER)[number];
 
 export interface LeadChild {
+  id?: string;
   childName: string;
   childAge: number;
 }
@@ -44,14 +45,20 @@ export interface QualifyLeadPayload {
 }
 
 export interface ScheduleTrialPayload {
-  childName: string;
-  childAge: number;
+  childId: string;
   groupId?: string;
   coachId?: string;
-  trialDate: string;
-  startTime: string;
-  duration: number;
+  slot: {
+    date: string;
+    startTime: string;
+  };
   comment?: string;
+}
+
+export interface AvailableSlot {
+  date: string;
+  startTime: string;
+  endTime?: string | null;
 }
 
 export type LeadQuickAction =

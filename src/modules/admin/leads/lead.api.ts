@@ -1,5 +1,6 @@
 import { getApiUrl } from "../../../shared/api";
 import {
+  AvailableSlot,
   LeadDetails,
   LeadEvent,
   LeadKanbanColumns,
@@ -8,6 +9,8 @@ import {
 } from "./types";
 
 const LEADS_BASE = getApiUrl("/admin/leads");
+const ADMIN_GROUPS_BASE = getApiUrl("/admin/groups");
+const ADMIN_COACHES_BASE = getApiUrl("/admin/coaches");
 
 const parseJsonResponse = async <T,>(response: Response): Promise<T | null> => {
   const text = await response.text();
@@ -96,5 +99,41 @@ export const LeadApi = {
     });
 
     await assertOk(response);
+  },
+
+  async getAvailableGroupSlots(
+    groupId: string,
+    date: string,
+    token: string
+  ): Promise<AvailableSlot[]> {
+    const response = await fetch(
+      `${ADMIN_GROUPS_BASE}/${groupId}/available-slots?date=${encodeURIComponent(date)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    await assertOk(response);
+    return (await parseJsonResponse<AvailableSlot[]>(response)) ?? [];
+  },
+
+  async getAvailableCoachSlots(
+    coachId: string,
+    date: string,
+    token: string
+  ): Promise<AvailableSlot[]> {
+    const response = await fetch(
+      `${ADMIN_COACHES_BASE}/${coachId}/available-slots?date=${encodeURIComponent(date)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    await assertOk(response);
+    return (await parseJsonResponse<AvailableSlot[]>(response)) ?? [];
   },
 };
