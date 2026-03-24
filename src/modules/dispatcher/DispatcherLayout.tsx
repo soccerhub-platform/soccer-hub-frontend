@@ -5,6 +5,7 @@ import {
   HomeIcon,
   UserGroupIcon,
   CalendarIcon,
+  Squares2X2Icon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../shared/AuthContext';
 
@@ -56,6 +57,10 @@ const DispatcherLayout: React.FC = () => {
           <NavLink to="/dispatcher/admins" className={linkClasses}>
             <UserGroupIcon className="h-5 w-5 mr-3" />
             <span>Администраторы</span>
+          </NavLink>
+          <NavLink to="/dispatcher/leads" className={linkClasses}>
+            <Squares2X2Icon className="h-5 w-5 mr-3" />
+            <span>Лиды</span>
           </NavLink>
           <NavLink to="/dispatcher/clients" className={linkClasses}>
             <UserGroupIcon className="h-5 w-5 mr-3" />

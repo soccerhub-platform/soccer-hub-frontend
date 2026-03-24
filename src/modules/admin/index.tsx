@@ -14,6 +14,7 @@ import GroupDetailsPage from './groups/GroupDetailsPage';
 import { AdminBranchProvider } from './BranchContext';
 import BranchSelectPage from './branches/BranchSelectPage';
 import BranchGuard from './branches/BranchGuard';
+import LeadKanbanPage from './leads/LeadKanbanPage';
 
 /**
  * Defines routes for the admin module.  Admins have access to
@@ -42,6 +43,7 @@ const AdminRoutes: React.FC = () => {
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="coaches" element={<CoachesPage />} />
+              <Route path="leads" element={<LeadKanbanPage />} />
               <Route path="groups" element={<GroupsPage />} />
               <Route path="groups/:groupId" element={<GroupDetailsPage />} />
             </Route>

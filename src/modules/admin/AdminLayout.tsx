@@ -6,6 +6,7 @@ import {
   CreditCardIcon,
   UserIcon,
   UserGroupIcon,
+  Squares2X2Icon,
   BuildingOffice2Icon,
   ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
@@ -50,6 +51,10 @@ const AdminLayout: React.FC = () => {
             <UserGroupIcon className="h-5 w-5 mr-3" />
             <span>Тренеры</span>
           </NavLink>
+          <NavLink to="/admin/leads" className={linkClasses}>
+            <Squares2X2Icon className="h-5 w-5 mr-3" />
+            <span>Лиды</span>
+          </NavLink>
           <NavLink to="/admin/groups" className={linkClasses}>
             <UserGroupIcon className="h-5 w-5 mr-3" />
             <span>Группы</span>
@@ -70,7 +75,7 @@ const AdminLayout: React.FC = () => {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="px-6 pt-5">
           <div className="flex items-center justify-between">
             {/* LEFT: greeting */}
@@ -115,7 +120,7 @@ const AdminLayout: React.FC = () => {
           </div>
         </header>
 
-        <main className="p-6 flex-1 overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
       </div>
