@@ -13,7 +13,7 @@ const parseJsonResponse = async <T,>(response: Response): Promise<T | null> => {
 const assertOk = async (response: Response) => {
   if (response.ok) return;
   const payload = await parseJsonResponse<{ message?: string }>(response);
-  throw new Error(payload?.message || "Request failed");
+  throw new Error(payload?.message || "Не удалось выполнить запрос");
 };
 
 export const DispatcherLeadsApi = {

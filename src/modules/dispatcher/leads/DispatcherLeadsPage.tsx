@@ -4,6 +4,7 @@ import { useAuth } from "../../../shared/AuthContext";
 import CreateLeadModal from "./CreateLeadModal";
 import { DispatcherLeadsApi } from "./leads.api";
 import { DispatcherBranchOption, DispatcherLead } from "./types";
+import { buttonStyles } from "../../../shared/ui/buttonStyles";
 
 const formatDate = (value: string) => {
   const date = new Date(value);
@@ -18,6 +19,29 @@ const formatDate = (value: string) => {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+};
+
+const statusLabel = (status: string) => {
+  switch (status) {
+    case "NEW":
+      return "Новый";
+    case "CONTACTED":
+      return "Связались";
+    case "QUALIFIED":
+      return "Квалифицирован";
+    case "TRIAL_SCHEDULED":
+      return "Пробное назначено";
+    case "TRIAL_DONE":
+      return "Пробное прошло";
+    case "WAITING_PAYMENT":
+      return "Ожидает оплату";
+    case "WON":
+      return "Клиент";
+    case "LOST":
+      return "Отказ";
+    default:
+      return status;
+  }
 };
 
 const DispatcherLeadsPage: React.FC = () => {
@@ -130,7 +154,7 @@ const DispatcherLeadsPage: React.FC = () => {
             <select
               value={selectedBranchId}
               onChange={(event) => setSelectedBranchId(event.target.value)}
-              className="min-w-[240px] rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-dispatcher-400"
+              className="min-w-[240px] rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
             >
               <option value="">Выберите филиал</option>
               {branches.map((branch) => (
@@ -145,7 +169,7 @@ const DispatcherLeadsPage: React.FC = () => {
             type="button"
             onClick={() => setShowCreateModal(true)}
             disabled={!selectedBranchId}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-dispatcher-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-dispatcher-700 disabled:cursor-not-allowed disabled:bg-dispatcher-300"
+            className={buttonStyles("primary")}
           >
             <PlusIcon className="h-4 w-4" />
             Новый лид
@@ -174,19 +198,19 @@ const DispatcherLeadsPage: React.FC = () => {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Parent
+                    Родитель
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Phone
+                    Телефон
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Children
+                    Дети
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Status
+                    Статус
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Created
+                    Создан
                   </th>
                 </tr>
               </thead>
@@ -202,7 +226,7 @@ const DispatcherLeadsPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span className="rounded-full bg-dispatcher-100 px-2.5 py-1 text-xs font-semibold text-dispatcher-700">
-                        {lead.status === "NEW" ? "Новый" : lead.status}
+                        {statusLabel(lead.status)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">

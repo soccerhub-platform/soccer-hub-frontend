@@ -6,6 +6,7 @@ import {
   DispatcherBranchOption,
   DispatcherLeadChild,
 } from "./types";
+import { buttonStyles } from "../../../shared/ui/buttonStyles";
 
 interface CreateLeadModalProps {
   token: string;
@@ -23,6 +24,9 @@ const EMPTY_CHILD: DispatcherLeadChild = {
 const isValidPhone = (value: string) => /^[+0-9()\s-]{7,}$/.test(value.trim());
 const isValidEmail = (value: string) =>
   value.trim().length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
+const inputBaseClassName =
+  "w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition focus:ring-4";
 
 const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
   token,
@@ -139,7 +143,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            className={buttonStyles("ghost", "sm", "rounded-full p-2 text-slate-400")}
           >
             ✕
           </button>
@@ -149,17 +153,17 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label className="space-y-1 text-sm text-slate-600">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Parent name
+                Имя родителя
                 <span className="ml-1 text-rose-500">*</span>
               </span>
               <input
                 type="text"
                 value={parentName}
                 onChange={(event) => setParentName(event.target.value)}
-                className={`w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition ${
+                className={`${inputBaseClassName} ${
                   validation.fieldErrors.parentName
-                    ? "border-rose-300 focus:border-rose-400"
-                    : "border-slate-200 focus:border-dispatcher-400"
+                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+                    : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
                 }`}
               />
               {validation.fieldErrors.parentName ? (
@@ -169,7 +173,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
 
             <label className="space-y-1 text-sm text-slate-600">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Phone
+                Телефон
                 <span className="ml-1 text-rose-500">*</span>
               </span>
               <input
@@ -177,10 +181,10 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 placeholder="+7 777 123 45 67"
-                className={`w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition ${
+                className={`${inputBaseClassName} ${
                   validation.fieldErrors.phone
-                    ? "border-rose-300 focus:border-rose-400"
-                    : "border-slate-200 focus:border-dispatcher-400"
+                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+                    : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
                 }`}
               />
               {validation.fieldErrors.phone ? (
@@ -190,16 +194,16 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
 
             <label className="space-y-1 text-sm text-slate-600">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Branch
+                Филиал
                 <span className="ml-1 text-rose-500">*</span>
               </span>
               <select
                 value={branchId}
                 onChange={(event) => setBranchId(event.target.value)}
-                className={`w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition ${
+                className={`${inputBaseClassName} ${
                   validation.fieldErrors.branchId
-                    ? "border-rose-300 focus:border-rose-400"
-                    : "border-slate-200 focus:border-dispatcher-400"
+                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+                    : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
                 }`}
               >
                 <option value="">Выберите филиал</option>
@@ -222,10 +226,10 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className={`w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition ${
+                className={`${inputBaseClassName} ${
                   validation.fieldErrors.email
-                    ? "border-rose-300 focus:border-rose-400"
-                    : "border-slate-200 focus:border-dispatcher-400"
+                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+                    : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
                 }`}
               />
               {validation.fieldErrors.email ? (
@@ -236,25 +240,25 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
 
           <label className="mt-4 block space-y-1 text-sm text-slate-600">
             <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Comment
+              Комментарий
             </span>
             <textarea
               value={comment}
               onChange={(event) => setComment(event.target.value)}
               rows={4}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-dispatcher-400"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
             />
           </label>
 
           <section className="mt-6 space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
-                Children
+                Дети
               </h4>
               <button
                 type="button"
                 onClick={() => setChildren((prev) => [...prev, EMPTY_CHILD])}
-                className="inline-flex items-center gap-1 rounded-full bg-dispatcher-50 px-3 py-1.5 text-xs font-medium text-dispatcher-700"
+                className={buttonStyles("soft", "sm", "rounded-full")}
               >
                 <PlusIcon className="h-3.5 w-3.5" />
                 Добавить ребенка
@@ -270,7 +274,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                   >
                     <label className="space-y-1 text-sm text-slate-600">
                       <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Child name
+                        Имя ребенка
                       </span>
                       <input
                         type="text"
@@ -281,17 +285,17 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                             childName: event.target.value,
                           })
                         }
-                        className={`w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition ${
+                        className={`${inputBaseClassName} ${
                           validation.childErrors[index]
-                            ? "border-rose-300 focus:border-rose-400"
-                            : "border-slate-200 focus:border-dispatcher-400"
+                            ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+                            : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
                         }`}
                       />
                     </label>
 
                     <label className="space-y-1 text-sm text-slate-600">
                       <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Child age
+                        Возраст
                       </span>
                       <input
                         type="number"
@@ -303,10 +307,10 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                             childAge: Number(event.target.value),
                           })
                         }
-                        className={`w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition ${
+                        className={`${inputBaseClassName} ${
                           validation.childErrors[index]
-                            ? "border-rose-300 focus:border-rose-400"
-                            : "border-slate-200 focus:border-dispatcher-400"
+                            ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+                            : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
                         }`}
                       />
                     </label>
@@ -317,7 +321,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                         onClick={() =>
                           setChildren((prev) => prev.filter((_, childIndex) => childIndex !== index))
                         }
-                        className="inline-flex h-[46px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-rose-200 hover:text-rose-600"
+                        className={buttonStyles("softDanger", "md", "h-[46px] w-full rounded-xl px-0 text-slate-500 hover:text-rose-600")}
                       >
                         <TrashIcon className="h-4 w-4" />
                       </button>
@@ -348,7 +352,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            className={buttonStyles("secondary", "md", "rounded-xl")}
           >
             Отмена
           </button>
@@ -356,7 +360,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={!validation.isValid || loading}
-            className="rounded-xl bg-dispatcher-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-dispatcher-700 disabled:cursor-not-allowed disabled:bg-dispatcher-300"
+            className={buttonStyles("primary", "md", "rounded-xl")}
           >
             {loading ? "Создание..." : "Создать лид"}
           </button>

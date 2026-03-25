@@ -20,7 +20,7 @@ const parseJsonResponse = async <T,>(response: Response): Promise<T | null> => {
 const assertOk = async (response: Response) => {
   if (response.ok) return;
   const payload = await parseJsonResponse<{ message?: string }>(response);
-  throw new Error(payload?.message || "Request failed");
+  throw new Error(payload?.message || "Не удалось выполнить запрос");
 };
 
 export const LeadApi = {
@@ -135,5 +135,23 @@ export const LeadApi = {
 
     await assertOk(response);
     return (await parseJsonResponse<AvailableSlot[]>(response)) ?? [];
+  },
+
+  async getCoachById(
+    coachId: string,
+    token: string
+  ): Promise<{ id: string; firstName: string; lastName: string } | null> {
+    const response = await fetch(getApiUrl(`/coaches/${coachId}`), {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    await assertOk(response);
+    return await parseJsonResponse<{
+      id: string;
+      firstName: string;
+      lastName: string;
+    }>(response);
   },
 };

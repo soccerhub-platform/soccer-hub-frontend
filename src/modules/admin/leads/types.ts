@@ -12,35 +12,64 @@ export const LEAD_COLUMN_ORDER = [
 export type LeadStatus = (typeof LEAD_COLUMN_ORDER)[number];
 
 export interface LeadChild {
-  id?: string;
+  id: string;
   childName: string;
   childAge: number;
+  gender?: "MALE" | "FEMALE";
+  experience?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+}
+
+export interface LeadTrial {
+  id: string;
+  childId: string;
+  groupId?: string;
+  coachId?: string;
+  trialDate: string;
+  startTime: string;
+  endTime?: string;
+  comment?: string;
+  status: "SCHEDULED" | "COMPLETED" | "CANCELED";
+}
+
+export interface LeadQualificationData {
+  children: Array<
+    Pick<LeadChild, "childName" | "childAge" | "gender" | "experience">
+  >;
+  preferredDays?: string | null;
+  experience?: string | null;
+  notes?: string | null;
 }
 
 export interface Lead {
   id: string;
   parentName: string;
   phone: string;
+  email?: string;
   children: LeadChild[];
-  status: string;
-  assignedAdminId: string | null;
-  comment: string;
+  status: LeadStatus;
+  assignedAdminId?: string;
+  comment?: string;
+  trial?: LeadTrial;
   createdAt: string;
+  updatedAt: string;
 }
 
 export type LeadKanbanColumns = Record<string, Lead[]>;
 
 export interface LeadDetails extends Lead {
-  email?: string | null;
-  preferredDays?: string | null;
-  experience?: string | null;
-  notes?: string | null;
+  source?: string | null;
+  qualificationData?: LeadQualificationData | null;
 }
 
 export interface QualifyLeadPayload {
-  children: LeadChild[];
+  children: Array<
+    Pick<LeadChild, "childName" | "childAge"> & {
+      gender: "MALE" | "FEMALE";
+      experience: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+    }
+  >;
   preferredDays: string;
-  experience: string;
+  experience: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
   notes: string;
 }
 

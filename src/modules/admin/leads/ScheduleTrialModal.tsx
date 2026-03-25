@@ -3,6 +3,7 @@ import { CoachApi, Coach } from "../сoaches/coach.api";
 import { GroupApi, GroupApiModel } from "../groups/group.api";
 import { AvailableSlot, Lead, ScheduleTrialPayload } from "./types";
 import { LeadApi } from "./lead.api";
+import { buttonStyles } from "../../../shared/ui/buttonStyles";
 
 interface ScheduleTrialModalProps {
   lead: Lead;
@@ -13,7 +14,7 @@ interface ScheduleTrialModalProps {
 }
 
 const fieldClassName =
-  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-admin-400 focus:ring-4 focus:ring-admin-100 disabled:cursor-not-allowed disabled:bg-slate-50";
+  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-50";
 
 const sectionClassName =
   "rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.45)]";
@@ -27,6 +28,9 @@ const formatSlotLabel = (slot: AvailableSlot) => {
 
   return slot.startTime.slice(0, 5);
 };
+
+const formatOptionLabel = (label: string, helper?: string) =>
+  helper ? `${label} - ${helper}` : label;
 
 const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
   lead,
@@ -93,6 +97,8 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
 
   const selectedChild = lead.children[childIndex] ?? null;
   const selectedChildId = selectedChild?.id ?? null;
+  const selectedGroup = groups.find((group) => group.groupId === groupId) ?? null;
+  const selectedCoach = coaches.find((coach) => coach.id === coachId) ?? null;
 
   useEffect(() => {
     setSelectedSlot(null);
@@ -182,7 +188,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="mb-3 inline-flex items-center rounded-full border border-admin-100 bg-admin-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-admin-700">
-                Trial Scheduling
+                Назначение пробного
               </div>
               <h3 className="heading-font text-2xl font-semibold text-slate-900">
                 Назначить пробное занятие
@@ -194,7 +200,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+              className={buttonStyles("ghost", "sm", "rounded-full p-2 text-slate-400")}
             >
               ✕
             </button>
@@ -302,7 +308,10 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
                       <option value="">Выбрать группу</option>
                       {groups.map((group) => (
                         <option key={group.groupId} value={group.groupId}>
-                          {group.name}
+                          {formatOptionLabel(
+                            group.name,
+                            `${group.ageFrom}-${group.ageTo} лет`
+                          )}
                         </option>
                       ))}
                     </select>
@@ -325,12 +334,44 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
                       <option value="">Выбрать тренера</option>
                       {coaches.map((coach) => (
                         <option key={coach.id} value={coach.id}>
-                          {coach.firstName} {coach.lastName}
+                          {formatOptionLabel(
+                            `${coach.firstName} ${coach.lastName}`.trim(),
+                            coach.phone
+                          )}
                         </option>
                       ))}
                     </select>
                   </label>
                 </div>
+
+                {(selectedGroup || selectedCoach) ? (
+                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {selectedGroup ? (
+                      <div className="rounded-2xl border border-admin-100 bg-admin-50 px-4 py-3 text-sm text-admin-900">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
+                          Выбрана группа
+                        </div>
+                        <div className="mt-1 font-semibold">{selectedGroup.name}</div>
+                        <div className="mt-1 text-admin-700/80">
+                          Возраст: {selectedGroup.ageFrom}-{selectedGroup.ageTo}
+                        </div>
+                      </div>
+                    ) : null}
+                    {selectedCoach ? (
+                      <div className="rounded-2xl border border-admin-100 bg-admin-50 px-4 py-3 text-sm text-admin-900">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
+                          Выбран тренер
+                        </div>
+                        <div className="mt-1 font-semibold">
+                          {selectedCoach.firstName} {selectedCoach.lastName}
+                        </div>
+                        <div className="mt-1 text-admin-700/80">
+                          {selectedCoach.phone || selectedCoach.email || "Контакт не указан"}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </section>
 
               <section className={sectionClassName}>
@@ -485,7 +526,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className={buttonStyles("secondary", "md", "rounded-2xl")}
             >
               Отмена
             </button>
@@ -493,7 +534,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
               type="button"
               onClick={handleSubmit}
               disabled={!isValid || optionsLoading || submitting || Boolean(optionsError)}
-              className="rounded-2xl bg-admin-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-admin-700 disabled:cursor-not-allowed disabled:bg-admin-300"
+              className={buttonStyles("primary", "md", "rounded-2xl px-5")}
             >
               {submitting ? "Сохранение..." : "Назначить пробное"}
             </button>

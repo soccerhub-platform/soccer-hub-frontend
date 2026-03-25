@@ -281,9 +281,11 @@ const LeadKanbanPage: React.FC = () => {
       {selectedLeadId ? (
         <LeadDrawer
           leadId={selectedLeadId}
+          isOpen={Boolean(selectedLeadId)}
+          branchId={branchId}
           token={token}
           onClose={() => setSelectedLeadId(null)}
-          onQualified={refreshKanban}
+          onUpdated={refreshKanban}
         />
       ) : null}
 
@@ -291,13 +293,7 @@ const LeadKanbanPage: React.FC = () => {
         <QualifyLeadModal
           leadId={qualifyingLead.id}
           token={token}
-          initialLead={{
-            ...qualifyingLead,
-            email: null,
-            preferredDays: null,
-            experience: null,
-            notes: qualifyingLead.comment,
-          }}
+          initialLead={qualifyingLead}
           onClose={() => setQualifyingLead(null)}
           onSuccess={async () => {
             await refreshKanban();

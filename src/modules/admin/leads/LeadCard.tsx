@@ -1,11 +1,20 @@
 import React from "react";
 import {
   ChatBubbleLeftEllipsisIcon,
+  CheckCircleIcon,
   EllipsisHorizontalIcon,
   PhoneIcon,
+  XCircleIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
 import { Lead, LeadQuickAction } from "./types";
+import {
+  formatLeadCardDate,
+  formatTrialPreview,
+  trialStatusClassName,
+  trialStatusLabel,
+} from "./lead.format";
+import { buttonStyles } from "../../../shared/ui/buttonStyles";
 
 interface LeadCardProps {
   lead: Lead;
@@ -14,20 +23,6 @@ interface LeadCardProps {
   isActionLoading?: boolean;
   loadingAction?: LeadQuickAction | null;
 }
-
-const formatCreatedAt = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
 
 const LeadCard: React.FC<LeadCardProps> = ({
   lead,
@@ -38,6 +33,10 @@ const LeadCard: React.FC<LeadCardProps> = ({
 }) => {
   const primaryChild = lead.children[0];
   const extraChildren = Math.max(0, lead.children.length - 1);
+  const trialPreview = formatTrialPreview(
+    lead.trial?.trialDate,
+    lead.trial?.startTime
+  );
   const primaryAction =
     lead.status === "NEW"
       ? { key: "CONTACTED" as const, label: "Связались" }
@@ -80,7 +79,7 @@ const LeadCard: React.FC<LeadCardProps> = ({
             </div>
           </div>
           <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-slate-600">
-            {formatCreatedAt(lead.createdAt)}
+            {formatLeadCardDate(lead.createdAt)}
           </span>
         </div>
 
@@ -107,6 +106,26 @@ const LeadCard: React.FC<LeadCardProps> = ({
             </div>
           </div>
 
+          {trialPreview ? (
+            <div
+              className={`rounded-lg border px-3 py-2 text-xs font-medium ${trialStatusClassName(
+                lead.trial?.status
+              )}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span>Пробное: {trialPreview}</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                  {lead.trial?.status === "COMPLETED" ? (
+                    <CheckCircleIcon className="h-3 w-3" />
+                  ) : lead.trial?.status === "CANCELED" ? (
+                    <XCircleIcon className="h-3 w-3" />
+                  ) : null}
+                  {trialStatusLabel(lead.trial?.status)}
+                </span>
+              </div>
+            </div>
+          ) : null}
+
           {lead.comment ? (
             <div className="min-w-0 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
               <div className="mb-1 flex min-w-0 items-center gap-1.5 font-medium text-slate-500">
@@ -128,7 +147,7 @@ const LeadCard: React.FC<LeadCardProps> = ({
               type="button"
               onClick={handleActionClick(primaryAction.key)}
               disabled={isActionLoading}
-              className="rounded-lg bg-admin-500 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-admin-700 disabled:cursor-not-allowed disabled:bg-admin-300"
+              className={buttonStyles("primary", "sm", "rounded-lg")}
             >
               {isActionLoading && loadingAction === primaryAction.key
                 ? "Сохранение..."
@@ -141,7 +160,7 @@ const LeadCard: React.FC<LeadCardProps> = ({
               type="button"
               onClick={handleActionClick("REJECT")}
               disabled={isActionLoading}
-              className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-rose-600 transition hover:border-rose-200 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+              className={buttonStyles("danger", "sm", "rounded-lg")}
             >
               {isActionLoading && loadingAction === "REJECT"
                 ? "Сохранение..."
@@ -152,7 +171,7 @@ const LeadCard: React.FC<LeadCardProps> = ({
           <button
             type="button"
             onClick={(event) => event.stopPropagation()}
-            className="ml-auto rounded-lg border border-slate-200 p-1.5 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+            className={buttonStyles("ghost", "sm", "ml-auto rounded-lg p-1.5 text-slate-400")}
             aria-label="Дополнительные действия"
           >
             <EllipsisHorizontalIcon className="h-4 w-4" />
