@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode";
 import {
+  IdentificationIcon,
   CalendarDaysIcon,
   ChatBubbleLeftRightIcon,
   EnvelopeIcon,
@@ -59,6 +61,15 @@ const canQualify = (status?: string) =>
 
 const canScheduleTrial = (status?: string) => status === "QUALIFIED";
 
+const getCurrentUserId = (token: string) => {
+  try {
+    const decoded = jwtDecode<{ sub?: string }>(token);
+    return decoded.sub ?? null;
+  } catch {
+    return null;
+  }
+};
+
 const LeadDrawer: React.FC<LeadDrawerProps> = ({
   leadId,
   isOpen,
@@ -76,6 +87,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   const [groupName, setGroupName] = useState<string | null>(null);
   const trialChild =
     lead?.trial && lead.children.find((child) => child.id === lead.trial?.childId);
+  const currentUserId = getCurrentUserId(token);
 
   useEffect(() => {
     let isMounted = true;
@@ -150,6 +162,18 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     return null;
   }
 
+  const isCurrentUserAssigned =
+    !!lead?.assignedAdmin?.id && lead.assignedAdmin.id === currentUserId;
+  const assignedAdminDisplayName = lead?.assignedAdmin?.name?.trim() || null;
+  const assignedAdminInitials = assignedAdminDisplayName
+    ? assignedAdminDisplayName
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join("")
+    : "";
+
   return (
     <>
       <div
@@ -215,6 +239,36 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   <div className="flex items-center gap-2">
                     <EnvelopeIcon className="h-4 w-4 text-slate-400" />
                     <span>{lead.email || "Email не указан"}</span>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  <UserGroupIcon className="h-4 w-4" />
+                  Ответственный
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">
+                      {lead.assignedAdmin
+                        ? isCurrentUserAssigned
+                          ? "В"
+                          : assignedAdminInitials || "?"
+                        : <IdentificationIcon className="h-5 w-5 text-slate-400" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                        Текущий ответственный
+                      </div>
+                      <div className="mt-1 break-all text-sm font-medium text-slate-800">
+                        {lead.assignedAdmin
+                          ? isCurrentUserAssigned
+                            ? "👤 Вы"
+                            : `👤 ${assignedAdminDisplayName || lead.assignedAdmin.id}`
+                          : "Не назначен"}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>

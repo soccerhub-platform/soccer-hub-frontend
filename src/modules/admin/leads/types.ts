@@ -48,6 +48,11 @@ export interface Lead {
   children: LeadChild[];
   status: LeadStatus;
   assignedAdminId?: string;
+  assignedAdmin?: {
+    id: string;
+    name: string;
+    email?: string | null;
+  } | null;
   comment?: string;
   trial?: LeadTrial;
   createdAt: string;
