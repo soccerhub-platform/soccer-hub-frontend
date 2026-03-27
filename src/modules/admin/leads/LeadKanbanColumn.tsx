@@ -1,6 +1,6 @@
 import React from "react";
 import LeadCard from "./LeadCard";
-import { Lead, LeadQuickAction } from "./types";
+import { Lead, LeadAction } from "./types";
 
 interface LeadKanbanColumnProps {
   title: string;
@@ -11,10 +11,10 @@ interface LeadKanbanColumnProps {
     badge: string;
   };
   onLeadClick: (leadId: string) => void;
-  onLeadAction: (lead: Lead, action: LeadQuickAction) => void;
+  onLeadAction: (lead: Lead, action: LeadAction) => void;
   actionState: {
     leadId: string;
-    action: LeadQuickAction;
+    actionType: string;
   } | null;
 }
 
@@ -52,9 +52,8 @@ const LeadKanbanColumn: React.FC<LeadKanbanColumnProps> = ({
                 lead={lead}
                 onClick={() => onLeadClick(lead.id)}
                 onAction={onLeadAction}
-                isActionLoading={actionState?.leadId === lead.id}
-                loadingAction={
-                  actionState?.leadId === lead.id ? actionState.action : null
+                loadingActionType={
+                  actionState?.leadId === lead.id ? actionState.actionType : null
                 }
               />
             ))}

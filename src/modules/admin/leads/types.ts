@@ -40,6 +40,13 @@ export interface LeadQualificationData {
   notes?: string | null;
 }
 
+export interface LeadAction {
+  type: string;
+  label: string;
+  primary: boolean;
+  danger?: boolean;
+}
+
 export interface Lead {
   id: string;
   parentName: string;
@@ -47,6 +54,7 @@ export interface Lead {
   email?: string;
   children: LeadChild[];
   status: LeadStatus;
+  actions: LeadAction[];
   assignedAdminId?: string;
   assignedAdmin?: {
     id: string;
@@ -94,18 +102,3 @@ export interface AvailableSlot {
   startTime: string;
   endTime?: string | null;
 }
-
-export type LeadQuickAction =
-  | "CONTACTED"
-  | "QUALIFY"
-  | "SCHEDULE_TRIAL"
-  | "REQUEST_PAYMENT"
-  | "CONFIRM_PAYMENT"
-  | "REJECT";
-
-export type LeadEvent =
-  | "CONTACT"
-  | "QUALIFY"
-  | "REJECT"
-  | "REQUEST_PAYMENT"
-  | "CONFIRM_PAYMENT";

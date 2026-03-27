@@ -20,6 +20,7 @@ const sectionClassName =
   "rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.45)]";
 
 const getToday = () => new Date().toISOString().slice(0, 10);
+const MAX_COMMENT_LENGTH = 1000;
 
 const formatSlotLabel = (slot: AvailableSlot) => {
   if (slot.endTime) {
@@ -393,6 +394,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
                       type="date"
                       value={trialDate}
                       onChange={(event) => setTrialDate(event.target.value)}
+                      min={getToday()}
                       className={fieldClassName}
                     />
                   </label>
@@ -487,15 +489,25 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
                     value={comment}
                     onChange={(event) => setComment(event.target.value)}
                     rows={4}
+                    maxLength={MAX_COMMENT_LENGTH}
                     className={`${fieldClassName} min-h-[120px] resize-none`}
                     placeholder="Например: родителю удобно после школы, нужен пробный с акцентом на адаптацию."
                   />
+                  <div className="text-right text-xs text-slate-400">
+                    {comment.length}/{MAX_COMMENT_LENGTH}
+                  </div>
                 </label>
               </section>
 
               {!groupId && !coachId ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                   Нужно выбрать либо группу, либо тренера.
+                </div>
+              ) : null}
+
+              {(groupId || coachId) && !selectedSlot && !slotsLoading && !slotsError ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  Выберите свободный слот, чтобы сохранить пробное занятие.
                 </div>
               ) : null}
 

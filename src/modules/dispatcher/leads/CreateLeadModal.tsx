@@ -7,6 +7,11 @@ import {
   DispatcherLeadChild,
 } from "./types";
 import { buttonStyles } from "../../../shared/ui/buttonStyles";
+import {
+  formatPhoneInput,
+  isValidFormattedPhone,
+  normalizePhoneForSubmit,
+} from "../../../shared/phone";
 
 interface CreateLeadModalProps {
   token: string;
@@ -21,7 +26,9 @@ const EMPTY_CHILD: DispatcherLeadChild = {
   childAge: 0,
 };
 
-const isValidPhone = (value: string) => /^[+0-9()\s-]{7,}$/.test(value.trim());
+const MAX_NAME_LENGTH = 120;
+const MAX_EMAIL_LENGTH = 160;
+const MAX_COMMENT_LENGTH = 1000;
 const isValidEmail = (value: string) =>
   value.trim().length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
@@ -58,8 +65,8 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
 
     if (!phone.trim()) {
       fieldErrors.phone = "Укажите телефон";
-    } else if (!isValidPhone(phone)) {
-      fieldErrors.phone = "Некорректный формат телефона";
+    } else if (!isValidFormattedPhone(phone)) {
+      fieldErrors.phone = "Введите номер в формате +7 777 123 45 67";
     }
 
     if (!branchId.trim()) {
@@ -72,11 +79,11 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
 
     const childErrors = children.map((child) => {
       const hasName = child.childName.trim().length > 0;
-      const hasAge = child.childAge > 0;
+      const hasAge = Number.isInteger(child.childAge) && child.childAge > 0 && child.childAge <= 25;
 
       if (!hasName && !hasAge) return "";
       if (!hasName) return "Укажите имя ребенка";
-      if (!hasAge) return "Укажите корректный возраст";
+      if (!hasAge) return "Укажите возраст от 1 до 25 лет";
       return "";
     });
 
@@ -101,7 +108,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
 
     const payload: CreateDispatcherLeadPayload = {
       parentName: parentName.trim(),
-      phone: phone.trim(),
+      phone: normalizePhoneForSubmit(phone),
       branchId,
       email: email.trim() || undefined,
       comment: comment.trim() || undefined,
@@ -160,6 +167,8 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 type="text"
                 value={parentName}
                 onChange={(event) => setParentName(event.target.value)}
+                maxLength={MAX_NAME_LENGTH}
+                autoComplete="name"
                 className={`${inputBaseClassName} ${
                   validation.fieldErrors.parentName
                     ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
@@ -177,10 +186,13 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 <span className="ml-1 text-rose-500">*</span>
               </span>
               <input
-                type="text"
+                type="tel"
                 value={phone}
-                onChange={(event) => setPhone(event.target.value)}
+                onChange={(event) => setPhone(formatPhoneInput(event.target.value))}
                 placeholder="+7 777 123 45 67"
+                inputMode="tel"
+                autoComplete="tel"
+                maxLength={16}
                 className={`${inputBaseClassName} ${
                   validation.fieldErrors.phone
                     ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
@@ -226,6 +238,8 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                autoComplete="email"
+                maxLength={MAX_EMAIL_LENGTH}
                 className={`${inputBaseClassName} ${
                   validation.fieldErrors.email
                     ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
@@ -246,8 +260,12 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
               value={comment}
               onChange={(event) => setComment(event.target.value)}
               rows={4}
+              maxLength={MAX_COMMENT_LENGTH}
               className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
             />
+            <div className="text-right text-xs text-slate-400">
+              {comment.length}/{MAX_COMMENT_LENGTH}
+            </div>
           </label>
 
           <section className="mt-6 space-y-3">
@@ -285,6 +303,8 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                             childName: event.target.value,
                           })
                         }
+                        maxLength={MAX_NAME_LENGTH}
+                        autoComplete="off"
                         className={`${inputBaseClassName} ${
                           validation.childErrors[index]
                             ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
@@ -300,13 +320,15 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                       <input
                         type="number"
                         min={1}
+                        max={25}
                         value={child.childAge || ""}
                         onChange={(event) =>
                           updateChild(index, {
                             ...child,
-                            childAge: Number(event.target.value),
+                            childAge: event.target.value ? Number(event.target.value) : 0,
                           })
                         }
+                        inputMode="numeric"
                         className={`${inputBaseClassName} ${
                           validation.childErrors[index]
                             ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"

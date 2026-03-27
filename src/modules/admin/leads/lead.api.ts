@@ -2,7 +2,6 @@ import { getApiUrl } from "../../../shared/api";
 import {
   AvailableSlot,
   LeadDetails,
-  LeadEvent,
   LeadKanbanColumns,
   QualifyLeadPayload,
   ScheduleTrialPayload,
@@ -69,7 +68,7 @@ export const LeadApi = {
 
   async sendLeadEvent(
     leadId: string,
-    event: LeadEvent,
+    event: string,
     token: string
   ): Promise<void> {
     const response = await fetch(`${LEADS_BASE}/${leadId}/events`, {

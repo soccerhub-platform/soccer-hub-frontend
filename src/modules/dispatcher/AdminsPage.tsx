@@ -5,6 +5,11 @@ import { useAuth } from '../../shared/AuthContext';
 import { getApiUrl } from '../../shared/api';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import {
+    formatPhoneInput,
+    isValidFormattedPhone,
+    normalizePhoneForSubmit,
+} from '../../shared/phone';
 
 // Интерфейсы соответствуют бэку
 interface BranchAssignment {
@@ -89,7 +94,7 @@ const AdminsPage: React.FC = () => {
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
     const isValidPhone = (value: string) =>
-        value.length === 0 || /^[+0-9()\s-]{7,}$/.test(value);
+        value.length === 0 || isValidFormattedPhone(value);
 
     // ---------- Загрузка админов ----------
     const loadAdmins = async () => {
@@ -202,7 +207,7 @@ const AdminsPage: React.FC = () => {
             email: createForm.email.trim(),
             firstName: createForm.firstName.trim(),
             lastName: createForm.lastName.trim(),
-            phone: createForm.phone.trim(),
+            phone: normalizePhoneForSubmit(createForm.phone),
         };
 
         const res = await fetch(getApiUrl('/dispatcher/admin/register'), {
@@ -242,7 +247,7 @@ const AdminsPage: React.FC = () => {
         setEditForm({
             firstName: admin.firstName,
             lastName: admin.lastName,
-            phone: admin.phone ?? '',
+            phone: formatPhoneInput(admin.phone ?? ''),
         });
         setShowEditModal(true);
     };
@@ -266,7 +271,7 @@ const AdminsPage: React.FC = () => {
                 body: JSON.stringify({
                     firstName: editForm.firstName.trim(),
                     lastName: editForm.lastName.trim(),
-                    phone: editForm.phone.trim(),
+                    phone: normalizePhoneForSubmit(editForm.phone),
                 }),
             }
         );
@@ -916,15 +921,18 @@ const AdminsPage: React.FC = () => {
                                     Телефон
                                 </label>
                                 <input
-                                    type="text"
+                                    type="tel"
                                     className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm
                                             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                                             transition"
-                                    placeholder="+7..."
+                                    placeholder="+7 777 123 45 67"
                                     value={editForm.phone}
                                     onChange={(e) =>
-                                        setEditForm({ ...editForm, phone: e.target.value })
+                                        setEditForm({ ...editForm, phone: formatPhoneInput(e.target.value) })
                                     }
+                                    inputMode="tel"
+                                    autoComplete="tel"
+                                    maxLength={16}
                                 />
                             </div>
                         </div>
@@ -979,13 +987,16 @@ const AdminsPage: React.FC = () => {
                                     Телефон
                                 </label>
                                 <input
-                                    type="text"
-                                    placeholder="+7..."
+                                    type="tel"
+                                    placeholder="+7 777 123 45 67"
                                     className="border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={createForm.phone}
                                     onChange={(e) =>
-                                        setCreateForm({ ...createForm, phone: e.target.value })
+                                        setCreateForm({ ...createForm, phone: formatPhoneInput(e.target.value) })
                                     }
+                                    inputMode="tel"
+                                    autoComplete="tel"
+                                    maxLength={16}
                                 />
                             </div>
 

@@ -4,6 +4,11 @@ import { useAdminBranch } from '../BranchContext';
 import { CoachApi } from './coach.api';
 import LoaderButton from '../../../shared/LoaderButton';
 import toast from 'react-hot-toast';
+import {
+  formatPhoneInput,
+  isValidFormattedPhone,
+  normalizePhoneForSubmit,
+} from '../../../shared/phone';
 
 interface Props {
   onClose: () => void;
@@ -49,8 +54,8 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
       return;
     }
 
-    if (!/^[+0-9()\s-]{7,}$/.test(form.phone)) {
-      toast.error('Неверный формат телефона');
+    if (!isValidFormattedPhone(form.phone)) {
+      toast.error('Введите номер в формате +7 777 123 45 67');
       return;
     }
 
@@ -59,6 +64,7 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
       await CoachApi.create(
         {
           ...form,
+          phone: normalizePhoneForSubmit(form.phone),
           branchId,
         },
         token
@@ -119,7 +125,8 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
             label="Телефон*"
             value={form.phone}
             onChange={(v) => setForm({ ...form, phone: v })}
-            placeholder="+7..."
+            placeholder="+7 777 123 45 67"
+            type="tel"
           />
         </div>
 
@@ -171,7 +178,12 @@ const Input = ({
       type={type}
       placeholder={placeholder}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) =>
+        onChange(type === 'tel' ? formatPhoneInput(e.target.value) : e.target.value)
+      }
+      inputMode={type === 'tel' ? 'tel' : undefined}
+      autoComplete={type === 'tel' ? 'tel' : undefined}
+      maxLength={type === 'tel' ? 16 : undefined}
       className="w-full border rounded-xl px-3.5 py-2.5 text-sm
                  focus:outline-none focus:ring-2 focus:ring-admin-500"
     />

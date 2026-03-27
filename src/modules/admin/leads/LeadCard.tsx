@@ -2,60 +2,39 @@ import React from "react";
 import {
   ChatBubbleLeftEllipsisIcon,
   CheckCircleIcon,
-  EllipsisHorizontalIcon,
   PhoneIcon,
-  XCircleIcon,
   UserIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
-import { Lead, LeadQuickAction } from "./types";
+import { Lead, LeadAction } from "./types";
+import LeadActions from "./LeadActions";
 import {
   formatLeadCardDate,
   formatTrialPreview,
   trialStatusClassName,
   trialStatusLabel,
 } from "./lead.format";
-import { buttonStyles } from "../../../shared/ui/buttonStyles";
 
 interface LeadCardProps {
   lead: Lead;
   onClick?: () => void;
-  onAction?: (lead: Lead, action: LeadQuickAction) => void;
-  isActionLoading?: boolean;
-  loadingAction?: LeadQuickAction | null;
+  onAction?: (lead: Lead, action: LeadAction) => void;
+  loadingActionType?: string | null;
 }
 
 const LeadCard: React.FC<LeadCardProps> = ({
   lead,
   onClick,
   onAction,
-  isActionLoading = false,
-  loadingAction = null,
+  loadingActionType = null,
 }) => {
+  const actions = lead.actions ?? [];
   const primaryChild = lead.children[0];
   const extraChildren = Math.max(0, lead.children.length - 1);
   const trialPreview = formatTrialPreview(
     lead.trial?.trialDate,
     lead.trial?.startTime
   );
-  const primaryAction =
-    lead.status === "NEW"
-      ? { key: "CONTACTED" as const, label: "Связались" }
-      : lead.status === "CONTACTED"
-      ? { key: "QUALIFY" as const, label: "Квалифицировать" }
-      : lead.status === "QUALIFIED"
-      ? { key: "SCHEDULE_TRIAL" as const, label: "Назначить пробное" }
-      : lead.status === "TRIAL_DONE"
-      ? { key: "REQUEST_PAYMENT" as const, label: "Отправить на оплату" }
-      : lead.status === "WAITING_PAYMENT"
-      ? { key: "CONFIRM_PAYMENT" as const, label: "Подтвердить оплату" }
-      : null;
-  const showReject = ["NEW", "CONTACTED", "QUALIFIED"].includes(lead.status);
-
-  const handleActionClick =
-    (action: LeadQuickAction) => (event: React.MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      onAction?.(lead, action);
-    };
 
   return (
     <article
@@ -140,44 +119,17 @@ const LeadCard: React.FC<LeadCardProps> = ({
         </div>
       </button>
 
-      {(primaryAction || showReject) && (
-        <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3">
-          {primaryAction ? (
-            <button
-              type="button"
-              onClick={handleActionClick(primaryAction.key)}
-              disabled={isActionLoading}
-              className={buttonStyles("primary", "sm", "rounded-lg")}
-            >
-              {isActionLoading && loadingAction === primaryAction.key
-                ? "Сохранение..."
-                : primaryAction.label}
-            </button>
-          ) : null}
-
-          {showReject ? (
-            <button
-              type="button"
-              onClick={handleActionClick("REJECT")}
-              disabled={isActionLoading}
-              className={buttonStyles("danger", "sm", "rounded-lg")}
-            >
-              {isActionLoading && loadingAction === "REJECT"
-                ? "Сохранение..."
-                : "Отказ"}
-            </button>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={(event) => event.stopPropagation()}
-            className={buttonStyles("ghost", "sm", "ml-auto rounded-lg p-1.5 text-slate-400")}
-            aria-label="Дополнительные действия"
-          >
-            <EllipsisHorizontalIcon className="h-4 w-4" />
-          </button>
+      {actions.length > 0 ? (
+        <div className="mt-4 border-t border-slate-100 pt-3">
+          <div onClick={(event) => event.stopPropagation()}>
+            <LeadActions
+              actions={actions}
+              onAction={(action) => onAction?.(lead, action)}
+              loadingActionType={loadingActionType}
+            />
+          </div>
         </div>
-      )}
+      ) : null}
     </article>
   );
 };

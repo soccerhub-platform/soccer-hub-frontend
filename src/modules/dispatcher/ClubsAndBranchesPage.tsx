@@ -11,6 +11,11 @@ import {
 import { apiRequest, getApiUrl } from "../../shared/api";
 import toast from "react-hot-toast";
 import LoaderButton from "../../shared/LoaderButton";
+import {
+  formatPhoneInput,
+  isValidFormattedPhone,
+  normalizePhoneForSubmit,
+} from "../../shared/phone";
 
 interface ClubView {
   id: string;
@@ -74,7 +79,7 @@ const ClubsAndBranchesPage: React.FC = () => {
     value.length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   const isValidPhone = (value: string) =>
-    value.length === 0 || /^[+0-9()\s-]{7,}$/.test(value);
+    value.length === 0 || isValidFormattedPhone(value);
 
   // ---- Загрузка клубов ----
   const loadClubs = async () => {
@@ -160,7 +165,7 @@ const ClubsAndBranchesPage: React.FC = () => {
         name: clubForm.name.trim(),
         slug: normalizeSlug(clubForm.slug),
         email: clubForm.email.trim(),
-        phone: clubForm.phone.trim(),
+        phone: normalizePhoneForSubmit(clubForm.phone),
         address: clubForm.address.trim(),
       };
       await apiRequest(getApiUrl("/dispatcher/club/create"), {
@@ -638,10 +643,14 @@ const CreateClubModal = ({
       <div className="space-y-1">
         <span className="block text-xs font-medium text-gray-600">Телефон</span>
         <input
-          type="text"
+          type="tel"
           className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dispatcher-500 focus:border-dispatcher-500"
           value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          onChange={(e) => setForm({ ...form, phone: formatPhoneInput(e.target.value) })}
+          inputMode="tel"
+          autoComplete="tel"
+          maxLength={16}
+          placeholder="+7 777 123 45 67"
         />
       </div>
 

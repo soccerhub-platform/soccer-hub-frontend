@@ -5,10 +5,9 @@ import { useAdminBranch } from "../BranchContext";
 import LeadKanbanColumn from "./LeadKanbanColumn";
 import {
   Lead,
-  LeadEvent,
+  LeadAction,
   LeadKanbanColumns,
   LEAD_COLUMN_ORDER,
-  LeadQuickAction,
   LeadStatus,
 } from "./types";
 import LeadDrawer from "./LeadDrawer";
@@ -83,15 +82,6 @@ const createEmptyColumns = (): LeadKanbanColumns =>
     return acc;
   }, {});
 
-const SIMPLE_EVENTS: Partial<Record<LeadQuickAction, LeadEvent>> = {
-  CONTACTED: "CONTACT",
-  REJECT: "REJECT",
-  REQUEST_PAYMENT: "REQUEST_PAYMENT",
-  CONFIRM_PAYMENT: "CONFIRM_PAYMENT",
-};
-
-const COMPLEX_ACTIONS: LeadQuickAction[] = ["QUALIFY", "SCHEDULE_TRIAL"];
-
 const LeadKanbanPage: React.FC = () => {
   const { user } = useAuth();
   const { branchId } = useAdminBranch();
@@ -105,7 +95,7 @@ const LeadKanbanPage: React.FC = () => {
   const [trialLead, setTrialLead] = useState<Lead | null>(null);
   const [actionState, setActionState] = useState<{
     leadId: string;
-    action: LeadQuickAction;
+    actionType: string;
   } | null>(null);
 
   useEffect(() => {
@@ -172,32 +162,24 @@ const LeadKanbanPage: React.FC = () => {
     }
   };
 
-  const handleLeadAction = async (lead: Lead, action: LeadQuickAction) => {
+  const handleLeadAction = async (lead: Lead, action: LeadAction) => {
     if (!token) return;
 
-    if (COMPLEX_ACTIONS.includes(action)) {
-      if (action === "QUALIFY") {
-        setQualifyingLead(lead);
-      }
-
-      if (action === "SCHEDULE_TRIAL") {
-        setTrialLead(lead);
-      }
-
+    if (action.type === "QUALIFY") {
+      setQualifyingLead(lead);
       return;
     }
 
-    const event = SIMPLE_EVENTS[action];
-    if (!event) {
-      setError("Для этого действия не настроено событие.");
+    if (action.type === "SCHEDULE_TRIAL") {
+      setTrialLead(lead);
       return;
     }
 
-    setActionState({ leadId: lead.id, action });
+    setActionState({ leadId: lead.id, actionType: action.type });
     setError(null);
 
     try {
-      await LeadApi.sendLeadEvent(lead.id, event, token);
+      await LeadApi.sendLeadEvent(lead.id, action.type, token);
       await refreshKanban();
     } catch (err) {
       console.error(err);

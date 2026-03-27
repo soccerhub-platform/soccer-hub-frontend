@@ -9,10 +9,11 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import QualifyLeadModal from "./QualifyLeadModal";
-import { LeadDetails } from "./types";
+import { LeadAction, LeadDetails } from "./types";
 import { LeadApi } from "./lead.api";
 import ScheduleTrialModal from "./ScheduleTrialModal";
 import { GroupApi } from "../groups/group.api";
+import LeadActions from "./LeadActions";
 import {
   childGenderLabel,
   experienceLabel,
@@ -22,7 +23,6 @@ import {
   LEAD_STATUS_LABELS,
   trialStatusLabel,
 } from "./lead.format";
-import { buttonStyles } from "../../../shared/ui/buttonStyles";
 
 interface LeadDrawerProps {
   leadId: string;
@@ -56,11 +56,6 @@ const statusBadgeClassName = (status?: string) => {
   }
 };
 
-const canQualify = (status?: string) =>
-  status === "NEW" || status === "CONTACTED";
-
-const canScheduleTrial = (status?: string) => status === "QUALIFIED";
-
 const getCurrentUserId = (token: string) => {
   try {
     const decoded = jwtDecode<{ sub?: string }>(token);
@@ -85,6 +80,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [coachName, setCoachName] = useState<string | null>(null);
   const [groupName, setGroupName] = useState<string | null>(null);
+  const [loadingActionType, setLoadingActionType] = useState<string | null>(null);
   const trialChild =
     lead?.trial && lead.children.find((child) => child.id === lead.trial?.childId);
   const currentUserId = getCurrentUserId(token);
@@ -165,6 +161,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   const isCurrentUserAssigned =
     !!lead?.assignedAdmin?.id && lead.assignedAdmin.id === currentUserId;
   const assignedAdminDisplayName = lead?.assignedAdmin?.name?.trim() || null;
+  const actions = lead?.actions ?? [];
   const assignedAdminInitials = assignedAdminDisplayName
     ? assignedAdminDisplayName
         .split(/\s+/)
@@ -173,6 +170,39 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
         .map((part) => part[0]?.toUpperCase())
         .join("")
     : "";
+
+  const refreshLead = async () => {
+    const data = await LeadApi.getById(leadId, token);
+    setLead(data);
+  };
+
+  const handleAction = async (action: LeadAction) => {
+    if (!lead) return;
+
+    if (action.type === "QUALIFY") {
+      setShowQualifyModal(true);
+      return;
+    }
+
+    if (action.type === "SCHEDULE_TRIAL") {
+      setShowTrialModal(true);
+      return;
+    }
+
+    setLoadingActionType(action.type);
+    setError(null);
+
+    try {
+      await LeadApi.sendLeadEvent(lead.id, action.type, token);
+      await onUpdated();
+      await refreshLead();
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Не удалось обновить лид");
+    } finally {
+      setLoadingActionType(null);
+    }
+  };
 
   return (
     <>
@@ -421,28 +451,16 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
           ) : null}
         </div>
 
-        {lead && (canQualify(lead.status) || canScheduleTrial(lead.status)) ? (
-          <div className="border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
-            <div className="flex gap-3">
-              {canQualify(lead.status) ? (
-                <button
-                  type="button"
-                  onClick={() => setShowQualifyModal(true)}
-                  className={buttonStyles("primary", "md", "flex-1 rounded-2xl")}
-                >
-                  Квалифицировать
-                </button>
-              ) : null}
-              {canScheduleTrial(lead.status) ? (
-                <button
-                  type="button"
-                  onClick={() => setShowTrialModal(true)}
-                  className={buttonStyles("soft", "md", "flex-1 rounded-2xl")}
-                >
-                  Назначить пробное
-                </button>
-              ) : null}
-            </div>
+        {lead && actions.length > 0 ? (
+          <div className="border-t border-slate-200 bg-white/95 px-6 py-5 backdrop-blur-sm">
+            <LeadActions
+              actions={actions}
+              loadingActionType={loadingActionType}
+              className="pt-1 pb-3"
+              onAction={(action) => {
+                void handleAction(action);
+              }}
+            />
           </div>
         ) : null}
       </aside>
@@ -456,8 +474,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
           onSuccess={async () => {
             await onUpdated();
             setShowQualifyModal(false);
-            const data = await LeadApi.getById(leadId, token);
-            setLead(data);
+            await refreshLead();
           }}
         />
       ) : null}
@@ -471,8 +488,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
           onSuccess={async () => {
             await onUpdated();
             setShowTrialModal(false);
-            const data = await LeadApi.getById(leadId, token);
-            setLead(data);
+            await refreshLead();
           }}
         />
       ) : null}

@@ -46,6 +46,9 @@ const EMPTY_CHILD = (): QualificationChildForm => ({
   experience: "BEGINNER",
 });
 
+const MAX_NAME_LENGTH = 120;
+const MAX_NOTES_LENGTH = 1000;
+
 const fieldClassName =
   "w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100";
 
@@ -81,8 +84,8 @@ const buildChildren = (lead: LeadDetails | null): QualificationChildForm[] => {
   if (lead?.children?.length) {
     return lead.children.map((child) => ({
       ...child,
-      gender: "MALE",
-      experience: "BEGINNER",
+      gender: child.gender ?? "MALE",
+      experience: child.experience ?? "BEGINNER",
     }));
   }
 
@@ -91,8 +94,8 @@ const buildChildren = (lead: LeadDetails | null): QualificationChildForm[] => {
       id: "",
       childName: child.childName,
       childAge: child.childAge,
-      gender: "MALE",
-      experience: "BEGINNER",
+      gender: child.gender ?? "MALE",
+      experience: child.experience ?? "BEGINNER",
     }));
   }
 
@@ -130,9 +133,9 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
     const childErrors = children.map((child) => ({
       childName: child.childName.trim() ? "" : "Укажите имя ребенка",
       childAge:
-        Number.isFinite(child.childAge) && child.childAge > 0
+        Number.isInteger(child.childAge) && child.childAge > 0 && child.childAge <= 25
           ? ""
-          : "Укажите корректный возраст",
+          : "Укажите возраст от 1 до 25 лет",
     }));
 
     const hasValidChildren =
@@ -303,6 +306,8 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                               childName: event.target.value,
                             })
                           }
+                          maxLength={MAX_NAME_LENGTH}
+                          autoComplete="off"
                           className={`${fieldClassName} ${
                             validation.childErrors[index]?.childName
                               ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
@@ -323,13 +328,15 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                         <input
                           type="number"
                           min={1}
+                          max={25}
                           value={child.childAge || ""}
                           onChange={(event) =>
                             updateChild(index, {
                               ...child,
-                              childAge: Number(event.target.value),
+                              childAge: event.target.value ? Number(event.target.value) : 0,
                             })
                           }
+                          inputMode="numeric"
                           className={`${fieldClassName} ${
                             validation.childErrors[index]?.childAge
                               ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
@@ -427,6 +434,11 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                       );
                     })}
                   </div>
+                  {selectedDays.length === 0 ? (
+                    <p className="mt-2 text-xs text-rose-600">
+                      Выберите хотя бы один день.
+                    </p>
+                  ) : null}
                 </div>
 
                 <div>
@@ -452,6 +464,11 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                       );
                     })}
                   </div>
+                  {!timePreference ? (
+                    <p className="mt-2 text-xs text-rose-600">
+                      Выберите предпочтительное время.
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </section>
@@ -481,9 +498,13 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                     value={notes}
                     onChange={(event) => setNotes(event.target.value)}
                     rows={5}
+                    maxLength={MAX_NOTES_LENGTH}
                     className={`${fieldClassName} min-h-[132px] resize-none md:min-h-[120px]`}
                     placeholder="Например: хочет попробовать до начала сезона, важна адаптация в группе."
                   />
+                  <div className="text-right text-xs text-slate-400">
+                    {notes.length}/{MAX_NOTES_LENGTH}
+                  </div>
                 </label>
               </div>
             </section>
