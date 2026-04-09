@@ -175,6 +175,16 @@ const LeadKanbanPage: React.FC = () => {
       return;
     }
 
+    if (action.type === "POST_TRIAL_REJECT") {
+      const confirmed = window.confirm(
+        "Вы уверены, что клиент отказался после пробного?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setActionState({ leadId: lead.id, actionType: action.type });
     setError(null);
 

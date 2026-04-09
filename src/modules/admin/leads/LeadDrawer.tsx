@@ -4,16 +4,18 @@ import {
   IdentificationIcon,
   CalendarDaysIcon,
   ChatBubbleLeftRightIcon,
+  ClockIcon,
   EnvelopeIcon,
   PhoneIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import QualifyLeadModal from "./QualifyLeadModal";
-import { LeadAction, LeadDetails } from "./types";
+import { LeadAction, LeadActivity, LeadDetails } from "./types";
 import { LeadApi } from "./lead.api";
 import ScheduleTrialModal from "./ScheduleTrialModal";
 import { GroupApi } from "../groups/group.api";
 import LeadActions from "./LeadActions";
+import LeadTimeline from "./LeadTimeline";
 import {
   childGenderLabel,
   experienceLabel,
@@ -81,6 +83,9 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   const [coachName, setCoachName] = useState<string | null>(null);
   const [groupName, setGroupName] = useState<string | null>(null);
   const [loadingActionType, setLoadingActionType] = useState<string | null>(null);
+  const [activities, setActivities] = useState<LeadActivity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [activitiesError, setActivitiesError] = useState<string | null>(null);
   const trialChild =
     lead?.trial && lead.children.find((child) => child.id === lead.trial?.childId);
   const currentUserId = getCurrentUserId(token);
@@ -154,6 +159,37 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     };
   }, [lead?.trial, token]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadActivities = async () => {
+      setActivitiesLoading(true);
+      setActivitiesError(null);
+
+      try {
+        const data = await LeadApi.getActivities(leadId, token);
+        if (!isMounted) return;
+        setActivities(data);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error(err);
+        setActivitiesError(
+          err instanceof Error ? err.message : "Не удалось загрузить активность"
+        );
+      } finally {
+        if (isMounted) {
+          setActivitiesLoading(false);
+        }
+      }
+    };
+
+    loadActivities();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [leadId, token]);
+
   if (!isOpen) {
     return null;
   }
@@ -172,8 +208,13 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     : "";
 
   const refreshLead = async () => {
-    const data = await LeadApi.getById(leadId, token);
-    setLead(data);
+    const [leadData, activitiesData] = await Promise.all([
+      LeadApi.getById(leadId, token),
+      LeadApi.getActivities(leadId, token),
+    ]);
+    setLead(leadData);
+    setActivities(activitiesData);
+    setActivitiesError(null);
   };
 
   const handleAction = async (action: LeadAction) => {
@@ -187,6 +228,16 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     if (action.type === "SCHEDULE_TRIAL") {
       setShowTrialModal(true);
       return;
+    }
+
+    if (action.type === "POST_TRIAL_REJECT") {
+      const confirmed = window.confirm(
+        "Вы уверены, что клиент отказался после пробного?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
     }
 
     setLoadingActionType(action.type);
@@ -446,6 +497,18 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                     <div className="text-sm text-slate-500">Пробное не назначено</div>
                   )}
                 </div>
+              </section>
+
+              <section className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  <ClockIcon className="h-4 w-4" />
+                  Активность
+                </div>
+                <LeadTimeline
+                  activities={activities}
+                  loading={activitiesLoading}
+                  error={activitiesError}
+                />
               </section>
             </div>
           ) : null}

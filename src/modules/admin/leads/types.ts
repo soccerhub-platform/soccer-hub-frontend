@@ -40,11 +40,33 @@ export interface LeadQualificationData {
   notes?: string | null;
 }
 
+export type LeadActionType =
+  | "CONTACT"
+  | "QUALIFY"
+  | "SCHEDULE_TRIAL"
+  | "COMPLETE_TRIAL"
+  | "NO_SHOW"
+  | "REQUEST_PAYMENT"
+  | "CONFIRM_PAYMENT"
+  | "POST_TRIAL_REJECT"
+  | "REJECT";
+
 export interface LeadAction {
-  type: string;
+  type: LeadActionType;
   label: string;
   primary: boolean;
-  danger?: boolean;
+  danger: boolean;
+  enabled: boolean;
+}
+
+export interface LeadActivity {
+  id?: string;
+  type: string;
+  description: string;
+  actorName?: string | null;
+  createdAt?: string;
+  occurredAt?: string;
+  time?: string;
 }
 
 export interface Lead {

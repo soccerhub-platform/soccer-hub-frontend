@@ -1,6 +1,7 @@
 import { getApiUrl } from "../../../shared/api";
 import {
   AvailableSlot,
+  LeadActivity,
   LeadDetails,
   LeadKanbanColumns,
   QualifyLeadPayload,
@@ -47,6 +48,17 @@ export const LeadApi = {
       throw new Error("Не удалось загрузить лид");
     }
     return payload;
+  },
+
+  async getActivities(leadId: string, token: string): Promise<LeadActivity[]> {
+    const response = await fetch(`${LEADS_BASE}/${leadId}/activities`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    await assertOk(response);
+    return (await parseJsonResponse<LeadActivity[]>(response)) ?? [];
   },
 
   async qualify(
