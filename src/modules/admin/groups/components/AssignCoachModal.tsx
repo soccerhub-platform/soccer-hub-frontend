@@ -14,6 +14,9 @@ interface Props {
 }
 
 const PAGE_SIZE = 10;
+interface CoachesPageData {
+  content: Coach[];
+}
 
 const AssignCoachModal: React.FC<Props> = ({
   groupId,
@@ -25,8 +28,7 @@ const AssignCoachModal: React.FC<Props> = ({
   const { user } = useAuth();
   const token = user?.accessToken;
 
-  const [data, setData] = useState<any>(null);
-  const [page, setPage] = useState(0);
+  const [data, setData] = useState<CoachesPageData | null>(null);
   const [assigningId, setAssigningId] = useState<string | null>(null);
 
   /** роль по coachId */
@@ -40,7 +42,7 @@ const AssignCoachModal: React.FC<Props> = ({
     const res = await CoachApi.listByBranch(
       branchId,
       token,
-      page,
+      0,
       PAGE_SIZE
     );
     setData(res);
@@ -48,7 +50,7 @@ const AssignCoachModal: React.FC<Props> = ({
 
   useEffect(() => {
     load();
-  }, [page, branchId, token]);
+  }, [branchId, token]);
 
   const assign = async (coachId: string) => {
     if (!token) {
@@ -62,8 +64,9 @@ const AssignCoachModal: React.FC<Props> = ({
       await GroupApi.assignCoach(groupId, coachId, role, token);
       onAssigned();
       onClose();
-    } catch (e: any) {
-      if (e.message?.includes("already assigned")) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "";
+      if (message.includes("already assigned")) {
         toast.error("Тренер уже назначен в эту группу");
       } else {
         toast.error("Не удалось назначить тренера");

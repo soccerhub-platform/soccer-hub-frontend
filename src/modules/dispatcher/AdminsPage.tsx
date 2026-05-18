@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../shared/AuthContext';
-import { getApiUrl } from '../../shared/api';
+import { apiClient } from '../../shared/api';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import {
@@ -30,6 +30,22 @@ interface AdminView {
 }
 
 interface BranchOption {
+    branchId: string;
+    name: string;
+}
+
+interface AdminApiDto {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    phone?: string;
+    isActive?: boolean;
+    active?: boolean;
+    branches?: BranchAssignment[];
+}
+
+interface BranchOptionDto {
     branchId: string;
     name: string;
 }
@@ -86,10 +102,6 @@ const AdminsPage: React.FC = () => {
     // id филиала для назначения
     const [assignBranchId, setAssignBranchId] = useState<string>('');
 
-    const authHeaders: HeadersInit = user?.accessToken
-        ? { Authorization: `Bearer ${user.accessToken}` }
-        : {};
-
     const isValidEmail = (value: string) =>
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -100,23 +112,19 @@ const AdminsPage: React.FC = () => {
     const loadAdmins = async () => {
         try {
             setLoading(true);
-            const res = await fetch(getApiUrl('/dispatcher/admin'), {
-                headers: { ...authHeaders },
-            });
-
-            const data = await res.json();
+            const data = await apiClient.get<{ admins?: AdminApiDto[] }>('/dispatcher/admin');
             const rawAdmins = data.admins ?? [];
 
             setAdmins(
-                rawAdmins.map((a: any) => ({
+                rawAdmins.map((a) => ({
                     adminId: a.id,
                     firstName: a.firstName,
                     lastName: a.lastName,
                     email: a.email,
                     phone: a.phone,
-                    active: a.isActive ?? a.active,
+                    active: a.isActive ?? a.active ?? false,
                     branches: Array.isArray(a.branches)
-                        ? a.branches.map((b: any) => ({
+                        ? a.branches.map((b) => ({
                               branchId: b.branchId,
                               branchName: b.branchName,
                               clubId: b.clubId,
@@ -136,12 +144,9 @@ const AdminsPage: React.FC = () => {
     // ---------- Загрузка филиалов ----------
     const loadBranches = async () => {
         try {
-            const res = await fetch(getApiUrl('/dispatcher/branch'), {
-                headers: { ...authHeaders },
-            });
-            const data = await res.json();
+            const data = await apiClient.get<{ branches?: BranchOptionDto[] } | BranchOptionDto[]>('/dispatcher/branch');
             const raw = Array.isArray(data) ? data : data.branches ?? [];
-            setBranches(raw.map((b: any) => ({ branchId: b.branchId, name: b.name })));
+            setBranches(raw.map((b) => ({ branchId: b.branchId, name: b.name })));
         } catch (error) {
             console.error(error);
             toast.error('Не удалось загрузить филиалы');
@@ -210,23 +215,17 @@ const AdminsPage: React.FC = () => {
             phone: normalizePhoneForSubmit(createForm.phone),
         };
 
-        const res = await fetch(getApiUrl('/dispatcher/admin/register'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...authHeaders },
-            body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
+        try {
+            const data = await apiClient.post<{ tempPassword?: string }>('/dispatcher/admin/register', payload);
+            if (data?.tempPassword) {
+                setCreatedAdminPassword(data.tempPassword);
+                setShowCreatedPasswordModal(true);
+            } else {
+                toast.success('Администратор создан');
+            }
+        } catch {
             toast.error('Ошибка создания администратора');
             return;
-        }
-
-        const data = await res.json();
-        if (data?.tempPassword) {
-            setCreatedAdminPassword(data.tempPassword);
-            setShowCreatedPasswordModal(true);
-        } else {
-            toast.success('Администратор создан');
         }
         
         setShowCreateModal(false);
@@ -263,41 +262,26 @@ const AdminsPage: React.FC = () => {
             return;
         }
 
-        const res = await fetch(
-            getApiUrl(`/dispatcher/admin/${selectedAdmin.adminId}`),
-            {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', ...authHeaders },
-                body: JSON.stringify({
-                    firstName: editForm.firstName.trim(),
-                    lastName: editForm.lastName.trim(),
-                    phone: normalizePhoneForSubmit(editForm.phone),
-                }),
-            }
-        );
-
-        if (res.ok) {
+        try {
+            await apiClient.put(`/dispatcher/admin/${selectedAdmin.adminId}`, {
+                firstName: editForm.firstName.trim(),
+                lastName: editForm.lastName.trim(),
+                phone: normalizePhoneForSubmit(editForm.phone),
+            });
             setShowEditModal(false);
             setSelectedAdmin(null);
             await loadAdmins();
-        } else {
+        } catch {
             toast.error('Ошибка сохранения');
         }
     };
 
     // ---------- Статус ----------
     const toggleStatus = async (adminId: string, nextActive: boolean) => {
-        const res = await fetch(
-            getApiUrl(`/dispatcher/admin/${adminId}/status`),
-            {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...authHeaders },
-                body: JSON.stringify({ active: nextActive }),
-            }
-        );
-        if (res.ok) {
+        try {
+            await apiClient.patch(`/dispatcher/admin/${adminId}/status`, { active: nextActive });
             await loadAdmins();
-        } else {
+        } catch {
             toast.error('Ошибка смены статуса');
         }
     };
@@ -315,20 +299,12 @@ const AdminsPage: React.FC = () => {
             return;
         }
 
-        const res = await fetch(
-            getApiUrl(`/dispatcher/admin/${selectedAdmin.adminId}/assign-branch`),
-            {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...authHeaders },
-                body: JSON.stringify({ branchId: assignBranchId }),
-            }
-        );
-
-        if (res.ok) {
+        try {
+            await apiClient.patch(`/dispatcher/admin/${selectedAdmin.adminId}/assign-branch`, { branchId: assignBranchId });
             setShowAssignModal(false);
             setSelectedAdmin(null);
             await loadAdmins();
-        } else {
+        } catch {
             toast.error('Ошибка назначения филиала');
         }
     };
@@ -337,21 +313,13 @@ const AdminsPage: React.FC = () => {
     const handleUnassignBranch = async (adminId: string, branchId: string) => {
         if (!window.confirm('Открепить этот филиал у администратора?')) return;
 
-        const res = await fetch(
-            getApiUrl(`/dispatcher/admin/${adminId}/unassign-branch`),
-            {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...authHeaders },
-                body: JSON.stringify({ branchId }),
-            }
-        );
-
-        if (res.ok) {
+        try {
+            await apiClient.patch(`/dispatcher/admin/${adminId}/unassign-branch`, { branchId });
             // Закрываем модалку, обновляем список
             setShowDetailsModal(false);
             setSelectedAdmin(null);
             await loadAdmins();
-        } else {
+        } catch {
             toast.error('Ошибка открепления филиала');
         }
     };
@@ -361,19 +329,7 @@ const AdminsPage: React.FC = () => {
 
         setResetLoading(true);
         try {
-            const res = await fetch(
-            getApiUrl(`/dispatcher/admin/${selectedAdmin.adminId}/reset-password`),
-            {
-                method: 'POST',
-                headers: { ...authHeaders },
-            }
-            );
-
-            if (!res.ok) {
-            throw new Error();
-            }
-
-            const data = await res.json();
+            const data = await apiClient.post<{ temporaryPassword: string }>(`/dispatcher/admin/${selectedAdmin.adminId}/reset-password`);
             setResetPasswordValue(data.temporaryPassword);
         } catch {
             toast.error('Ошибка сброса пароля');
@@ -392,21 +348,14 @@ const AdminsPage: React.FC = () => {
             return;
         }
 
-        const res = await fetch(
-            getApiUrl(`/dispatcher/admin/${selectedAdmin.adminId}`),
-            {
-                method: 'DELETE',
-                headers: { ...authHeaders }
-            }
-        );
-
-        if (res.ok) {
+        try {
+            await apiClient.delete(`/dispatcher/admin/${selectedAdmin.adminId}`);
             setShowDeleteModal(false);
             setShowDetailsModal(false);
             setSelectedAdmin(null);
             setDeleteInput('');
             await loadAdmins();
-        } else {
+        } catch {
             toast.error("Ошибка удаления администратора");
         }
     };

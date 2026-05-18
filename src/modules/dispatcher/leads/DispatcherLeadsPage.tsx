@@ -62,7 +62,7 @@ const DispatcherLeadsPage: React.FC = () => {
 
     const loadBranches = async () => {
       try {
-        const data = await DispatcherLeadsApi.listBranches(token);
+        const data = await DispatcherLeadsApi.listBranches();
         if (!isMounted) return;
         setBranches(data);
         if (!selectedBranchId && data.length > 0) {
@@ -95,7 +95,7 @@ const DispatcherLeadsPage: React.FC = () => {
       setError(null);
 
       try {
-        const data = await DispatcherLeadsApi.list(selectedBranchId, token);
+        const data = await DispatcherLeadsApi.list(selectedBranchId);
         if (!isMounted) return;
         setLeads(data);
       } catch (err) {
@@ -122,7 +122,7 @@ const DispatcherLeadsPage: React.FC = () => {
 
     setError(null);
     try {
-      const data = await DispatcherLeadsApi.list(selectedBranchId, token);
+      const data = await DispatcherLeadsApi.list(selectedBranchId);
       setLeads(data);
     } catch (err) {
       console.error(err);
@@ -242,7 +242,6 @@ const DispatcherLeadsPage: React.FC = () => {
 
       {showCreateModal ? (
         <CreateLeadModal
-          token={token}
           branches={branches}
           initialBranchId={selectedBranchId}
           onClose={() => setShowCreateModal(false)}

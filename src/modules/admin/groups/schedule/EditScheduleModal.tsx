@@ -83,12 +83,16 @@ const EditScheduleModal: React.FC<Props> = ({
         type,
         startDate: from,
         endDate: to,
-        slots: enabledSlots.map(({ enabled, ...s }) => s),
+        slots: enabledSlots.map((slot) => ({
+          dayOfWeek: slot.dayOfWeek,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        })),
       });
       onClose();
-    } catch (e: any) {
+    } catch (e: unknown) {
       try {
-        const parsed = JSON.parse(e.message);
+        const parsed = JSON.parse(e instanceof Error ? e.message : "");
         setApiError(parsed.message || "Ошибка сохранения");
       } catch {
         setApiError("Ошибка сохранения");

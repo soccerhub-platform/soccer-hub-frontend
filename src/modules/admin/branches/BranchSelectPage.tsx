@@ -33,7 +33,7 @@ export default function BranchSelectPage() {
     const loadBranches = async () => {
       setLoading(true);
       try {
-        const apiBranches = await BranchApi.list(token);
+        const apiBranches = await BranchApi.list();
 
         const mapped = apiBranches.map((b) => ({
           id: b.branchId,

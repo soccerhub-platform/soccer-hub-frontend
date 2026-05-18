@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../shared/AuthContext';
 import toast from 'react-hot-toast';
+import { readStoredUser } from '../../shared/auth-storage';
+
+interface LoginLocationState {
+  from?: { pathname?: string };
+}
 
 /**
  * Login page for administrators. Uses a purple colour scheme.
@@ -21,8 +26,7 @@ const AdminLogin: React.FC = () => {
     try {
       await login(email, password, 'ADMIN');
 
-      const raw = localStorage.getItem('football-crm:user');
-      const savedUser = raw ? JSON.parse(raw) : null;
+      const savedUser = readStoredUser();
 
       if (savedUser?.passwordChangeRequired) {
         navigate('/admin/change-password?redirect=/admin/login', { replace: true });
@@ -30,10 +34,10 @@ const AdminLogin: React.FC = () => {
       }
 
       const from =
-        (location.state as any)?.from?.pathname || '/admin/branch-select';
+        (location.state as LoginLocationState | null)?.from?.pathname || '/admin/branch-select';
 
       navigate(from, { replace: true });
-    } catch (err) {
+    } catch {
       toast.error('Ошибка входа. Проверьте данные.');
       console.error('Ошибка входа. Проверьте данные.');
     }

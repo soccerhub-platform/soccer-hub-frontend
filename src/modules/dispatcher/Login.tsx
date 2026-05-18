@@ -4,6 +4,10 @@ import { useAuth } from '../../shared/AuthContext';
 import toast from 'react-hot-toast';
 import LoaderButton from '../../shared/LoaderButton';
 
+interface LoginLocationState {
+  from?: { pathname?: string };
+}
+
 const DispatcherLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,9 +23,9 @@ const DispatcherLogin: React.FC = () => {
     try {
       await login(email, password, 'DISPATCHER');
       toast.success('Добро пожаловать!');
-      const from = (location.state as any)?.from?.pathname || '/dispatcher/dashboard';
+      const from = (location.state as LoginLocationState | null)?.from?.pathname || '/dispatcher/dashboard';
       navigate(from, { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       toast.error('Ошибка входа. Проверьте данные.');
     } finally {

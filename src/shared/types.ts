@@ -55,6 +55,8 @@ export interface AdminAccount {
   active: boolean;
 }
 
+export type Role = AdminAccount["role"];
+
 export interface Club {
   id: string;
   name: string;

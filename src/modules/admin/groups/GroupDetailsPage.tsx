@@ -73,7 +73,7 @@ const GroupDetailsPage: React.FC = () => {
   const changeStatus = async (
     status: "ACTIVE" | "PAUSED" | "STOPPED"
   ) => {
-    if (!group) return;
+    if (!group || !token) return;
 
     if (status === "STOPPED") {
       const ok = confirm(

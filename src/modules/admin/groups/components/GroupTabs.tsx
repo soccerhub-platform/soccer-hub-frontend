@@ -2,13 +2,6 @@ import React, { useState } from "react";
 import GroupCoachesTab from "./GroupCoachesTab";
 import GroupScheduleTab from "../schedule/GroupScheduleTab";
 
-type TabId = "coaches" | "schedule";
-
-const TABS: { id: TabId; label: string }[] = [
-  { id: "coaches", label: "Тренеры" },
-  { id: "schedule", label: "Расписание" },
-];
-
 const GroupTabs: React.FC<{ groupId: string }> = ({ groupId }) => {
   const [active, setActive] = useState<"coaches" | "schedule">("coaches");
 

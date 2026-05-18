@@ -5,9 +5,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { getApiUrl } from "../../shared/api";
-
-type BranchId = string;
+import { apiClient } from "../../shared/api";
+import { readStoredUser } from "../../shared/auth-storage";
 
 interface BranchContextValue {
   branchId: string | null;
@@ -43,16 +42,9 @@ export const AdminBranchProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     const loadBranchesCount = async () => {
         try {
-        const tokenRaw = localStorage.getItem("football-crm:user");
-        if (!tokenRaw) return;
-
-        const { accessToken } = JSON.parse(tokenRaw);
-
-        const res = await fetch(getApiUrl("/admin/branches"), {
-            headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        const data = await res.json();
+        const user = readStoredUser();
+        if (!user?.accessToken) return;
+        const data = await apiClient.get<{ branches?: Array<unknown> }>("/admin/branches");
         setBranchesCount(data?.branches?.length ?? 0);
         } catch {
             setBranchesCount(0);

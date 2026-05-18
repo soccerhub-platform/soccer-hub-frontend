@@ -1,10 +1,5 @@
 import React from "react";
 
-interface Filters {
-  search: string;
-  status: string;
-}
-
 interface Props {
   value: {
     search: string;

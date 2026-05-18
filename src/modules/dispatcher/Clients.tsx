@@ -29,7 +29,7 @@ const ClientsPage: React.FC = () => {
     const loadClients = async () => {
       try {
         setError(null);
-        const data = await apiRequest(getApiUrl('/api/client/all'));
+        const data = await apiRequest<Client[] | { content?: Client[] }>(getApiUrl('/api/client/all'));
         setClients(Array.isArray(data) ? data : data?.content ?? []);
       } catch (error) {
         console.error('Failed to fetch clients', error);
@@ -89,7 +89,10 @@ const ClientsPage: React.FC = () => {
               id="status"
               className="block w-full appearance-none bg-white px-3 py-2 pr-8 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-dispatcher-500 focus:border-dispatcher-500"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => {
+                const next = e.target.value;
+                setStatusFilter(next === "ALL" || isClientStatus(next) ? next : "ALL");
+              }}
             >
               <option value="ALL">Все</option>
               {Object.keys(statusLabels).map((status) => (
@@ -157,3 +160,5 @@ const ClientsPage: React.FC = () => {
 };
 
 export default ClientsPage;
+  const isClientStatus = (value: string): value is ClientStatus =>
+    Object.prototype.hasOwnProperty.call(statusLabels, value);

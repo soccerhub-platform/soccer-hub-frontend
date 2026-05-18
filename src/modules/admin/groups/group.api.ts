@@ -1,4 +1,3 @@
-import { Coach } from "../сoaches/coach.api";
 import { getApiUrl } from "../../../shared/api";
 
 const ORG_GROUP_BASE = getApiUrl("/organization/groups");

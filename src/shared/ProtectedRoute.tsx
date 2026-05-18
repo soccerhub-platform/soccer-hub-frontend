@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Role, useAuth } from './AuthContext';
+import { readStoredUser } from './auth-storage';
 
 export interface ProtectedRouteProps {
   role?: Role;
@@ -12,7 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ role, redirectTo }) => 
   const location = useLocation();
 
   // Step 1 — проверяем localStorage сразу
-  const storedUser = localStorage.getItem('football-crm:user');
+  const storedUser = readStoredUser();
 
   // Step 2 — user ещё загружается (контекст не успел обновиться)
   if (user === null && storedUser !== null) {

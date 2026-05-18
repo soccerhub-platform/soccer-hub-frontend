@@ -14,7 +14,6 @@ import {
 } from "../../../shared/phone";
 
 interface CreateLeadModalProps {
-  token: string;
   branches: DispatcherBranchOption[];
   initialBranchId?: string;
   onClose: () => void;
@@ -36,7 +35,6 @@ const inputBaseClassName =
   "w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition focus:ring-4";
 
 const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
-  token,
   branches,
   initialBranchId,
   onClose,
@@ -124,7 +122,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
     setError(null);
 
     try {
-      await DispatcherLeadsApi.create(payload, token);
+      await DispatcherLeadsApi.create(payload);
       await onSuccess();
       onClose();
     } catch (err) {

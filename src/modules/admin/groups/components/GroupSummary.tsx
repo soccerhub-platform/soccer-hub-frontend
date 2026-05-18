@@ -46,7 +46,7 @@ const GroupSummary: React.FC<Props> = ({
     hint,
     highlight,
   }: {
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     label: string;
     value: string | number;
     hint?: string;

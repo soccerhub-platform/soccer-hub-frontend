@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { getApiUrl } from './api';
+import { clearStoredUser, readStoredUser, writeStoredUser } from './auth-storage';
 
 export interface User {
   email: string;
@@ -19,14 +20,7 @@ export interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      const raw = localStorage.getItem('football-crm:user');
-      return raw ? (JSON.parse(raw) as User) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState<User | null>(() => readStoredUser());
 
   const login = async (email: string, password: string, role: string) => {
     const response = await fetch(getApiUrl('/auth/login'), {
@@ -48,12 +42,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       passwordChangeRequired: data.passwordChangeRequired,
     };
 
-    localStorage.setItem('football-crm:user', JSON.stringify(newUser));
+    writeStoredUser(newUser);
     setUser(newUser);
   };
 
   const logout = () => {
-    localStorage.removeItem('football-crm:user');
+    clearStoredUser();
     setUser(null);
   };
 

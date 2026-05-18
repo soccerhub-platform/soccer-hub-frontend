@@ -8,7 +8,7 @@ import {
   EnvelopeIcon,
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
-import { apiRequest, getApiUrl } from "../../shared/api";
+import { apiClient } from "../../shared/api";
 import toast from "react-hot-toast";
 import LoaderButton from "../../shared/LoaderButton";
 import {
@@ -31,6 +31,35 @@ interface BranchView {
   clubId: string;
   name: string;
   address?: string;
+}
+
+interface ClubApiDto {
+  clubId: string;
+  name: string;
+  slug: string;
+  email?: string;
+  phoneNumber?: string;
+  address?: string;
+}
+
+interface BranchApiDto {
+  branchId: string;
+  clubId: string;
+  name: string;
+  address?: string;
+}
+
+interface ClubFormState {
+  name: string;
+  slug: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+interface BranchFormState {
+  name: string;
+  address: string;
 }
 
 const ClubsAndBranchesPage: React.FC = () => {
@@ -63,10 +92,6 @@ const ClubsAndBranchesPage: React.FC = () => {
     address: "",
   });
 
-  const authHeaders: Record<string, string> = user?.accessToken
-    ? { Authorization: `Bearer ${user.accessToken}` }
-    : {};
-
   const normalizeSlug = (value: string) =>
     value
       .toLowerCase()
@@ -85,14 +110,12 @@ const ClubsAndBranchesPage: React.FC = () => {
   const loadClubs = async () => {
     setLoadingClubs(true);
     try {
-      const data = await apiRequest(getApiUrl("/dispatcher/club"), {
-        headers: { ...authHeaders },
-      });
+      const data = await apiClient.get<{ clubs?: ClubApiDto[] }>("/dispatcher/club");
 
       const apiClubs = data.clubs ?? [];
 
       setClubs(
-        apiClubs.map((c: any) => ({
+        apiClubs.map((c) => ({
           id: c.clubId,
           name: c.name,
           slug: c.slug,
@@ -110,14 +133,12 @@ const ClubsAndBranchesPage: React.FC = () => {
   const loadBranches = async () => {
     setLoadingBranches(true);
     try {
-      const data = await apiRequest(getApiUrl("/dispatcher/branch"), {
-        headers: { ...authHeaders },
-      });
+      const data = await apiClient.get<{ branches?: BranchApiDto[] }>("/dispatcher/branch");
 
       const apiBranches = data.branches ?? [];
 
       setBranches(
-        apiBranches.map((b: any) => ({
+        apiBranches.map((b) => ({
           id: b.branchId,
           clubId: b.clubId,
           name: b.name,
@@ -168,14 +189,7 @@ const ClubsAndBranchesPage: React.FC = () => {
         phone: normalizePhoneForSubmit(clubForm.phone),
         address: clubForm.address.trim(),
       };
-      await apiRequest(getApiUrl("/dispatcher/club/create"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders,
-        },
-        body: JSON.stringify(payload),
-      });
+      await apiClient.post("/dispatcher/club/create", payload);
 
       toast.success("Клуб успешно создан");
       setShowCreateClubModal(false);
@@ -196,17 +210,10 @@ const ClubsAndBranchesPage: React.FC = () => {
     }
 
     try {
-      await apiRequest(getApiUrl("/dispatcher/branch/create"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders,
-        },
-        body: JSON.stringify({
-          clubId: branchClubId,
-          name: branchForm.name.trim(),
-          address: branchForm.address.trim(),
-        }),
+      await apiClient.post("/dispatcher/branch/create", {
+        clubId: branchClubId,
+        name: branchForm.name.trim(),
+        address: branchForm.address.trim(),
       });
 
       toast.success("Филиал создан");
@@ -223,10 +230,7 @@ const ClubsAndBranchesPage: React.FC = () => {
     if (!confirm("Удалить клуб?")) return;
 
     try {
-      await apiRequest(getApiUrl(`/dispatcher/club/${clubId}`), {
-        method: "DELETE",
-        headers: { ...authHeaders },
-      });
+      await apiClient.delete(`/dispatcher/club/${clubId}`);
 
       toast.success("Клуб удалён");
       setExpandedClubId((prev) => (prev === clubId ? null : prev));
@@ -240,10 +244,7 @@ const ClubsAndBranchesPage: React.FC = () => {
     if (!confirm("Удалить филиал?")) return;
 
     try {
-      await apiRequest(getApiUrl(`/dispatcher/branch/${branchId}`), {
-        method: "DELETE",
-        headers: { ...authHeaders },
-      });
+      await apiClient.delete(`/dispatcher/branch/${branchId}`);
 
       toast.success("Филиал удалён");
       loadBranches();
@@ -578,8 +579,8 @@ const CreateClubModal = ({
   onClose,
   normalizeSlug,
 }: {
-  form: any;
-  setForm: (f: any) => void;
+  form: ClubFormState;
+  setForm: React.Dispatch<React.SetStateAction<ClubFormState>>;
   onSave: () => void;
   onClose: () => void;
   normalizeSlug: (value: string) => string;
@@ -688,8 +689,8 @@ const CreateBranchModal = ({
   onSave,
   onClose,
 }: {
-  form: any;
-  setForm: (f: any) => void;
+  form: BranchFormState;
+  setForm: React.Dispatch<React.SetStateAction<BranchFormState>>;
   onSave: () => void;
   onClose: () => void;
 }) => (
