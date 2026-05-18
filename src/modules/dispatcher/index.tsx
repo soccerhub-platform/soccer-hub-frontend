@@ -1,6 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Login from './Login';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import ClientsPage from './Clients';
 import TrialTrainingsPage from './TrialTrainings';
@@ -19,9 +18,9 @@ const DispatcherRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Public login page */}
-      <Route path="login" element={<Login />} />
+      <Route path="login" element={<Navigate to="/login" replace />} />
       {/* Protected pages requiring dispatcher role */}
-      <Route element={<ProtectedRoute role="DISPATCHER" redirectTo="/dispatcher/login" />}>        
+      <Route element={<ProtectedRoute role="DISPATCHER" redirectTo="/login" />}>        
         <Route element={<DispatcherLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path='clubs' element={<ClubsAndBranchesPage />} />

@@ -17,7 +17,7 @@ const AdminLayout: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/admin/login");
+    navigate("/login");
   };
 
   const linkClasses = ({ isActive }: { isActive: boolean }) =>

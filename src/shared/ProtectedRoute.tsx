@@ -5,10 +5,11 @@ import { readStoredUser } from './auth-storage';
 
 export interface ProtectedRouteProps {
   role?: Role;
+  roles?: Role[];
   redirectTo: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ role, redirectTo }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ role, roles, redirectTo }) => {
   const { user } = useAuth();
   const location = useLocation();
 
@@ -26,7 +27,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ role, redirectTo }) => 
   }
 
   // Step 4 — проверяем роль в массиве roles
-  if (role && !user.roles.includes(role)) {
+  const allowedRoles = roles ?? (role ? [role] : undefined);
+  if (allowedRoles && !allowedRoles.some((allowedRole) => user.roles.includes(allowedRole))) {
     return <Navigate to="/403" replace />;
   }
 

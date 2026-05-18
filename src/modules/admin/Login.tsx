@@ -24,12 +24,33 @@ const AdminLogin: React.FC = () => {
     e.preventDefault();
 
     try {
-      await login(email, password, 'ADMIN');
+      const roleCandidates = ['ADMIN', 'SUPER_ADMIN', 'COACH'] as const;
+      let loggedIn = false;
+
+      for (const role of roleCandidates) {
+        try {
+          await login(email, password, role);
+          loggedIn = true;
+          break;
+        } catch {
+          // пробуем следующую роль
+        }
+      }
+
+      if (!loggedIn) {
+        throw new Error('Login failed');
+      }
 
       const savedUser = readStoredUser();
+      const userRoles = savedUser?.roles ?? [];
 
       if (savedUser?.passwordChangeRequired) {
         navigate('/admin/change-password?redirect=/admin/login', { replace: true });
+        return;
+      }
+
+      if (userRoles.includes("COACH")) {
+        navigate('/coach/today', { replace: true });
         return;
       }
 

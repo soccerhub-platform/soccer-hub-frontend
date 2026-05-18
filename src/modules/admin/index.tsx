@@ -1,6 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Login from './Login';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import ContractsPage from './Contracts';
 import PaymentsPage from './Payments';
@@ -25,11 +24,11 @@ const AdminRoutes: React.FC = () => {
     <AdminBranchProvider>
       <Routes>
         {/* Public */}
-        <Route path="login" element={<Login />} />
+        <Route path="login" element={<Navigate to="/login" replace />} />
         <Route path="change-password" element={<ChangePasswordPage />} />
 
         {/* Protected by role */}
-        <Route element={<ProtectedRoute role="ADMIN" redirectTo="/admin/login" />}>
+        <Route element={<ProtectedRoute roles={["ADMIN", "SUPER_ADMIN"]} redirectTo="/login" />}>
           
           {/* Branch selection (ДО layout) */}
           <Route path="branch-select" element={<BranchSelectPage />} />

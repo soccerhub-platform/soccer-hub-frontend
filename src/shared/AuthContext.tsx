@@ -14,7 +14,7 @@ export type Role = string;
 
 export interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: string) => Promise<void>;
+  login: (email: string, password: string, role?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => readStoredUser());
 
-  const login = async (email: string, password: string, role: string) => {
+  const login = async (email: string, password: string, role = 'ADMIN') => {
     const response = await fetch(getApiUrl('/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
     const newUser: User = {
       email,
-      roles: [role],          // сохраняем выбранную роль
+      roles: Array.isArray(data.roles) && data.roles.length > 0 ? data.roles : [role],
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
       passwordChangeRequired: data.passwordChangeRequired,

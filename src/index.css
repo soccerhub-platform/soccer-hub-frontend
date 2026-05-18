@@ -16,23 +16,19 @@ body,
 
 body {
   font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  background-color: #f6f7fb;
-  color: #0f172a;
+  background-color: #eef5f1;
+  color: #102321;
 }
 
 @layer utilities {
   .app-bg-admin {
     background-image:
-      radial-gradient(1200px 600px at 10% -10%, rgba(139, 92, 246, 0.12), transparent 55%),
-      radial-gradient(900px 500px at 90% 10%, rgba(99, 102, 241, 0.10), transparent 60%),
-      linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(244, 247, 255, 1) 100%);
+      linear-gradient(135deg, rgba(238, 248, 245, 1) 0%, rgba(246, 248, 242, 1) 48%, rgba(232, 242, 238, 1) 100%);
   }
 
   .app-bg-dispatcher {
     background-image:
-      radial-gradient(1200px 600px at 10% -10%, rgba(14, 116, 144, 0.12), transparent 55%),
-      radial-gradient(900px 500px at 90% 10%, rgba(14, 165, 233, 0.12), transparent 60%),
-      linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(240, 249, 255, 1) 100%);
+      linear-gradient(135deg, rgba(239, 247, 248, 1) 0%, rgba(244, 248, 245, 1) 55%, rgba(232, 241, 244, 1) 100%);
   }
 
   .heading-font {
@@ -41,9 +37,9 @@ body {
   }
 
   .glass-card {
-    background: rgba(255, 255, 255, 0.78);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    box-shadow: 0 14px 30px -20px rgba(15, 23, 42, 0.35);
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(15, 118, 110, 0.14);
+    box-shadow: 0 16px 34px -24px rgba(16, 35, 33, 0.42);
     backdrop-filter: blur(10px);
   }
 }

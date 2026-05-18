@@ -19,7 +19,7 @@ const DispatcherLayout: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/dispatcher/login');
+    navigate('/login');
   };
 
   // Define the class for nav links. The returned string includes

@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './shared/AuthContext';
 import DispatcherRoutes from './modules/dispatcher';
 import AdminRoutes from './modules/admin';
+import CoachRoutes from './modules/coach';
+import LoginPage from './modules/auth/Login';
 import { Toaster } from 'react-hot-toast';
 
 /**
@@ -45,14 +47,16 @@ const App: React.FC = () => {
 
 
       <Routes>
-        {/* Redirect the bare root to the dispatcher login. */}
-        <Route path="/" element={<Navigate to="/dispatcher/login" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<LoginPage />} />
         {/* Dispatcher module */}
         <Route path="/dispatcher/*" element={<DispatcherRoutes />} />
         {/* Admin module */}
         <Route path="/admin/*" element={<AdminRoutes />} />
+        {/* Coach module */}
+        <Route path="/coach/*" element={<CoachRoutes />} />
         {/* Fallback for unknown routes */}
-        <Route path="*" element={<Navigate to="/dispatcher/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </AuthProvider>
   );
