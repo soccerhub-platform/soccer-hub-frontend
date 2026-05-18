@@ -1,7 +1,4 @@
-import { getApiUrl } from "../../../shared/api";
-
-const ORG_GROUP_BASE = getApiUrl("/organization/groups");
-const ADMIN_GROUP_BASE = getApiUrl("/admin/groups");
+import { apiClient } from "../../../shared/api";
 
 /* ================= TYPES ================= */
 
@@ -62,33 +59,6 @@ export interface GroupSummaryModel {
   scheduleActive: boolean;
 }
 
-/* ================= HELPERS ================= */
-
-async function fetchJson<T>(
-  input: RequestInfo,
-  init?: RequestInit
-): Promise<T> {
-  const res = await fetch(input, init);
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Request failed");
-  }
-
-  // 👇 ВАЖНО
-  if (res.status === 204) {
-    return undefined as T;
-  }
-
-  const text = await res.text();
-
-  if (!text) {
-    return undefined as T;
-  }
-
-  return JSON.parse(text);
-}
-
 /* ================= API ================= */
 
 export const GroupApi = {
@@ -96,89 +66,43 @@ export const GroupApi = {
 
   listByBranch(
     branchId: string,
-    token: string
+    _token: string
   ): Promise<GroupApiModel[]> {
-    return fetchJson<GroupApiModel[]>(
-      `${ORG_GROUP_BASE}/branches/${branchId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    return apiClient.get<GroupApiModel[]>(`/organization/groups/branches/${branchId}`);
   },
 
   getById(
     groupId: string,
-    token: string
+    _token: string
   ): Promise<GroupApiModel> {
-    return fetchJson<GroupApiModel>(
-      `${ORG_GROUP_BASE}/${groupId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    return apiClient.get<GroupApiModel>(`/organization/groups/${groupId}`);
   },
 
   /* ===== WRITE (admin) ===== */
 
   async create(
     payload: GroupCreatePayload,
-    token: string
+    _token: string
   ): Promise<void> {
-    const res = await fetch(`${ADMIN_GROUP_BASE}/create`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || "Failed to create group");
-    }
+    await apiClient.post<void>("/admin/groups/create", payload);
   },
 
   updateStatus(
     groupId: string,
     status: "ACTIVE" | "PAUSED" | "STOPPED",
-    token: string
+    _token: string
   ): Promise<void> {
-    return fetchJson<void>(
-      `${ADMIN_GROUP_BASE}/${groupId}/status`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status }),
-      }
-    );
+    return apiClient.patch<void>(`/admin/groups/${groupId}/status`, { status });
   },
 
   // ✅ GET /admin/groups/{groupId}/coaches
-  getCoaches(groupId: string, token: string): Promise<GroupCoachesResponse> {
-    return fetchJson<GroupCoachesResponse>(`${ADMIN_GROUP_BASE}/${groupId}/coaches`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  getCoaches(groupId: string, _token: string): Promise<GroupCoachesResponse> {
+    return apiClient.get<GroupCoachesResponse>(`/admin/groups/${groupId}/coaches`);
   },
 
   // ✅ DELETE /admin/groups/coaches/{groupCoachId}
-  unassignCoach(groupCoachId: string, token: string): Promise<void> {
-    return fetchJson<void>(
-      `${ADMIN_GROUP_BASE}/coaches/${groupCoachId}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+  unassignCoach(groupCoachId: string, _token: string): Promise<void> {
+    return apiClient.delete<void>(`/admin/groups/coaches/${groupCoachId}`);
   },
 
   // ✅ POST /admin/groups/{groupId}/coaches/{coachId}
@@ -186,35 +110,16 @@ export const GroupApi = {
     groupId: string,
     coachId: string,
     role: "MAIN" | "ASSISTANT",
-    token: string
+    _token: string
   ): Promise<{ groupCoachId: string }> {
-    const res = await fetch(
-      `${ADMIN_GROUP_BASE}/${groupId}/coaches`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ coachId, role }),
-      }
-    );
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || "Failed to assign coach");
-    }
-
-    return res.json();
+    return apiClient.post<{ groupCoachId: string }>(`/admin/groups/${groupId}/coaches`, {
+      coachId,
+      role,
+    });
   },
 
   // ✅ GET /organization/groups/{groupId}/summary
-  getSummary(groupId: string, token: string): Promise<GroupSummaryModel> {
-    return fetchJson<GroupSummaryModel>(
-      `${ORG_GROUP_BASE}/${groupId}/summary`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+  getSummary(groupId: string, _token: string): Promise<GroupSummaryModel> {
+    return apiClient.get<GroupSummaryModel>(`/organization/groups/${groupId}/summary`);
   },
 };

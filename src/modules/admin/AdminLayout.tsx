@@ -2,9 +2,6 @@ import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   HomeIcon,
-  DocumentTextIcon,
-  CreditCardIcon,
-  UserIcon,
   UserGroupIcon,
   Squares2X2Icon,
   BuildingOffice2Icon,
@@ -58,18 +55,6 @@ const AdminLayout: React.FC = () => {
           <NavLink to="/admin/groups" className={linkClasses}>
             <UserGroupIcon className="h-5 w-5 mr-3" />
             <span>Группы</span>
-          </NavLink>
-          <NavLink to="/admin/contracts" className={linkClasses}>
-            <DocumentTextIcon className="h-5 w-5 mr-3" />
-            <span>Контракты</span>
-          </NavLink>
-          <NavLink to="/admin/payments" className={linkClasses}>
-            <CreditCardIcon className="h-5 w-5 mr-3" />
-            <span>Платежи</span>
-          </NavLink>
-          <NavLink to="/admin/users" className={linkClasses}>
-            <UserIcon className="h-5 w-5 mr-3" />
-            <span>Пользователи</span>
           </NavLink>
         </nav>
       </aside>

@@ -1,6 +1,4 @@
-import { getApiUrl } from '../../../shared/api';
-
-const BASE = getApiUrl('/admin/coach');
+import { apiClient } from '../../../shared/api';
 
 /* ================= TYPES ================= */
 
@@ -34,39 +32,14 @@ export interface Page<T> {
   empty: boolean;
 }
 
-/* ================= API ================= */
-
-async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, init);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || 'Request failed');
-  }
-  if (res.status === 204) {
-    return undefined as T;
-  }
-  const text = await res.text();
-  if (!text) {
-    return undefined as T;
-  }
-  return JSON.parse(text) as T;
-}
-
 export const CoachApi = {
-  create(payload: CreateCoachRequest, token: string): Promise<Coach> {
-    return fetchJson<Coach>(BASE, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+  create(payload: CreateCoachRequest, _token: string): Promise<Coach> {
+    return apiClient.post<Coach>('/admin/coach', payload);
   },
 
   listByBranch(
     branchId: string,
-    token: string,
+    _token: string,
     page = 0,
     size = 10,
     search?: string
@@ -77,42 +50,18 @@ export const CoachApi = {
       ...(search ? { search } : {}),
     });
 
-    return fetchJson<Page<Coach>>(
-      `${BASE}/all/branch/${branchId}?${qs}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    return apiClient.get<Page<Coach>>(`/admin/coach/all/branch/${branchId}?${qs}`);
   },
 
-  assignBranch(coachId: string, branchId: string, token: string): Promise<void> {
-    return fetchJson<void>(`${BASE}/${coachId}/assign-branch`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ branchId }),
-    });
+  assignBranch(coachId: string, branchId: string, _token: string): Promise<void> {
+    return apiClient.post<void>(`/admin/coach/${coachId}/assign-branch`, { branchId });
   },
 
-  unassignBranch(coachId: string, branchId: string, token: string): Promise<void> {
-    return fetchJson<void>(`${BASE}/${coachId}/unassign-branch`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ branchId }),
-    });
+  unassignBranch(coachId: string, branchId: string, _token: string): Promise<void> {
+    return apiClient.post<void>(`/admin/coach/${coachId}/unassign-branch`, { branchId });
   },
 
-  updateStatus(coachId: string, status: CoachStatus, token: string): Promise<void> {
-    return fetchJson<void>(`${BASE}/${coachId}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ status }),
-    });
+  updateStatus(coachId: string, status: CoachStatus, _token: string): Promise<void> {
+    return apiClient.patch<void>(`/admin/coach/${coachId}/status`, { status });
   },
 };

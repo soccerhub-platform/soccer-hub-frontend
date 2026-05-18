@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../shared/AuthContext';
-import { getApiUrl } from '../api';
+import { apiClient } from '../api';
 import toast from 'react-hot-toast';
 
 const ChangePasswordPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -24,16 +24,7 @@ const ChangePasswordPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const res = await fetch(getApiUrl('/auth/change-password'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${user?.accessToken}`,
-        },
-        body: JSON.stringify({ newPassword: password }),
-      });
-
-      if (!res.ok) throw new Error();
+      await apiClient.post('/auth/change-password', { newPassword: password });
 
       toast.success('Пароль успешно изменён');
       logout();

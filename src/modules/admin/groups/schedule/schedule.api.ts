@@ -3,36 +3,19 @@ import {
   CreateScheduleBatchCommand,
   UpdateScheduleBatchCommand,
 } from "./schedule.types";
-import { getApiUrl } from "../../../../shared/api";
-
-const ORG_BASE = getApiUrl("/organization");
-const ADMIN_BASE = getApiUrl("/admin");
-
-async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, init);
-
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
-
-  if (!res.ok) {
-    throw data ?? { message: "Unknown error" };
-  }
-
-  return data as T;
-}
+import { apiClient } from "../../../../shared/api";
 
 export const ScheduleApi = {
-  listByGroup(groupId: string, token: string) {
-    return fetchJson<GroupScheduleDto[]>(
-      `${ORG_BASE}/schedules?group-id=${groupId}&status=ACTIVE`,
-      { headers: { Authorization: `Bearer ${token}` } }
+  listByGroup(groupId: string, _token: string) {
+    return apiClient.get<GroupScheduleDto[]>(
+      `/organization/schedules?group-id=${groupId}&status=ACTIVE`
     );
   },
 
   listByGroupAndBranch(
     groupId: string,
     branchId: string,
-    token: string,
+    _token: string,
     status?: "ACTIVE" | "CANCELLED"
   ) {
     const qs = new URLSearchParams({
@@ -40,32 +23,15 @@ export const ScheduleApi = {
       "branch-id": branchId,
       ...(status ? { status } : {}),
     });
-    return fetchJson<GroupScheduleDto[]>(
-      `${ORG_BASE}/schedules?${qs.toString()}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    return apiClient.get<GroupScheduleDto[]>(`/organization/schedules?${qs.toString()}`);
   },
 
-  createGroupSchedule(groupId: string, payload: CreateScheduleBatchCommand, token: string) {
-    return fetchJson<void>(`${ADMIN_BASE}/groups/${groupId}/schedule`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+  createGroupSchedule(groupId: string, payload: CreateScheduleBatchCommand, _token: string) {
+    return apiClient.post<void>(`/admin/groups/${groupId}/schedule`, payload);
   },
 
-  updateGroupSchedule(groupId: string, payload: UpdateScheduleBatchCommand, token: string) {
-    return fetchJson<void>(`${ADMIN_BASE}/groups/${groupId}/schedule`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+  updateGroupSchedule(groupId: string, payload: UpdateScheduleBatchCommand, _token: string) {
+    return apiClient.put<void>(`/admin/groups/${groupId}/schedule`, payload);
   },
 
   deleteBatch(
@@ -74,34 +40,20 @@ export const ScheduleApi = {
       UpdateScheduleBatchCommand,
       "coachId" | "startDate" | "endDate" | "type"
     >,
-    token: string
+    _token: string
   ): Promise<void> {
-    return fetchJson<void>(`${ADMIN_BASE}/groups/${groupId}/schedule`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+    return apiClient.delete<void>(`/admin/groups/${groupId}/schedule`, {
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
   },
 
-  cancelSchedule(scheduleId: string, token: string): Promise<void> {
-    return fetchJson<void>(`${ADMIN_BASE}/groups/schedule/${scheduleId}/cancel`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  cancelSchedule(scheduleId: string, _token: string): Promise<void> {
+    return apiClient.patch<void>(`/admin/groups/schedule/${scheduleId}/cancel`);
   },
 
-  activateSchedule(scheduleId: string, token: string): Promise<void> {
-    return fetchJson<void>(`${ADMIN_BASE}/groups/schedule/${scheduleId}/activate`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  activateSchedule(scheduleId: string, _token: string): Promise<void> {
+    return apiClient.patch<void>(`/admin/groups/schedule/${scheduleId}/activate`);
   },
 
 };

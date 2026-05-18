@@ -1,75 +1,68 @@
-import React, { useState } from 'react';
-import { TrialTraining, TrialTrainingStatus } from '../../shared/types';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
-
-// Sample trial training data for demonstration.  Replace with API data
-// when backend integration is available.
-const SAMPLE_TRAININGS: TrialTraining[] = [
-  { id: '1', clientId: '1', date: '2025-11-05T15:00:00', status: 'SCHEDULED' },
-  { id: '2', clientId: '2', date: '2025-11-06T16:00:00', status: 'COMPLETED' },
-  { id: '3', clientId: '3', date: '2025-11-07T14:00:00', status: 'CANCELLED' },
-  { id: '4', clientId: '4', date: '2025-11-08T10:00:00', status: 'SCHEDULED' },
-];
+import React, { useEffect, useState } from "react";
+import { TrialTraining, TrialTrainingStatus } from "../../shared/types";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { apiClient } from "../../shared/api";
 
 const statusLabels: Record<TrialTrainingStatus, string> = {
-  SCHEDULED: 'Запланирована',
-  COMPLETED: 'Завершена',
-  CANCELLED: 'Отменена',
-  NO_SHOW: 'Не пришел',
+  SCHEDULED: "Запланирована",
+  COMPLETED: "Завершена",
+  CANCELLED: "Отменена",
+  NO_SHOW: "Не пришел",
 };
 
-/**
- * Trial trainings management page.  Displays a list of all trial
- * training appointments with their scheduled date and current
- * status.  Includes simple filtering by status.  */
 const TrialTrainingsPage: React.FC = () => {
-  const [statusFilter, setStatusFilter] = useState<TrialTrainingStatus | 'ALL'>('ALL');
-  
-  const filtered = SAMPLE_TRAININGS.filter((training) => {
-    return statusFilter === 'ALL' || training.status === statusFilter;
-  });
+  const [statusFilter, setStatusFilter] = useState<TrialTrainingStatus | "ALL">("ALL");
+  const [items, setItems] = useState<TrialTraining[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Format date in a readable way.  Assumes locale RU for Russian.
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await apiClient.get<TrialTraining[] | { content?: TrialTraining[] }>("/dispatcher/trial-trainings");
+        setItems(Array.isArray(data) ? data : data.content ?? []);
+      } catch {
+        setError("Не удалось загрузить пробные тренировки");
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const filtered = items.filter((training) => statusFilter === "ALL" || training.status === statusFilter);
+
   const formatDate = (iso: string) => {
     const dt = new Date(iso);
-    return dt.toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: 'long',
-      hour: '2-digit',
-      minute: '2-digit',
+    return dt.toLocaleString("ru-RU", {
+      day: "2-digit",
+      month: "long",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-dispatcher-700 mb-4">
-        Пробные тренировки
-      </h2>
+      <h2 className="text-xl font-bold text-dispatcher-700 mb-4">Пробные тренировки</h2>
+      {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
       <div className="mb-4 max-w-xs">
-        <label
-          htmlFor="statusFilter"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Статус
-        </label>
-        {/* Контейнер с относительным позиционированием для стилизованного select */}
+        <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700">Статус</label>
         <div className="relative mt-1">
           <select
             id="statusFilter"
             className="block w-full appearance-none bg-white px-3 py-2 pr-8 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-dispatcher-500 focus:border-dispatcher-500"
             value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value as TrialTrainingStatus | 'ALL')
-            }
+            onChange={(e) => setStatusFilter(e.target.value as TrialTrainingStatus | "ALL")}
           >
             <option value="ALL">Все</option>
             {Object.keys(statusLabels).map((status) => (
-              <option key={status} value={status}>
-                {statusLabels[status as TrialTrainingStatus]}
-              </option>
+              <option key={status} value={status}>{statusLabels[status as TrialTrainingStatus]}</option>
             ))}
           </select>
-          {/* SVG‑стрелка поверх поля, не реагирующая на события мыши */}
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
             <ChevronDownIcon className="h-4 w-4 text-gray-400" />
           </div>
@@ -85,14 +78,19 @@ const TrialTrainingsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filtered.map((training) => (
+            {loading && (
+              <tr>
+                <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">Загрузка...</td>
+              </tr>
+            )}
+            {!loading && filtered.map((training) => (
               <tr key={training.id} className="hover:bg-dispatcher-100">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(training.date)}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{training.clientId}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{statusLabels[training.status]}</td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">Нет записей</td>
               </tr>

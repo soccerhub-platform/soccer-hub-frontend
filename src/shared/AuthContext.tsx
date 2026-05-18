@@ -6,6 +6,7 @@ export interface User {
   email: string;
   roles: string[];        // массив ролей, гибко на будущее
   accessToken: string;
+  refreshToken?: string;
   passwordChangeRequired?: boolean;
 }
 
@@ -39,6 +40,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       email,
       roles: [role],          // сохраняем выбранную роль
       accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
       passwordChangeRequired: data.passwordChangeRequired,
     };
 

@@ -14,7 +14,6 @@ import { useAdminBranch } from "../../BranchContext";
 
 interface Props {
   groupId: string;
-  groupStatus?: "ACTIVE" | "PAUSED" | "STOPPED";
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -27,7 +26,7 @@ const ROLE_STYLES: Record<string, string> = {
   ASSISTANT: "bg-purple-100 text-purple-700",
 };
 
-const GroupCoachesTab: React.FC<Props> = ({ groupId, groupStatus }) => {
+const GroupCoachesTab: React.FC<Props> = ({ groupId }) => {
   const { user } = useAuth();
   const token = user?.accessToken;
   const { branchId } = useAdminBranch();
@@ -36,8 +35,6 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, groupStatus }) => {
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [showAssign, setShowAssign] = useState(false);
-
-  const actionsDisabled = groupStatus === "STOPPED";
 
   const loadCoaches = async () => {
     if (!token) return;
@@ -132,7 +129,7 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, groupStatus }) => {
           </div>
 
           <button
-            disabled={actionsDisabled || removingId === coach.groupCoachId}
+            disabled={removingId === coach.groupCoachId}
             onClick={() => removeCoach(coach.groupCoachId)}
             className="text-red-500 disabled:opacity-50"
           >
@@ -143,7 +140,7 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, groupStatus }) => {
 
       {/* ASSIGN */}
       <button
-        disabled={actionsDisabled || !branchId}
+        disabled={!branchId}
         onClick={() => setShowAssign(true)}
         className="w-full py-2 border border-dashed rounded-xl text-sm"
       >
