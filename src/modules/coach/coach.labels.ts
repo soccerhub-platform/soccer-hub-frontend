@@ -1,4 +1,4 @@
-import { CoachSessionStatus, CoachStudentAttendance } from "./mock/coach.mock";
+import { CoachSessionStatus, CoachStudentAttendance } from "./coach.api";
 
 export const SESSION_STATUS_META: Record<CoachSessionStatus, { label: string; action: string; tone: string }> = {
   PLANNED: { label: "Запланирована", action: "Начать тренировку", tone: "bg-stone-100 text-stone-800" },

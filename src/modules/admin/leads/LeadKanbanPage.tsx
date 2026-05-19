@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Squares2X2Icon } from "@heroicons/react/24/outline";
+import { PlusIcon, Squares2X2Icon } from "@heroicons/react/24/outline";
 import { useAuth } from "../../../shared/AuthContext";
+import { buttonStyles } from "../../../shared/ui/buttonStyles";
 import { useAdminBranch } from "../BranchContext";
 import LeadKanbanColumn from "./LeadKanbanColumn";
 import {
@@ -14,6 +15,7 @@ import LeadDrawer from "./LeadDrawer";
 import { LeadApi } from "./lead.api";
 import QualifyLeadModal from "./QualifyLeadModal";
 import ScheduleTrialModal from "./ScheduleTrialModal";
+import AdminCreateLeadModal from "./AdminCreateLeadModal";
 
 const COLUMN_TITLES: Record<LeadStatus, string> = {
   NEW: "Новые",
@@ -84,7 +86,7 @@ const createEmptyColumns = (): LeadKanbanColumns =>
 
 const LeadKanbanPage: React.FC = () => {
   const { user } = useAuth();
-  const { branchId } = useAdminBranch();
+  const { branchId, branchName } = useAdminBranch();
   const token = user?.accessToken;
 
   const [columns, setColumns] = useState<LeadKanbanColumns>(createEmptyColumns);
@@ -93,6 +95,7 @@ const LeadKanbanPage: React.FC = () => {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [qualifyingLead, setQualifyingLead] = useState<Lead | null>(null);
   const [trialLead, setTrialLead] = useState<Lead | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [actionState, setActionState] = useState<{
     leadId: string;
     actionType: string;
@@ -225,6 +228,14 @@ const LeadKanbanPage: React.FC = () => {
             Воронка по текущему филиалу с быстрым обзором всех статусов.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowCreateModal(true)}
+          className={buttonStyles("primary", "md", "rounded-xl")}
+        >
+          <PlusIcon className="h-4 w-4" />
+          Новый лид
+        </button>
       </div>
 
       {error ? (
@@ -304,6 +315,15 @@ const LeadKanbanPage: React.FC = () => {
             await refreshKanban();
             setTrialLead(null);
           }}
+        />
+      ) : null}
+
+      {showCreateModal ? (
+        <AdminCreateLeadModal
+          branchId={branchId}
+          branchName={branchName}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={refreshKanban}
         />
       ) : null}
     </div>

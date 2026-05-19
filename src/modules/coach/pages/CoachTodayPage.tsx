@@ -1,13 +1,40 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircleIcon, ClipboardDocumentCheckIcon, ClockIcon } from "@heroicons/react/24/outline";
-import { COACH_SESSIONS } from "../mock/coach.mock";
+import { CoachApi, CoachSessionCard } from "../coach.api";
 import { SESSION_STATUS_META } from "../coach.labels";
 
-const today = "2026-05-18";
+const toDate = (date: Date) => date.toISOString().slice(0, 10);
 
 const CoachTodayPage: React.FC = () => {
-  const todaySessions = COACH_SESSIONS.filter((session) => session.date === today);
+  const [todaySessions, setTodaySessions] = useState<CoachSessionCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const today = useMemo(() => toDate(new Date()), []);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await CoachApi.getTodaySessions(today);
+        if (!mounted) return;
+        setTodaySessions(response.sessions ?? []);
+      } catch {
+        if (!mounted) return;
+        setError("Не удалось загрузить тренировки на сегодня");
+        setTodaySessions([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [today]);
 
   return (
     <div className="space-y-4">
@@ -38,6 +65,9 @@ const CoachTodayPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+      {loading && <div className="rounded-2xl border border-teal-100 bg-white px-4 py-3 text-sm text-teal-900/70">Загрузка...</div>}
 
       {todaySessions.map((session) => {
         const meta = SESSION_STATUS_META[session.status];

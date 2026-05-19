@@ -1,6 +1,7 @@
 import { apiClient } from "../../../shared/api";
 import {
   AvailableSlot,
+  CreateAdminLeadPayload,
   LeadActivity,
   LeadDetails,
   LeadKanbanColumns,
@@ -9,6 +10,10 @@ import {
 } from "./types";
 
 export const LeadApi = {
+  async create(payload: CreateAdminLeadPayload): Promise<void> {
+    await apiClient.post("/admin/leads/create", payload);
+  },
+
   async getKanban(branchId: string, _token: string): Promise<LeadKanbanColumns> {
     return (await apiClient.get<LeadKanbanColumns>(`/leads/kanban?branchId=${branchId}`)) ?? {};
   },

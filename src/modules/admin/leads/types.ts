@@ -124,3 +124,17 @@ export interface AvailableSlot {
   startTime: string;
   endTime?: string | null;
 }
+
+export interface CreateLeadChildInput {
+  childName: string;
+  childAge: number;
+}
+
+export interface CreateAdminLeadPayload {
+  name: string;
+  phone: string;
+  branchId: string;
+  email?: string;
+  comment?: string;
+  children: CreateLeadChildInput[];
+}
