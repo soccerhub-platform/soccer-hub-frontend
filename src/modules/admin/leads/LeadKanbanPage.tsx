@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { PlusIcon, Squares2X2Icon } from "@heroicons/react/24/outline";
+import toast from "react-hot-toast";
 import { useAuth } from "../../../shared/AuthContext";
 import { buttonStyles } from "../../../shared/ui/buttonStyles";
 import { useAdminBranch } from "../BranchContext";
@@ -8,6 +9,7 @@ import {
   Lead,
   LeadAction,
   LeadKanbanColumns,
+  LeadLossReason,
   LEAD_COLUMN_ORDER,
   LeadStatus,
 } from "./types";
@@ -16,6 +18,7 @@ import { LeadApi } from "./lead.api";
 import QualifyLeadModal from "./QualifyLeadModal";
 import ScheduleTrialModal from "./ScheduleTrialModal";
 import AdminCreateLeadModal from "./AdminCreateLeadModal";
+import LeadLossModal from "./LeadLossModal";
 
 const COLUMN_TITLES: Record<LeadStatus, string> = {
   NEW: "Новые",
@@ -96,6 +99,14 @@ const LeadKanbanPage: React.FC = () => {
   const [qualifyingLead, setQualifyingLead] = useState<Lead | null>(null);
   const [trialLead, setTrialLead] = useState<Lead | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [rejectingLead, setRejectingLead] = useState<Lead | null>(null);
+  const [rejectingEvent, setRejectingEvent] = useState<
+    "REJECT" | "LOST" | "NO_SHOW" | "POST_TRIAL_REJECT" | null
+  >(null);
+  const [lossReasons, setLossReasons] = useState<LeadLossReason[]>([]);
+  const [lossReasonsLoading, setLossReasonsLoading] = useState(false);
+  const [lossReasonsError, setLossReasonsError] = useState<string | null>(null);
+  const [rejectSubmitLoading, setRejectSubmitLoading] = useState(false);
   const [actionState, setActionState] = useState<{
     leadId: string;
     actionType: string;
@@ -178,22 +189,43 @@ const LeadKanbanPage: React.FC = () => {
       return;
     }
 
-    if (action.type === "POST_TRIAL_REJECT") {
-      const confirmed = window.confirm(
-        "Вы уверены, что клиент отказался после пробного?"
-      );
+    if (action.type === "CONFIRM_PAYMENT") {
+      setSelectedLeadId(lead.id);
+      toast("Сначала выполните конвертацию лида в клиента");
+      return;
+    }
 
-      if (!confirmed) {
-        return;
+    if (
+      action.type === "REJECT" ||
+      action.type === "LOST" ||
+      action.type === "NO_SHOW" ||
+      action.type === "POST_TRIAL_REJECT"
+    ) {
+      setRejectingLead(lead);
+      setRejectingEvent(action.type);
+      if (!lossReasons.length && !lossReasonsLoading) {
+        setLossReasonsLoading(true);
+        setLossReasonsError(null);
+        try {
+          const reasons = await LeadApi.getLeadLossReasons(token);
+          setLossReasons(reasons);
+        } catch (err) {
+          console.error(err);
+          setLossReasonsError("Не удалось загрузить причины потери");
+        } finally {
+          setLossReasonsLoading(false);
+        }
       }
+      return;
     }
 
     setActionState({ leadId: lead.id, actionType: action.type });
     setError(null);
 
     try {
-      await LeadApi.sendLeadEvent(lead.id, action.type, token);
+      await LeadApi.sendLeadEvent(lead.id, { event: action.type }, token);
       await refreshKanban();
+      toast.success("Статус лида обновлён");
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Не удалось обновить лид");
@@ -324,6 +356,48 @@ const LeadKanbanPage: React.FC = () => {
           branchName={branchName}
           onClose={() => setShowCreateModal(false)}
           onSuccess={refreshKanban}
+        />
+      ) : null}
+
+      {rejectingLead && rejectingEvent ? (
+        <LeadLossModal
+          isOpen={Boolean(rejectingLead && rejectingEvent)}
+          lead={rejectingLead}
+          event={rejectingEvent}
+          reasons={lossReasons}
+          loadingReasons={lossReasonsLoading}
+          reasonsError={lossReasonsError}
+          submitting={rejectSubmitLoading}
+          onClose={() => {
+            if (rejectSubmitLoading) return;
+            setRejectingLead(null);
+            setRejectingEvent(null);
+          }}
+          onConfirm={async ({ lostReasonCode, lostComment }) => {
+            if (!token || !rejectingLead || !rejectingEvent) return;
+            setRejectSubmitLoading(true);
+            setError(null);
+            try {
+              await LeadApi.sendLeadEvent(
+                rejectingLead.id,
+                { event: rejectingEvent, lostReasonCode, lostComment },
+                token
+              );
+              toast.success("Причина потери сохранена");
+              setRejectingLead(null);
+              setRejectingEvent(null);
+              await refreshKanban();
+            } catch (err) {
+              console.error(err);
+              setError(
+                err instanceof Error
+                  ? err.message
+                  : "Не удалось сохранить причину потери"
+              );
+            } finally {
+              setRejectSubmitLoading(false);
+            }
+          }}
         />
       ) : null}
     </div>

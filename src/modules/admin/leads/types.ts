@@ -45,10 +45,12 @@ export type LeadActionType =
   | "QUALIFY"
   | "SCHEDULE_TRIAL"
   | "COMPLETE_TRIAL"
+  | "CONVERT"
   | "NO_SHOW"
   | "REQUEST_PAYMENT"
   | "CONFIRM_PAYMENT"
   | "POST_TRIAL_REJECT"
+  | "LOST"
   | "REJECT";
 
 export interface LeadAction {
@@ -84,6 +86,13 @@ export interface Lead {
     email?: string | null;
   } | null;
   comment?: string;
+  lostReasonCode?: string | null;
+  lostReasonName?: string | null;
+  lostComment?: string | null;
+  lostAt?: string | null;
+  clientId?: string | null;
+  playerId?: string | null;
+  contractId?: string | null;
   trial?: LeadTrial;
   createdAt: string;
   updatedAt: string;
@@ -138,3 +147,31 @@ export interface CreateAdminLeadPayload {
   comment?: string;
   children: CreateLeadChildInput[];
 }
+
+export type LeadLossReason = {
+  code: string;
+  name: string;
+};
+
+export type LeadTransitionRequest = {
+  event: LeadActionType | string;
+  lostReasonCode?: string;
+  lostComment?: string;
+};
+
+export type ConvertLeadRequest = {
+  childId: string;
+  groupId: string;
+  childBirthDate: string;
+  contractStartDate: string;
+  contractEndDate?: string | null;
+  amount?: number | null;
+};
+
+export type ConvertLeadResponse = {
+  leadId: string;
+  clientId: string;
+  playerId: string;
+  contractId: string;
+  status: string;
+};

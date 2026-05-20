@@ -4,6 +4,13 @@ import { CoachApi, CoachSessionDetailsResponse, CoachStudentAttendance } from ".
 import { ATTENDANCE_LABELS, SESSION_STATUS_META } from "../coach.labels";
 import toast from "react-hot-toast";
 
+const primaryButtonClassName =
+  "inline-flex h-11 w-full items-center justify-center rounded-xl bg-teal-950 px-4 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryButtonClassName =
+  "inline-flex h-11 w-full items-center justify-center rounded-xl border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60";
+const saveButtonClassName =
+  "inline-flex h-10 w-full items-center justify-center rounded-xl px-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60";
+
 const CoachSessionDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<CoachSessionDetailsResponse | null>(null);
@@ -44,9 +51,15 @@ const CoachSessionDetailsPage: React.FC = () => {
   }, [id]);
 
   const attendanceSummary = useMemo(() => {
-    const present = students.filter((student) => student.attendance === "PRESENT").length;
-    return `${present}/${students.length}`;
-  }, [students]);
+    if (session?.status === "COMPLETED" && session.attendanceSummary) {
+      return session.attendanceSummary;
+    }
+
+    const attended = students.filter(
+      (student) => student.attendance === "PRESENT" || student.attendance === "LATE"
+    ).length;
+    return `${attended}/${students.length}`;
+  }, [session?.attendanceSummary, session?.status, students]);
 
   if (!id) {
     return (
@@ -139,6 +152,84 @@ const CoachSessionDetailsPage: React.FC = () => {
   };
 
   const statusMeta = SESSION_STATUS_META[session.status];
+  const isPlanned = session.status === "PLANNED";
+  const isInProgress = session.status === "IN_PROGRESS";
+  const isOverdue = session.status === "OVERDUE";
+  const isCompleted = session.status === "COMPLETED";
+  const isCancelled = session.status === "CANCELLED";
+  const canEditAttendance = isInProgress || isOverdue;
+  const canEditReport = isInProgress || isOverdue;
+  const canStart = isPlanned;
+  const canComplete = isInProgress || isOverdue;
+  const canCancel = isPlanned || isInProgress;
+  const hasReportData = Boolean(
+    topic.trim() || comment.trim() || incidents.trim() || homework.trim()
+  );
+  const hasRequiredReportFields = Boolean(topic.trim());
+  const hasUnmarkedStudents = students.some((student) => !student.attendance);
+  const canSaveAttendance = canEditAttendance && !hasUnmarkedStudents;
+  const canSaveReport = canEditReport && hasRequiredReportFields;
+  const canCompleteNow =
+    canComplete && !hasUnmarkedStudents && (isInProgress ? true : hasRequiredReportFields);
+
+  const nextStepText = (() => {
+    if (isPlanned) return "Начните тренировку, когда группа готова.";
+    if (isInProgress) return "Отметьте учеников и заполните короткий отчет.";
+    if (isOverdue) return "Проверьте посещаемость, заполните отчет и закройте тренировку.";
+    if (isCompleted) return "Тренировка завершена. Доступен только просмотр.";
+    if (isCancelled) return "Тренировка отменена.";
+    return "";
+  })();
+
+  const primaryActionLabel = canStart
+    ? "Начать тренировку"
+    : isOverdue
+    ? "Закрыть тренировку"
+    : canComplete
+    ? "Завершить тренировку"
+    : null;
+
+  const runPrimaryAction = async () => {
+    if (!primaryActionLabel) return;
+    if (hasUnmarkedStudents) {
+      toast.error("Отметьте посещаемость для всех учеников");
+      return;
+    }
+    if (isOverdue && !hasRequiredReportFields) {
+      toast.error("Укажите тему тренировки");
+      return;
+    }
+    if (canStart) {
+      await runStatusAction(() => CoachApi.startSession(id), "Тренировка начата");
+      return;
+    }
+    if (isOverdue) {
+      setSaving(true);
+      try {
+        await CoachApi.updateAttendance(
+          id,
+          students.map((student) => ({ studentId: student.id, attendance: student.attendance }))
+        );
+        await CoachApi.saveReport(id, {
+          topic,
+          coachComment: comment,
+          incidents,
+          homework,
+        });
+        await CoachApi.completeSession(id);
+        toast.success("Тренировка закрыта");
+        await loadSession(id);
+      } catch {
+        toast.error("Не удалось закрыть тренировку");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    if (canComplete) {
+      await runStatusAction(() => CoachApi.completeSession(id), "Тренировка завершена");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -150,68 +241,148 @@ const CoachSessionDetailsPage: React.FC = () => {
           </div>
           <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusMeta.tone}`}>{statusMeta.label}</span>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 rounded-3xl border border-teal-100 bg-white p-4 text-sm shadow-sm shadow-teal-900/5">
-        <div>Дата: {session.date}</div>
-        <div>Время: {session.time}</div>
-        <div>Статус: {statusMeta.label}</div>
-        <div>Посещаемость: {attendanceSummary}</div>
-      </div>
-
-      <div className="rounded-3xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5">
-        <div className="mb-2 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-teal-950">Посещаемость</h2>
-            <p className="text-xs text-teal-900/60">Отметьте каждого ученика перед завершением тренировки.</p>
+        <div className="mt-4 rounded-2xl bg-cyan-50/80 px-4 py-3 text-sm text-cyan-900">
+          {nextStepText}
+        </div>
+        {(primaryActionLabel || canCancel) && (
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+            {primaryActionLabel ? (
+              <button
+                disabled={saving || (canComplete && !canCompleteNow)}
+                onClick={runPrimaryAction}
+                className={primaryButtonClassName}
+                title={canComplete && !canCompleteNow ? "Сначала заполните отчет" : undefined}
+              >
+                {saving ? "Сохранение..." : primaryActionLabel}
+              </button>
+            ) : null}
+            {canCancel ? (
+              <button
+                disabled={saving}
+                onClick={() =>
+                  runStatusAction(
+                    () => CoachApi.cancelSession(id, cancelReason || "Не указано"),
+                    "Тренировка отменена"
+                  )
+                }
+                className={secondaryButtonClassName}
+              >
+                Отменить
+              </button>
+            ) : null}
           </div>
-          <button onClick={handleMarkAllPresent} disabled={saving} className="rounded-xl border border-teal-100 px-3 py-2 text-xs font-medium text-teal-900 hover:bg-teal-50 disabled:opacity-60">
-            Все были
-          </button>
-        </div>
-        <div className="space-y-3">
-          {students.map((student) => (
-            <div key={student.id} className="rounded-xl border border-teal-50 bg-[#fbfdfb] p-3">
-              <div className="text-sm text-teal-950">{student.name}</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {(Object.keys(ATTENDANCE_LABELS) as CoachStudentAttendance["attendance"][]).map((state) => (
-                  <button
-                    key={state}
-                    onClick={() => updateAttendance(student.id, state)}
-                    className={`rounded-lg px-2 py-1 text-xs ${
-                      student.attendance === state ? "bg-teal-950 text-white" : "bg-teal-50 text-teal-900"
-                    }`}
-                  >
-                    {ATTENDANCE_LABELS[state]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-3 rounded-3xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5">
-        <div>
-          <h2 className="text-sm font-semibold text-teal-950">Отчет тренера</h2>
-          <p className="text-xs text-teal-900/60">Коротко зафиксируйте тему, прогресс и домашнее задание.</p>
-        </div>
-        <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Тема тренировки" className="w-full rounded-xl border border-teal-100 px-3 py-2 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" />
-        <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Комментарий тренера" className="w-full rounded-xl border border-teal-100 px-3 py-2 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" rows={3} />
-        <textarea value={incidents} onChange={(e) => setIncidents(e.target.value)} placeholder="Инциденты или важные заметки" className="w-full rounded-xl border border-teal-100 px-3 py-2 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" rows={2} />
-        <textarea value={homework} onChange={(e) => setHomework(e.target.value)} placeholder="Домашнее задание" className="w-full rounded-xl border border-teal-100 px-3 py-2 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" rows={2} />
-        {session.status === "CANCELLED" && (
-          <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="Причина отмены" className="w-full rounded-xl border border-teal-100 px-3 py-2 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" rows={2} />
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pb-2">
-        <button disabled={saving} onClick={() => runStatusAction(() => CoachApi.startSession(id), "Тренировка начата")} className="rounded-xl bg-teal-950 px-3 py-2 text-xs font-medium text-white disabled:opacity-60">Начать</button>
-        <button disabled={saving} onClick={persistAttendance} className="rounded-xl bg-teal-800 px-3 py-2 text-xs font-medium text-white disabled:opacity-60">Сохранить посещаемость</button>
-        <button disabled={saving} onClick={saveReport} className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-medium text-white disabled:opacity-60">Сохранить отчет</button>
-        <button disabled={saving} onClick={() => runStatusAction(() => CoachApi.completeSession(id), "Тренировка завершена")} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-medium text-white disabled:opacity-60">Завершить</button>
-        <button disabled={saving} onClick={() => runStatusAction(() => CoachApi.cancelSession(id, cancelReason || "Не указано"), "Тренировка отменена")} className="col-span-2 rounded-xl bg-rose-600 px-3 py-2 text-xs font-medium text-white disabled:opacity-60">Отменить тренировку</button>
+      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-teal-100 bg-white p-3 text-sm shadow-sm shadow-teal-900/5">
+        <div>
+          <div className="text-[11px] uppercase text-teal-900/45">Дата</div>
+          <div className="mt-1 font-medium text-teal-950">{session.date}</div>
+        </div>
+        <div>
+          <div className="text-[11px] uppercase text-teal-900/45">Время</div>
+          <div className="mt-1 font-medium text-teal-950">{session.time}</div>
+        </div>
+        <div>
+          <div className="text-[11px] uppercase text-teal-900/45">Было</div>
+          <div className="mt-1 font-medium text-teal-950">{attendanceSummary}</div>
+        </div>
       </div>
+
+      {canEditAttendance && (
+        <div className="rounded-3xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5">
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-teal-950">Посещаемость</h2>
+              {isOverdue ? (
+                <p className="mt-1 text-xs text-amber-700">
+                  Проверьте перед закрытием тренировки.
+                </p>
+              ) : null}
+            </div>
+            <button
+              onClick={handleMarkAllPresent}
+              disabled={saving}
+              className="rounded-xl border border-teal-100 px-3 py-2 text-xs font-medium text-teal-900 hover:bg-teal-50 disabled:opacity-60"
+            >
+              Все были
+            </button>
+          </div>
+          {hasUnmarkedStudents ? (
+            <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Отметьте посещаемость для всех учеников перед сохранением.
+            </div>
+          ) : null}
+          <div className="space-y-3">
+            {students.map((student) => (
+              <div key={student.id} className="rounded-xl border border-teal-50 bg-[#fbfdfb] p-3">
+                <div className="text-sm text-teal-950">{student.name}</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(Object.keys(ATTENDANCE_LABELS) as CoachStudentAttendance["attendance"][]).map((state) => (
+                    <button
+                      key={state}
+                      onClick={() => updateAttendance(student.id, state)}
+                      className={`rounded-lg px-2 py-1 text-xs ${
+                        student.attendance === state ? "bg-teal-950 text-white" : "bg-teal-50 text-teal-900"
+                      }`}
+                    >
+                      {ATTENDANCE_LABELS[state]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            disabled={saving || !canSaveAttendance}
+            onClick={persistAttendance}
+            className={`${saveButtonClassName} mt-3 bg-teal-800 hover:bg-teal-700`}
+            title={!canSaveAttendance ? "Отметьте всех учеников" : undefined}
+          >
+            Сохранить посещаемость
+          </button>
+        </div>
+      )}
+
+      {canEditReport ? (
+      <div className="space-y-3 rounded-3xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5">
+        <div>
+          <h2 className="text-sm font-semibold text-teal-950">Отчет тренера</h2>
+        </div>
+        <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Тема тренировки" className="w-full rounded-xl border border-teal-100 px-3 py-2.5 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" />
+        {!hasRequiredReportFields ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Укажите тему тренировки перед сохранением отчета.
+          </div>
+        ) : null}
+        <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Комментарий тренера" className="w-full rounded-xl border border-teal-100 px-3 py-2.5 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" rows={3} />
+        <textarea value={incidents} onChange={(e) => setIncidents(e.target.value)} placeholder="Инциденты или важные заметки" className="w-full rounded-xl border border-teal-100 px-3 py-2.5 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" rows={2} />
+        <textarea value={homework} onChange={(e) => setHomework(e.target.value)} placeholder="Домашнее задание" className="w-full rounded-xl border border-teal-100 px-3 py-2.5 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" rows={2} />
+        <button
+          disabled={saving || !canSaveReport}
+          onClick={saveReport}
+          className={`${saveButtonClassName} bg-slate-800 hover:bg-slate-700`}
+          title={!canSaveReport ? "Укажите тему тренировки" : undefined}
+        >
+          Сохранить отчет
+        </button>
+      </div>
+      ) : isCompleted ? (
+        <div className="space-y-3 rounded-3xl border border-teal-100 bg-white p-4 text-sm shadow-sm shadow-teal-900/5">
+          <h2 className="text-sm font-semibold text-teal-950">Отчет тренера</h2>
+          <div className="space-y-2 text-teal-900/75">
+            <div><span className="font-medium text-teal-950">Тема:</span> {topic || "Не указано"}</div>
+            <div><span className="font-medium text-teal-950">Комментарий:</span> {comment || "Не указано"}</div>
+            <div><span className="font-medium text-teal-950">Инциденты:</span> {incidents || "Нет"}</div>
+            <div><span className="font-medium text-teal-950">Домашнее задание:</span> {homework || "Не указано"}</div>
+          </div>
+        </div>
+      ) : isCancelled ? (
+        <div className="rounded-3xl border border-rose-100 bg-white p-4 text-sm shadow-sm shadow-teal-900/5">
+          <h2 className="text-sm font-semibold text-rose-900">Причина отмены</h2>
+          <div className="mt-2 text-rose-800/75">{cancelReason || "Не указано"}</div>
+        </div>
+      ) : null}
     </div>
   );
 };

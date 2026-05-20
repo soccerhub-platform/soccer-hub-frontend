@@ -16,6 +16,10 @@ interface ApiErrorPayload {
   code?: string;
 }
 
+interface ApiRequestInit extends RequestInit {
+  suppressErrorToast?: boolean;
+}
+
 interface RefreshResponse {
   accessToken?: string;
   refreshToken?: string;
@@ -88,12 +92,13 @@ const tryRefreshOnce = async (): Promise<boolean> => {
 
 export async function apiRequest<T = unknown>(
   url: string,
-  options: RequestInit = {},
+  options: ApiRequestInit = {},
   success?: string,
   retriedAfterRefresh = false
 ): Promise<T> {
   try {
-    const res = await fetch(url, withAuthHeader(options));
+    const { suppressErrorToast, ...fetchOptions } = options;
+    const res = await fetch(url, withAuthHeader(fetchOptions));
 
     if (!res.ok) {
       const payload = await parseResponseBody<ApiErrorPayload>(res).catch(() => null);
@@ -115,13 +120,15 @@ export async function apiRequest<T = unknown>(
         clearStoredUser();
       }
 
-      toast.error(`Ошибка\n${message}\n\nКод: ${code}`, {
-        style: {
-          whiteSpace: "pre-line",
-          background: "#fee2e2",
-          color: "#b91c1c",
-        },
-      });
+      if (!suppressErrorToast) {
+        toast.error(`Ошибка\n${message}\n\nКод: ${code}`, {
+          style: {
+            whiteSpace: "pre-line",
+            background: "#fee2e2",
+            color: "#b91c1c",
+          },
+        });
+      }
       throw new Error(message);
     }
 
@@ -140,28 +147,28 @@ export async function apiRequest<T = unknown>(
 }
 
 export const apiClient = {
-  get: <T>(path: string, init?: RequestInit) => apiRequest<T>(getApiUrl(path), { ...init, method: "GET" }),
-  post: <T>(path: string, body?: unknown, init?: RequestInit) =>
+  get: <T>(path: string, init?: ApiRequestInit) => apiRequest<T>(getApiUrl(path), { ...init, method: "GET" }),
+  post: <T>(path: string, body?: unknown, init?: ApiRequestInit) =>
     apiRequest<T>(getApiUrl(path), {
       ...init,
       method: "POST",
       headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
-  put: <T>(path: string, body?: unknown, init?: RequestInit) =>
+  put: <T>(path: string, body?: unknown, init?: ApiRequestInit) =>
     apiRequest<T>(getApiUrl(path), {
       ...init,
       method: "PUT",
       headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
-  patch: <T>(path: string, body?: unknown, init?: RequestInit) =>
+  patch: <T>(path: string, body?: unknown, init?: ApiRequestInit) =>
     apiRequest<T>(getApiUrl(path), {
       ...init,
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
-  delete: <T>(path: string, init?: RequestInit) =>
+  delete: <T>(path: string, init?: ApiRequestInit) =>
     apiRequest<T>(getApiUrl(path), { ...init, method: "DELETE" }),
 };

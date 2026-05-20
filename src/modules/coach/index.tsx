@@ -6,6 +6,7 @@ import CoachTodayPage from "./pages/CoachTodayPage";
 import CoachSessionDetailsPage from "./pages/CoachSessionDetailsPage";
 import CoachSchedulePage from "./pages/CoachSchedulePage";
 import CoachHistoryPage from "./pages/CoachHistoryPage";
+import CoachProfilePage from "./pages/CoachProfilePage";
 
 const CoachRoutes: React.FC = () => {
   return (
@@ -17,6 +18,7 @@ const CoachRoutes: React.FC = () => {
           <Route path="sessions/:id" element={<CoachSessionDetailsPage />} />
           <Route path="schedule" element={<CoachSchedulePage />} />
           <Route path="history" element={<CoachHistoryPage />} />
+          <Route path="profile" element={<CoachProfilePage />} />
         </Route>
       </Route>
     </Routes>

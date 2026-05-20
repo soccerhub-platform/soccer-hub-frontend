@@ -7,6 +7,7 @@ export const LEAD_STATUS_LABELS: Record<string, string> = {
   WAITING_PAYMENT: "Ожидает оплату",
   WON: "Клиент",
   LOST: "Отказ",
+  REJECTED: "Отказ",
 };
 
 export const formatLeadDateTime = (value?: string | null) => {

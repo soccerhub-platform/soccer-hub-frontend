@@ -1,7 +1,11 @@
 import { apiClient } from "../../../shared/api";
 import {
   AvailableSlot,
+  ConvertLeadRequest,
+  ConvertLeadResponse,
   CreateAdminLeadPayload,
+  LeadLossReason,
+  LeadTransitionRequest,
   LeadActivity,
   LeadDetails,
   LeadKanbanColumns,
@@ -30,6 +34,10 @@ export const LeadApi = {
     return (await apiClient.get<LeadActivity[]>(`/admin/leads/${leadId}/activities`)) ?? [];
   },
 
+  async getLeadLossReasons(_token: string): Promise<LeadLossReason[]> {
+    return (await apiClient.get<LeadLossReason[]>("/admin/leads/loss-reasons")) ?? [];
+  },
+
   async qualify(
     leadId: string,
     payload: QualifyLeadPayload,
@@ -40,10 +48,10 @@ export const LeadApi = {
 
   async sendLeadEvent(
     leadId: string,
-    event: string,
+    payload: LeadTransitionRequest,
     _token: string
   ): Promise<void> {
-    await apiClient.post(`/admin/leads/${leadId}/events`, { event });
+    await apiClient.post(`/admin/leads/${leadId}/events`, payload);
   },
 
   async scheduleTrial(
@@ -52,6 +60,17 @@ export const LeadApi = {
     _token: string
   ): Promise<void> {
     await apiClient.post(`/admin/leads/${leadId}/trial`, payload);
+  },
+
+  async convertLeadToClient(
+    leadId: string,
+    payload: ConvertLeadRequest,
+    _token: string
+  ): Promise<ConvertLeadResponse> {
+    return await apiClient.post<ConvertLeadResponse>(
+      `/admin/leads/${leadId}/convert`,
+      payload
+    );
   },
 
   async getAvailableGroupSlots(

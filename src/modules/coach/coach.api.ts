@@ -87,6 +87,60 @@ export interface CoachSimpleStatusResponse {
   status: CoachSessionStatus;
 }
 
+export interface CoachProfileBranch {
+  branchId: string;
+  branchName: string;
+}
+
+export interface CoachProfileGroup {
+  groupId: string;
+  groupName: string;
+  branchId: string;
+  branchName: string;
+  role: "MAIN" | "ASSISTANT" | string;
+}
+
+export interface CoachProfileResponse {
+  coachId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  specialization?: string | null;
+  bio?: string | null;
+  status: "ACTIVE" | "INACTIVE" | string;
+  branches: CoachProfileBranch[];
+  groups: CoachProfileGroup[];
+  createdAt: string;
+}
+
+export interface CoachProfileUpdateRequest {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  specialization?: string;
+  bio?: string;
+}
+
+export interface CoachAvailabilityResponse {
+  days: string[];
+  timeFrom: string;
+  timeTo: string;
+  timezone: string;
+}
+
+export interface CoachNotificationSettings {
+  todaySessions: boolean;
+  overdueReports: boolean;
+  scheduleChanges: boolean;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Almaty";
 
 export const CoachApi = {
@@ -130,4 +184,18 @@ export const CoachApi = {
     apiClient.post<CoachSimpleStatusResponse>(`/coach/sessions/${sessionId}/complete`),
   cancelSession: (sessionId: string, reason: string) =>
     apiClient.post<CoachSimpleStatusResponse>(`/coach/sessions/${sessionId}/cancel`, { reason }),
+
+  getProfile: () => apiClient.get<CoachProfileResponse>("/coach/profile", { suppressErrorToast: true }),
+  updateProfile: (payload: CoachProfileUpdateRequest) =>
+    apiClient.patch<CoachProfileResponse>("/coach/profile", payload, { suppressErrorToast: true }),
+  getAvailability: () =>
+    apiClient.get<CoachAvailabilityResponse>("/coach/profile/availability", { suppressErrorToast: true }),
+  updateAvailability: (payload: CoachAvailabilityResponse) =>
+    apiClient.put<CoachAvailabilityResponse>("/coach/profile/availability", payload, { suppressErrorToast: true }),
+  getNotificationSettings: () =>
+    apiClient.get<CoachNotificationSettings>("/coach/profile/notification-settings", { suppressErrorToast: true }),
+  updateNotificationSettings: (payload: CoachNotificationSettings) =>
+    apiClient.put<CoachNotificationSettings>("/coach/profile/notification-settings", payload, { suppressErrorToast: true }),
+  changePassword: (payload: ChangePasswordRequest) =>
+    apiClient.post<{ success: boolean }>("/auth/change-password", payload, { suppressErrorToast: true }),
 };

@@ -1,6 +1,13 @@
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { CalendarDaysIcon, ClockIcon, HomeIcon, ArrowRightOnRectangleIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import {
+  CalendarDaysIcon,
+  ClockIcon,
+  HomeIcon,
+  ArrowRightOnRectangleIcon,
+  ShieldCheckIcon,
+  UserCircleIcon,
+} from "@heroicons/react/24/outline";
 import { useAuth } from "../../shared/AuthContext";
 
 const CoachLayout: React.FC = () => {
@@ -43,7 +50,7 @@ const CoachLayout: React.FC = () => {
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 border-t border-teal-100 bg-white/95 px-3 py-2 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-4xl grid-cols-3 gap-2">
+        <div className="mx-auto grid w-full max-w-4xl grid-cols-4 gap-2">
           <NavLink to="/coach/today" className={linkClass}>
             <HomeIcon className="h-4 w-4" />
             Сегодня
@@ -55,6 +62,10 @@ const CoachLayout: React.FC = () => {
           <NavLink to="/coach/history" className={linkClass}>
             <ClockIcon className="h-4 w-4" />
             История
+          </NavLink>
+          <NavLink to="/coach/profile" className={linkClass}>
+            <UserCircleIcon className="h-4 w-4" />
+            Профиль
           </NavLink>
         </div>
       </nav>

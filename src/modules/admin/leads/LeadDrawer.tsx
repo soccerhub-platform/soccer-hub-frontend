@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
+import toast from "react-hot-toast";
 import {
+  ArrowPathRoundedSquareIcon,
   IdentificationIcon,
   CalendarDaysIcon,
   ChatBubbleLeftRightIcon,
@@ -10,12 +12,15 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import QualifyLeadModal from "./QualifyLeadModal";
-import { LeadAction, LeadActivity, LeadDetails } from "./types";
+import { LeadAction, LeadActivity, LeadDetails, LeadLossReason } from "./types";
 import { LeadApi } from "./lead.api";
 import ScheduleTrialModal from "./ScheduleTrialModal";
 import { GroupApi } from "../groups/group.api";
 import LeadActions from "./LeadActions";
 import LeadTimeline from "./LeadTimeline";
+import LeadLossModal from "./LeadLossModal";
+import ConvertLeadModal from "./ConvertLeadModal";
+import { buttonStyles } from "../../../shared/ui/buttonStyles";
 import {
   childGenderLabel,
   experienceLabel,
@@ -86,6 +91,26 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
+  const [rejectingEvent, setRejectingEvent] = useState<
+    "REJECT" | "LOST" | "NO_SHOW" | "POST_TRIAL_REJECT" | null
+  >(null);
+  const [lossReasons, setLossReasons] = useState<LeadLossReason[]>([]);
+  const [lossReasonsLoading, setLossReasonsLoading] = useState(false);
+  const [lossReasonsError, setLossReasonsError] = useState<string | null>(null);
+  const [rejectSubmitLoading, setRejectSubmitLoading] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [convertSubmitting, setConvertSubmitting] = useState(false);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [groupsError, setGroupsError] = useState<string | null>(null);
+  const [groups, setGroups] = useState<Awaited<
+    ReturnType<typeof GroupApi.listByBranch>
+  >>([]);
+  const [conversionResult, setConversionResult] = useState<{
+    clientId: string;
+    playerId: string;
+    contractId: string;
+    status: string;
+  } | null>(null);
   const trialChild =
     lead?.trial && lead.children.find((child) => child.id === lead.trial?.childId);
   const currentUserId = getCurrentUserId(token);
@@ -118,6 +143,35 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
       isMounted = false;
     };
   }, [leadId, token]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadGroups = async () => {
+      if (!branchId || !token) return;
+      setGroupsLoading(true);
+      setGroupsError(null);
+      try {
+        const list = await GroupApi.listByBranch(branchId, token);
+        if (!isMounted) return;
+        setGroups(list.filter((item) => item.status === "ACTIVE"));
+      } catch (err) {
+        if (!isMounted) return;
+        console.error(err);
+        setGroupsError("Не удалось загрузить группы");
+        setGroups([]);
+      } finally {
+        if (isMounted) {
+          setGroupsLoading(false);
+        }
+      }
+    };
+
+    void loadGroups();
+    return () => {
+      isMounted = false;
+    };
+  }, [branchId, token]);
 
   useEffect(() => {
     let isMounted = true;
@@ -198,6 +252,21 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     !!lead?.assignedAdmin?.id && lead.assignedAdmin.id === currentUserId;
   const assignedAdminDisplayName = lead?.assignedAdmin?.name?.trim() || null;
   const actions = lead?.actions ?? [];
+  const hasConvertAction = actions.some((action) => action.type === "CONVERT");
+  const canUseConvertRole = userHasRole(token, [
+    "ADMIN",
+    "SUPER_ADMIN",
+    "DISPATCHER",
+  ]);
+  const canConvertByStatus = Boolean(
+    lead &&
+      ["TRIAL_DONE", "QUALIFIED", "TRIAL_SCHEDULED", "WON"].includes(lead.status)
+  );
+  const canShowConvertButton =
+    canUseConvertRole && canConvertByStatus && !hasConvertAction;
+  const isAlreadyConverted = Boolean(
+    lead?.clientId || conversionResult?.clientId
+  );
   const assignedAdminInitials = assignedAdminDisplayName
     ? assignedAdminDisplayName
         .split(/\s+/)
@@ -230,23 +299,48 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
       return;
     }
 
-    if (action.type === "POST_TRIAL_REJECT") {
-      const confirmed = window.confirm(
-        "Вы уверены, что клиент отказался после пробного?"
-      );
+    if (action.type === "CONVERT") {
+      setShowConvertModal(true);
+      return;
+    }
 
-      if (!confirmed) {
-        return;
+    if (action.type === "CONFIRM_PAYMENT") {
+      setShowConvertModal(true);
+      toast("Сначала выполните конвертацию лида в клиента");
+      return;
+    }
+
+    if (
+      action.type === "REJECT" ||
+      action.type === "LOST" ||
+      action.type === "NO_SHOW" ||
+      action.type === "POST_TRIAL_REJECT"
+    ) {
+      setRejectingEvent(action.type);
+      if (!lossReasons.length && !lossReasonsLoading) {
+        setLossReasonsLoading(true);
+        setLossReasonsError(null);
+        try {
+          const reasons = await LeadApi.getLeadLossReasons(token);
+          setLossReasons(reasons);
+        } catch (err) {
+          console.error(err);
+          setLossReasonsError("Не удалось загрузить причины потери");
+        } finally {
+          setLossReasonsLoading(false);
+        }
       }
+      return;
     }
 
     setLoadingActionType(action.type);
     setError(null);
 
     try {
-      await LeadApi.sendLeadEvent(lead.id, action.type, token);
+      await LeadApi.sendLeadEvent(lead.id, { event: action.type }, token);
       await onUpdated();
       await refreshLead();
+      toast.success("Статус лида обновлён");
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Не удалось обновить лид");
@@ -354,6 +448,38 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                 </div>
               </section>
 
+              {canShowConvertButton || isAlreadyConverted ? (
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    <ArrowPathRoundedSquareIcon className="h-4 w-4" />
+                    Конвертация
+                  </div>
+                  <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+                    {isAlreadyConverted ? (
+                      <div className="space-y-2 text-sm text-slate-700">
+                        <div className="font-medium text-emerald-700">
+                          Лид уже конвертирован
+                        </div>
+                        <div>Client ID: {lead.clientId || conversionResult?.clientId}</div>
+                        <div>Player ID: {lead.playerId || conversionResult?.playerId}</div>
+                        <div>
+                          Contract ID: {lead.contractId || conversionResult?.contractId}
+                        </div>
+                        <div>Статус: {lead.status || conversionResult?.status || "WON"}</div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowConvertModal(true)}
+                        className={buttonStyles("primary", "md", "rounded-xl")}
+                      >
+                        Конвертировать в клиента
+                      </button>
+                    )}
+                  </div>
+                </section>
+              ) : null}
+
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
                   <UserGroupIcon className="h-4 w-4" />
@@ -394,6 +520,41 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   {lead.comment || "Комментарий отсутствует"}
                 </div>
               </section>
+
+              {lead.status === "LOST" || Boolean(lead.lostReasonCode) ? (
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                    Причина потери
+                  </div>
+                  <div className="rounded-3xl border border-rose-200 bg-rose-50/60 p-4 text-sm text-slate-700 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+                    <div>
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Причина
+                      </span>
+                      <div className="mt-1">
+                        {lead.lostReasonName || lead.lostReasonCode || "Не указано"}
+                      </div>
+                    </div>
+                    {lead.lostComment ? (
+                      <div className="mt-3">
+                        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          Комментарий
+                        </span>
+                        <div className="mt-1 whitespace-pre-wrap">{lead.lostComment}</div>
+                      </div>
+                    ) : null}
+                    {lead.lostAt ? (
+                      <div className="mt-3">
+                        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          Потерян
+                        </span>
+                        <div className="mt-1">{formatLeadDateTime(lead.lostAt)}</div>
+                      </div>
+                    ) : null}
+                  </div>
+                </section>
+              ) : null}
 
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -555,8 +716,96 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
           }}
         />
       ) : null}
+
+      {lead && rejectingEvent ? (
+        <LeadLossModal
+          isOpen={Boolean(lead && rejectingEvent)}
+          lead={lead}
+          event={rejectingEvent}
+          reasons={lossReasons}
+          loadingReasons={lossReasonsLoading}
+          reasonsError={lossReasonsError}
+          submitting={rejectSubmitLoading}
+          onClose={() => {
+            if (rejectSubmitLoading) return;
+            setRejectingEvent(null);
+          }}
+          onConfirm={async ({ lostReasonCode, lostComment }) => {
+            setRejectSubmitLoading(true);
+            setError(null);
+            try {
+              await LeadApi.sendLeadEvent(
+                lead.id,
+                { event: rejectingEvent, lostReasonCode, lostComment },
+                token
+              );
+              toast.success("Причина потери сохранена");
+              setRejectingEvent(null);
+              await onUpdated();
+              await refreshLead();
+            } catch (err) {
+              console.error(err);
+              setError(
+                err instanceof Error
+                  ? err.message
+                  : "Не удалось сохранить причину потери"
+              );
+            } finally {
+              setRejectSubmitLoading(false);
+            }
+          }}
+        />
+      ) : null}
+
+      {lead ? (
+        <ConvertLeadModal
+          isOpen={showConvertModal}
+          leadName={lead.parentName || "Лид"}
+          children={lead.children ?? []}
+          groups={groups}
+          loadingGroups={groupsLoading}
+          groupsError={groupsError}
+          submitting={convertSubmitting}
+          onClose={() => {
+            if (convertSubmitting) return;
+            setShowConvertModal(false);
+          }}
+          onSubmit={async (payload) => {
+            setConvertSubmitting(true);
+            setError(null);
+            try {
+              const result = await LeadApi.convertLeadToClient(lead.id, payload, token);
+              setConversionResult(result);
+              toast.success("Лид успешно конвертирован в клиента");
+              setShowConvertModal(false);
+              await onUpdated();
+              await refreshLead();
+            } catch (err) {
+              console.error(err);
+              setError(
+                err instanceof Error ? err.message : "Не удалось конвертировать лид"
+              );
+            } finally {
+              setConvertSubmitting(false);
+            }
+          }}
+        />
+      ) : null}
     </>
   );
+};
+
+const userHasRole = (token: string, allowed: string[]) => {
+  try {
+    const decoded = jwtDecode<{ roles?: string[]; authorities?: string[] }>(token);
+    const roleList = [
+      ...(Array.isArray(decoded.roles) ? decoded.roles : []),
+      ...(Array.isArray(decoded.authorities) ? decoded.authorities : []),
+    ];
+    return roleList.some((role) => allowed.includes(role));
+  } catch {
+    return false;
+  }
 };
 
 export default LeadDrawer;

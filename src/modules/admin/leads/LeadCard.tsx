@@ -116,6 +116,12 @@ const LeadCard: React.FC<LeadCardProps> = ({
               </p>
             </div>
           ) : null}
+
+          {lead.status === "LOST" && (lead.lostReasonName || lead.lostReasonCode) ? (
+            <div className="min-w-0 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              Причина отказа: {lead.lostReasonName || lead.lostReasonCode}
+            </div>
+          ) : null}
         </div>
       </button>
 

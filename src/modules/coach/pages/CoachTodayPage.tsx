@@ -72,7 +72,7 @@ const CoachTodayPage: React.FC = () => {
       {todaySessions.map((session) => {
         const meta = SESSION_STATUS_META[session.status];
         return (
-          <div key={session.id} className="rounded-3xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5">
+          <div key={session.id} className="rounded-2xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5">
             <div className="flex items-center justify-between">
               <div className="heading-font text-lg font-semibold text-teal-950">{session.time}</div>
               <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${meta.tone}`}>{meta.label}</span>
@@ -81,7 +81,7 @@ const CoachTodayPage: React.FC = () => {
             <div className="mt-1 text-sm text-teal-900/60">Учеников в группе: {session.studentCount}</div>
             <Link
               to={`/coach/sessions/${session.id}`}
-              className="mt-4 inline-flex w-full justify-center rounded-2xl bg-teal-950 px-3 py-3 text-sm font-semibold text-white"
+              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-teal-950 px-3 text-sm font-semibold text-white transition hover:bg-teal-900"
             >
               {meta.action}
             </Link>
