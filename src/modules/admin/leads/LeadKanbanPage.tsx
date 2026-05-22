@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { PlusIcon, Squares2X2Icon } from "@heroicons/react/24/outline";
+import { PlusIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import { useAuth } from "../../../shared/AuthContext";
-import { buttonStyles } from "../../../shared/ui/buttonStyles";
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  PageShell,
+} from "../../../shared/ui";
 import { useAdminBranch } from "../BranchContext";
 import LeadKanbanColumn from "./LeadKanbanColumn";
 import {
@@ -178,6 +184,9 @@ const LeadKanbanPage: React.FC = () => {
 
   const handleLeadAction = async (lead: Lead, action: LeadAction) => {
     if (!token) return;
+    const isLeadAlreadyConverted = Boolean(
+      lead.status === "WON" || lead.clientId || lead.playerId || lead.contractId
+    );
 
     if (action.type === "QUALIFY") {
       setQualifyingLead(lead);
@@ -189,9 +198,21 @@ const LeadKanbanPage: React.FC = () => {
       return;
     }
 
+    if (action.type === "CONVERT") {
+      setSelectedLeadId(lead.id);
+      if (isLeadAlreadyConverted) {
+        toast("Лид уже конвертирован в клиента");
+      }
+      return;
+    }
+
     if (action.type === "CONFIRM_PAYMENT") {
       setSelectedLeadId(lead.id);
-      toast("Сначала выполните конвертацию лида в клиента");
+      toast(
+        isLeadAlreadyConverted
+          ? "Лид уже конвертирован в клиента"
+          : "Сначала выполните конвертацию лида в клиента"
+      );
       return;
     }
 
@@ -235,46 +256,34 @@ const LeadKanbanPage: React.FC = () => {
   };
 
   if (!token) {
-    return <div className="text-sm text-red-500">Нет авторизации</div>;
+    return <ErrorState message="Нет авторизации" />;
   }
 
   if (!branchId) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white px-6 py-8 text-sm text-slate-500 shadow-sm">
-        Сначала выберите филиал
-      </div>
+      <PageShell>
+        <EmptyState
+          title="Сначала выберите филиал"
+          description="Канбан лидов доступен после выбора рабочего филиала."
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="min-w-0 max-w-full space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-admin-700">
-            <Squares2X2Icon className="h-5 w-5" />
-            <h1 className="heading-font text-2xl font-semibold text-slate-900">
-              Канбан лидов
-            </h1>
-          </div>
-          <p className="mt-1 text-sm text-slate-500">
-            Воронка по текущему филиалу с быстрым обзором всех статусов.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowCreateModal(true)}
-          className={buttonStyles("primary", "md", "rounded-xl")}
-        >
-          <PlusIcon className="h-4 w-4" />
-          Новый лид
-        </button>
-      </div>
+    <PageShell className="min-w-0 max-w-full">
+      <PageHeader
+        title="Канбан лидов"
+        description="Воронка по текущему филиалу с быстрым обзором всех статусов."
+        actions={
+          <Button type="button" onClick={() => setShowCreateModal(true)}>
+            <PlusIcon className="h-4 w-4" />
+            Новый лид
+          </Button>
+        }
+      />
 
-      {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      ) : null}
+      {error ? <ErrorState message={error} onRetry={refreshKanban} /> : null}
 
       <div className="w-full max-w-full min-w-0 overflow-x-auto pb-2">
         {loading ? (
@@ -282,7 +291,7 @@ const LeadKanbanPage: React.FC = () => {
             {LEAD_COLUMN_ORDER.map((status) => (
               <div
                 key={status}
-                className="h-[calc(100vh-16rem)] w-[300px] shrink-0 rounded-2xl border border-slate-200 bg-white/70 p-3"
+                className="h-[calc(100vh-16rem)] w-[300px] shrink-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
               >
                 <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
                 <div className="mt-3 space-y-3">
@@ -400,7 +409,7 @@ const LeadKanbanPage: React.FC = () => {
           }}
         />
       ) : null}
-    </div>
+    </PageShell>
   );
 };
 

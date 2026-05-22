@@ -8,6 +8,14 @@ import { PageTable } from '../../../shared/components/PageTable';
 
 import CreateCoachModal from './CreateCoachModal';
 import toast from 'react-hot-toast';
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  PageShell,
+} from '../../../shared/ui';
 
 const CoachesPage: React.FC = () => {
   const { user } = useAuth();
@@ -18,6 +26,7 @@ const CoachesPage: React.FC = () => {
   const [size] = useState(10);
   const [pageData, setPageData] = useState<Page<Coach> | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [showCreate, setShowCreate] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -27,6 +36,7 @@ const CoachesPage: React.FC = () => {
     if (!branchId || !token) return;
 
     setLoading(true);
+    setError(null);
     try {
       const data = await CoachApi.listByBranch(
         branchId,
@@ -38,7 +48,7 @@ const CoachesPage: React.FC = () => {
     } catch (e) {
       console.error('Failed to load coaches', e);
       setPageData(null);
-      toast.error('Не удалось загрузить тренеров');
+      setError('Не удалось загрузить тренеров');
     } finally {
       setLoading(false);
     }
@@ -90,42 +100,32 @@ const CoachesPage: React.FC = () => {
   };
 
   if (!token) {
-    return (
-      <div className="bg-white p-6 rounded-xl border text-sm text-gray-500">
-        Нет авторизации
-      </div>
-    );
+    return <ErrorState message="Нет авторизации" />;
   }
 
   if (!branchId) {
     return (
-      <div className="bg-white p-6 rounded-xl border text-sm text-gray-500">
-        Сначала выберите филиал
-      </div>
+      <PageShell>
+        <EmptyState
+          title="Сначала выберите филиал"
+          description="Список тренеров доступен после выбора филиала."
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="heading-font text-2xl font-semibold text-admin-700">
-            Тренеры
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Управление тренерами текущего филиала
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowCreate(true)}
-          className="inline-flex items-center px-4 py-2 bg-admin-500 text-white rounded-xl hover:bg-admin-700"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Добавить тренера
-        </button>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Тренеры"
+        description="Управление тренерами текущего филиала."
+        actions={
+          <Button type="button" onClick={() => setShowCreate(true)}>
+            <PlusIcon className="h-4 w-4" />
+            Добавить тренера
+          </Button>
+        }
+      />
 
       {/* FILTERS */}
       <div className="flex flex-col sm:flex-row gap-3 items-stretch">
@@ -172,14 +172,15 @@ const CoachesPage: React.FC = () => {
       </div>
 
       {/* TABLE */}
-      {loading ? (
-        <div className="glass-card rounded-2xl p-4 text-sm text-gray-500">
-          Загрузка тренеров…
-        </div>
+      {error ? (
+        <ErrorState message={error} onRetry={loadCoaches} />
+      ) : loading ? (
+        <LoadingState label="Загрузка тренеров..." />
       ) : !filteredPage || filteredPage.empty ? (
-        <div className="glass-card rounded-2xl p-4 text-sm text-gray-500">
-          Тренеры не найдены
-        </div>
+        <EmptyState
+          title="Тренеры не найдены"
+          description="Добавьте первого тренера или измените фильтр статуса."
+        />
       ) : (
         <PageTable
           page={filteredPage}
@@ -232,21 +233,15 @@ const CoachesPage: React.FC = () => {
                 </span>
               </td>
               <td className="px-4 py-3 text-right">
-                <button
-                  disabled={updatingId === c.id}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={c.active ? 'softDanger' : 'soft'}
+                  isLoading={updatingId === c.id}
                   onClick={() => toggleStatus(c)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm ${
-                    c.active
-                      ? 'bg-rose-600 text-white hover:bg-rose-700'
-                      : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  }`}
                 >
-                  {updatingId === c.id
-                    ? 'Сохранение...'
-                    : c.active
-                    ? 'Отключить'
-                    : 'Включить'}
-                </button>
+                  {c.active ? 'Отключить' : 'Включить'}
+                </Button>
               </td>
             </tr>
           )}
@@ -259,7 +254,7 @@ const CoachesPage: React.FC = () => {
           onCreated={loadCoaches}
         />
       )}
-    </div>
+    </PageShell>
   );
 };
 

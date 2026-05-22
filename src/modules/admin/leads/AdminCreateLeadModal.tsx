@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { buttonStyles } from "../../../shared/ui/buttonStyles";
+import { Button, ModalShell } from "../../../shared/ui";
 import {
   formatPhoneInput,
   isValidFormattedPhone,
@@ -127,25 +128,29 @@ const AdminCreateLeadModal: React.FC<AdminCreateLeadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <div>
-            <h3 className="heading-font text-xl font-semibold text-slate-900">Новый лид</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Создание лида в филиале {branchName?.trim() || "по текущему выбору"}.
-            </p>
-          </div>
-          <button
+    <ModalShell
+      title="Новый лид"
+      description={`Создание лида в филиале ${branchName?.trim() || "по текущему выбору"}.`}
+      eyebrow="CRM"
+      onClose={onClose}
+      maxWidthClassName="max-w-2xl"
+      heightClassName="max-h-[92vh]"
+      footer={
+        <div className="flex items-center justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Отмена
+          </Button>
+          <Button
             type="button"
-            onClick={onClose}
-            className={buttonStyles("ghost", "sm", "rounded-full p-2 text-slate-400")}
+            onClick={handleSubmit}
+            disabled={!validation.isValid}
+            isLoading={loading}
           >
-            ✕
-          </button>
+            Создать лид
+          </Button>
         </div>
-
-        <div className="max-h-[80vh] overflow-y-auto px-6 py-5">
+      }
+    >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label className="space-y-1 text-sm text-slate-600">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -342,27 +347,7 @@ const AdminCreateLeadModal: React.FC<AdminCreateLeadModalProps> = ({
               {error}
             </div>
           ) : null}
-        </div>
-
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className={buttonStyles("secondary", "md", "rounded-xl")}
-          >
-            Отмена
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!validation.isValid || loading}
-            className={buttonStyles("primary", "md", "rounded-xl")}
-          >
-            {loading ? "Создание..." : "Создать лид"}
-          </button>
-        </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 };
 

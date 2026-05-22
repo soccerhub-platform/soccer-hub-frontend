@@ -6,9 +6,11 @@ import {
   Squares2X2Icon,
   BuildingOffice2Icon,
   ArrowRightOnRectangleIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../shared/AuthContext";
 import { useAdminBranch } from "./BranchContext";
+import { Button } from "../../shared/ui";
 
 const AdminLayout: React.FC = () => {
   const { logout, user } = useAuth();
@@ -21,16 +23,16 @@ const AdminLayout: React.FC = () => {
   };
 
   const linkClasses = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+    `mx-3 flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-200 ${
       isActive
-        ? "bg-admin-500 text-white"
-        : "text-admin-700 hover:bg-admin-100 hover:text-admin-700"
+        ? "bg-admin-100 text-admin-800 ring-1 ring-admin-200"
+        : "text-slate-600 hover:bg-slate-100 hover:text-admin-700"
     }`;
 
   return (
     <div className="min-h-screen flex app-bg-admin">
       {/* Sidebar */}
-      <aside className="w-64 bg-white/90 backdrop-blur border-r border-slate-100 shadow-lg">
+      <aside className="flex w-64 flex-col border-r border-slate-200 bg-white/95 shadow-sm backdrop-blur">
         <div className="p-5">
           <div className="heading-font text-admin-700 font-semibold text-lg tracking-tight">
             Football CRM
@@ -39,7 +41,7 @@ const AdminLayout: React.FC = () => {
             Admin Control
           </div>
         </div>
-        <nav className="mt-4 space-y-1">
+        <nav className="mt-2 flex-1 space-y-1">
           <NavLink to="/admin/dashboard" className={linkClasses} end>
             <HomeIcon className="h-5 w-5 mr-3" />
             <span>Панель</span>
@@ -56,6 +58,20 @@ const AdminLayout: React.FC = () => {
             <UserGroupIcon className="h-5 w-5 mr-3" />
             <span>Группы</span>
           </NavLink>
+        </nav>
+
+        <nav className="border-t border-slate-100 p-3">
+          <NavLink to="/admin/profile" className={linkClasses}>
+            <UserCircleIcon className="h-5 w-5 mr-3" />
+            <span>Профиль</span>
+          </NavLink>
+          <button
+            onClick={handleLogout}
+            className="mx-3 mt-1 flex w-[calc(100%-1.5rem)] items-center rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-rose-700"
+          >
+            <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
+            <span>Выйти</span>
+          </button>
         </nav>
       </aside>
 
@@ -94,13 +110,10 @@ const AdminLayout: React.FC = () => {
               )}
 
               {/* Logout */}
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-admin-500 text-white rounded-xl hover:bg-admin-700 text-sm shadow-sm"
-              >
-                <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                Выйти
-              </button>
+              <Button variant="secondary" size="sm" onClick={() => navigate("/admin/profile")}>
+                <UserCircleIcon className="h-4 w-4" />
+                Профиль
+              </Button>
             </div>
           </div>
         </header>

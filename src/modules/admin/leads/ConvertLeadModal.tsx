@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { buttonStyles } from "../../../shared/ui/buttonStyles";
+import { Button, ModalShell } from "../../../shared/ui";
 import { GroupApiModel } from "../groups/group.api";
 import { LeadChild } from "./types";
 
@@ -119,18 +119,41 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[85] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white shadow-2xl">
-        <div className="border-b border-slate-200 px-6 py-4">
-          <h3 className="heading-font text-xl font-semibold text-slate-900">
-            Конвертация лида в клиента
-          </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Создание клиента, игрока и договора из лида {leadName}.
-          </p>
+    <ModalShell
+      title="Конвертация лида в клиента"
+      description={`Создание клиента, игрока и договора из лида ${leadName}.`}
+      eyebrow="Конвертация"
+      onClose={onClose}
+      closeDisabled={submitting}
+      maxWidthClassName="max-w-2xl"
+      footer={
+        <div className="flex items-center justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
+            Отмена
+          </Button>
+          <Button
+            type="button"
+            disabled={submitDisabled}
+            isLoading={submitting}
+            onClick={async () => {
+              setSubmitAttempted(true);
+              if (submitDisabled) return;
+              await onSubmit({
+                childId,
+                groupId,
+                childBirthDate,
+                contractStartDate,
+                contractEndDate: contractEndDate || null,
+                amount: amount.trim().length > 0 ? Number(amount) : null,
+              });
+            }}
+          >
+            Конвертировать в клиента
+          </Button>
         </div>
-
-        <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-2">
+      }
+    >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <label className="space-y-1 text-sm text-slate-600">
             <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
               Ребенок <span className="text-rose-500">*</span>
@@ -262,38 +285,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
             ) : null}
           </label>
         </div>
-
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className={buttonStyles("secondary", "md", "rounded-xl")}
-          >
-            Отмена
-          </button>
-          <button
-            type="button"
-            disabled={submitDisabled}
-            onClick={async () => {
-              setSubmitAttempted(true);
-              if (submitDisabled) return;
-              await onSubmit({
-                childId,
-                groupId,
-                childBirthDate,
-                contractStartDate,
-                contractEndDate: contractEndDate || null,
-                amount: amount.trim().length > 0 ? Number(amount) : null,
-              });
-            }}
-            className={buttonStyles("primary", "md", "rounded-xl")}
-          >
-            {submitting ? "Конвертация..." : "Конвертировать в клиента"}
-          </button>
-        </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 };
 

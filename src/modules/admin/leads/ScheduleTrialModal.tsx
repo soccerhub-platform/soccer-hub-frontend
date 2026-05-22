@@ -183,18 +183,18 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:p-4">
-      <div className="flex h-[min(92vh,860px)] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_24%)] shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] sm:rounded-[32px]">
-        <div className="border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-6 py-5">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-sm sm:p-4">
+      <div className="flex h-[min(92vh,860px)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="border-b border-slate-200 bg-white px-6 py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="mb-3 inline-flex items-center rounded-full border border-admin-100 bg-admin-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-admin-700">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-700">
                 Назначение пробного
               </div>
-              <h3 className="heading-font text-2xl font-semibold text-slate-900">
+              <h3 className="heading-font text-xl font-semibold text-slate-900">
                 Назначить пробное занятие
               </h3>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm leading-6 text-slate-500">
                 {lead.parentName}. Выберите ребенка, исполнителя и свободный слот.
               </p>
             </div>
@@ -233,7 +233,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#f8fafc_0%,#f8fafc_8%,#ffffff_22%)] px-4 py-4 sm:px-6 sm:py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-4 sm:px-6 sm:py-6">
           {optionsLoading ? (
             <div className="space-y-4">
               <div className="h-32 animate-pulse rounded-[28px] bg-slate-100" />
@@ -527,7 +527,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
           )}
         </div>
 
-        <div className="border-t border-slate-200 bg-white/95 px-4 py-4 sm:px-6">
+        <div className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-slate-500">
             {selectedSlot

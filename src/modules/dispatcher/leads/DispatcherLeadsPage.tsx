@@ -4,7 +4,17 @@ import { useAuth } from "../../../shared/AuthContext";
 import CreateLeadModal from "./CreateLeadModal";
 import { DispatcherLeadsApi } from "./leads.api";
 import { DispatcherBranchOption, DispatcherLead } from "./types";
-import { buttonStyles } from "../../../shared/ui/buttonStyles";
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  FormField,
+  LoadingState,
+  PageHeader,
+  PageShell,
+  SectionCard,
+  formControlClassName,
+} from "../../../shared/ui";
 
 const formatDate = (value: string) => {
   const date = new Date(value);
@@ -131,30 +141,33 @@ const DispatcherLeadsPage: React.FC = () => {
   };
 
   if (!token) {
-    return <div className="text-sm text-red-500">Нет авторизации</div>;
+    return <ErrorState message="Нет авторизации" />;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="heading-font text-2xl font-semibold text-dispatcher-700">
-            Лиды
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Диспетчер создает и просматривает входящие лиды по филиалу.
-          </p>
-        </div>
+    <PageShell>
+      <PageHeader
+        title="Лиды"
+        description="Диспетчер создает и просматривает входящие лиды по выбранному филиалу."
+        actions={
+          <Button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            disabled={!selectedBranchId}
+          >
+            <PlusIcon className="h-4 w-4" />
+            Новый лид
+          </Button>
+        }
+      />
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Филиал
-            </span>
+      <SectionCard>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <FormField label="Филиал" className="sm:w-80">
             <select
               value={selectedBranchId}
               onChange={(event) => setSelectedBranchId(event.target.value)}
-              className="min-w-[240px] rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+              className={formControlClassName}
             >
               <option value="">Выберите филиал</option>
               {branches.map((branch) => (
@@ -163,35 +176,36 @@ const DispatcherLeadsPage: React.FC = () => {
                 </option>
               ))}
             </select>
-          </label>
-
-          <button
-            type="button"
-            onClick={() => setShowCreateModal(true)}
-            disabled={!selectedBranchId}
-            className={buttonStyles("primary")}
-          >
-            <PlusIcon className="h-4 w-4" />
-            Новый лид
-          </button>
+          </FormField>
+          <div className="text-sm text-slate-500">
+            {selectedBranchId ? `Лидов: ${leads.length}` : "Выберите филиал для просмотра"}
+          </div>
         </div>
-      </div>
+      </SectionCard>
 
       {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
+        <ErrorState message={error} onRetry={refreshLeads} />
       ) : null}
 
-      <div className="glass-card rounded-2xl p-4 md:p-5">
+      <SectionCard>
         {loading ? (
-          <div className="text-sm text-slate-500">Загрузка лидов...</div>
+          <LoadingState label="Загрузка лидов..." />
         ) : !selectedBranchId ? (
-          <div className="text-sm text-slate-500">Сначала выберите филиал</div>
+          <EmptyState
+            title="Сначала выберите филиал"
+            description="После выбора филиала здесь появятся его входящие лиды."
+          />
         ) : leads.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
-            Нет лидов
-          </div>
+          <EmptyState
+            title="Лидов пока нет"
+            description="Создайте первого лида для выбранного филиала."
+            action={
+              <Button type="button" size="sm" onClick={() => setShowCreateModal(true)}>
+                <PlusIcon className="h-4 w-4" />
+                Новый лид
+              </Button>
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200">
@@ -216,7 +230,7 @@ const DispatcherLeadsPage: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {leads.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-dispatcher-50/70">
+                  <tr key={lead.id} className="transition-colors hover:bg-slate-50">
                     <td className="px-4 py-3 text-sm font-medium text-slate-900">
                       {lead.parentName}
                     </td>
@@ -225,7 +239,7 @@ const DispatcherLeadsPage: React.FC = () => {
                       {lead.children.length}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <span className="rounded-full bg-dispatcher-100 px-2.5 py-1 text-xs font-semibold text-dispatcher-700">
+                      <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-800">
                         {statusLabel(lead.status)}
                       </span>
                     </td>
@@ -238,7 +252,7 @@ const DispatcherLeadsPage: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+      </SectionCard>
 
       {showCreateModal ? (
         <CreateLeadModal
@@ -248,7 +262,7 @@ const DispatcherLeadsPage: React.FC = () => {
           onSuccess={refreshLeads}
         />
       ) : null}
-    </div>
+    </PageShell>
   );
 };
 

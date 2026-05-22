@@ -38,7 +38,7 @@ const LeadCard: React.FC<LeadCardProps> = ({
 
   return (
     <article
-      className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-cyan-200 hover:shadow-md"
       data-lead-id={lead.id}
       data-lead-status={lead.status}
     >
@@ -62,7 +62,7 @@ const LeadCard: React.FC<LeadCardProps> = ({
           </span>
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-3 space-y-2">
           <div className="flex min-w-0 items-start gap-2 text-xs text-slate-600">
             <UserIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
             <div className="min-w-0">
@@ -126,7 +126,7 @@ const LeadCard: React.FC<LeadCardProps> = ({
       </button>
 
       {actions.length > 0 ? (
-        <div className="mt-4 border-t border-slate-100 pt-3">
+        <div className="mt-3 border-t border-slate-100 pt-3">
           <div onClick={(event) => event.stopPropagation()}>
             <LeadActions
               actions={actions}

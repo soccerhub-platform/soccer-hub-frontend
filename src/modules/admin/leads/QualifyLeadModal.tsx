@@ -197,18 +197,18 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="flex h-[min(92vh,900px)] w-full max-w-4xl flex-col overflow-hidden rounded-[32px] border border-stone-200 bg-[linear-gradient(180deg,#fcfcfb_0%,#f8fafc_100%)] shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)]">
-        <div className="border-b border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(14,116,144,0.08),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-6 py-5 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-sm sm:p-4">
+      <div className="flex h-[min(92vh,900px)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="border-b border-slate-200 bg-white px-6 py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="mb-3 inline-flex items-center rounded-full border border-admin-100 bg-admin-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-admin-700">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-700">
                 Квалификация
               </div>
-              <h3 className="heading-font text-2xl font-semibold text-slate-900">
+              <h3 className="heading-font text-xl font-semibold text-slate-900">
                 Квалифицировать лид
               </h3>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm leading-6 text-slate-500">
                 Заполните структуру семьи, предпочтения и уровень подготовки.
               </p>
             </div>
@@ -222,7 +222,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#fafaf9_0%,#ffffff_18%)] px-4 py-4 sm:px-6 sm:py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-4 sm:px-6 sm:py-6">
           <div className="space-y-5">
             <section className={cardClassName}>
               <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
@@ -517,7 +517,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
           </div>
         </div>
 
-        <div className="border-t border-stone-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
+        <div className="border-t border-slate-200 bg-white px-6 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-slate-500">
               {validation.isValid

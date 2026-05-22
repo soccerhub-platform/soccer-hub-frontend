@@ -20,7 +20,7 @@ import LeadActions from "./LeadActions";
 import LeadTimeline from "./LeadTimeline";
 import LeadLossModal from "./LeadLossModal";
 import ConvertLeadModal from "./ConvertLeadModal";
-import { buttonStyles } from "../../../shared/ui/buttonStyles";
+import { Button, ErrorState, LoadingState, SectionCard } from "../../../shared/ui";
 import {
   childGenderLabel,
   experienceLabel,
@@ -251,8 +251,20 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   const isCurrentUserAssigned =
     !!lead?.assignedAdmin?.id && lead.assignedAdmin.id === currentUserId;
   const assignedAdminDisplayName = lead?.assignedAdmin?.name?.trim() || null;
-  const actions = lead?.actions ?? [];
-  const hasConvertAction = actions.some((action) => action.type === "CONVERT");
+  const rawActions = lead?.actions ?? [];
+  const isAlreadyConverted = Boolean(
+    lead?.status === "WON" ||
+      lead?.clientId ||
+      lead?.playerId ||
+      lead?.contractId ||
+      conversionResult?.clientId
+  );
+  const actions = isAlreadyConverted
+    ? rawActions.filter(
+        (action) => action.type !== "CONVERT" && action.type !== "CONFIRM_PAYMENT"
+      )
+    : rawActions;
+  const hasConvertAction = rawActions.some((action) => action.type === "CONVERT");
   const canUseConvertRole = userHasRole(token, [
     "ADMIN",
     "SUPER_ADMIN",
@@ -263,10 +275,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
       ["TRIAL_DONE", "QUALIFIED", "TRIAL_SCHEDULED", "WON"].includes(lead.status)
   );
   const canShowConvertButton =
-    canUseConvertRole && canConvertByStatus && !hasConvertAction;
-  const isAlreadyConverted = Boolean(
-    lead?.clientId || conversionResult?.clientId
-  );
+    canUseConvertRole && canConvertByStatus && !hasConvertAction && !isAlreadyConverted;
   const assignedAdminInitials = assignedAdminDisplayName
     ? assignedAdminDisplayName
         .split(/\s+/)
@@ -300,11 +309,19 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     }
 
     if (action.type === "CONVERT") {
+      if (isAlreadyConverted) {
+        toast("Лид уже конвертирован в клиента");
+        return;
+      }
       setShowConvertModal(true);
       return;
     }
 
     if (action.type === "CONFIRM_PAYMENT") {
+      if (isAlreadyConverted) {
+        toast("Лид уже конвертирован в клиента");
+        return;
+      }
       setShowConvertModal(true);
       toast("Сначала выполните конвертацию лида в клиента");
       return;
@@ -352,10 +369,10 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-slate-950/40 transition-opacity duration-300"
+        className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[2px] transition-opacity duration-300"
         onClick={onClose}
       />
-      <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[460px] translate-x-0 flex-col border-l border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] shadow-[0_0_60px_-20px_rgba(15,23,42,0.45)] transition-transform duration-300 ease-out">
+      <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] translate-x-0 flex-col border-l border-slate-200 bg-slate-50 shadow-[0_0_60px_-24px_rgba(15,23,42,0.45)] transition-transform duration-300 ease-out">
         <div className="border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
           <div>
@@ -376,21 +393,12 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {loading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-20 animate-pulse rounded-2xl bg-slate-100"
-                />
-              ))}
-            </div>
+            <LoadingState label="Загрузка карточки лида..." />
           ) : error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {error}
-            </div>
+            <ErrorState message={error} />
           ) : lead ? (
             <div className="space-y-5">
-              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+              <SectionCard className="p-5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${statusBadgeClassName(
@@ -416,7 +424,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                     <span>{lead.email || "Email не указан"}</span>
                   </div>
                 </div>
-              </section>
+              </SectionCard>
 
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -454,27 +462,37 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                     <ArrowPathRoundedSquareIcon className="h-4 w-4" />
                     Конвертация
                   </div>
-                  <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     {isAlreadyConverted ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         <div className="font-medium text-emerald-700">
                           Лид уже конвертирован
                         </div>
-                        <div>Client ID: {lead.clientId || conversionResult?.clientId}</div>
-                        <div>Player ID: {lead.playerId || conversionResult?.playerId}</div>
-                        <div>
-                          Contract ID: {lead.contractId || conversionResult?.contractId}
-                        </div>
+                        {lead.clientId || conversionResult?.clientId ? (
+                          <div>Client ID: {lead.clientId || conversionResult?.clientId}</div>
+                        ) : null}
+                        {lead.playerId || conversionResult?.playerId ? (
+                          <div>Player ID: {lead.playerId || conversionResult?.playerId}</div>
+                        ) : null}
+                        {lead.contractId || conversionResult?.contractId ? (
+                          <div>
+                            Contract ID: {lead.contractId || conversionResult?.contractId}
+                          </div>
+                        ) : null}
+                        {!lead.clientId && !conversionResult?.clientId ? (
+                          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                            Backend вернул статус клиента, но не передал ID клиента.
+                          </div>
+                        ) : null}
                         <div>Статус: {lead.status || conversionResult?.status || "WON"}</div>
                       </div>
                     ) : (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => setShowConvertModal(true)}
-                        className={buttonStyles("primary", "md", "rounded-xl")}
                       >
                         Конвертировать в клиента
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </section>
@@ -676,11 +694,11 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
         </div>
 
         {lead && actions.length > 0 ? (
-          <div className="border-t border-slate-200 bg-white/95 px-6 py-5 backdrop-blur-sm">
+          <div className="border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
             <LeadActions
               actions={actions}
               loadingActionType={loadingActionType}
-              className="pt-1 pb-3"
+              className="pt-1"
               onAction={(action) => {
                 void handleAction(action);
               }}

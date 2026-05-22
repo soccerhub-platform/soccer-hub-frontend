@@ -5,6 +5,15 @@ import { useAuth } from "../../../shared/AuthContext";
 import { GroupApi, GroupApiModel } from "./group.api";
 import { useAdminBranch } from "../BranchContext";
 import CreateGroupModal from "./components/CreateGroupModal";
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  PageShell,
+} from "../../../shared/ui";
+import { PlusIcon } from "@heroicons/react/24/outline";
 
 const GroupsPage: React.FC = () => {
   const { user } = useAuth();
@@ -13,6 +22,7 @@ const GroupsPage: React.FC = () => {
 
   const [groups, setGroups] = useState<GroupApiModel[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [showCreate, setShowCreate] = useState(false);
 
@@ -21,23 +31,25 @@ const GroupsPage: React.FC = () => {
     status: "",
   });
 
-  useEffect(() => {
+  const loadGroups = async () => {
     if (!branchId || !token) return;
 
-    const load = async () => {
-      setLoading(true);
-      try {
-        const data = await GroupApi.listByBranch(branchId, token);
-        setGroups(data);
-      } catch (e) {
-        console.error("Failed to load groups", e);
-        setGroups([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await GroupApi.listByBranch(branchId, token);
+      setGroups(data);
+    } catch (e) {
+      console.error("Failed to load groups", e);
+      setError("Не удалось загрузить группы");
+      setGroups([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    load();
+  useEffect(() => {
+    void loadGroups();
   }, [branchId, token]);
 
   const filteredGroups = useMemo(() => {
@@ -58,36 +70,33 @@ const GroupsPage: React.FC = () => {
   }, [groups, filters]);
 
   if (!token) {
-    return <div className="text-sm text-red-500">Нет авторизации</div>;
+    return <ErrorState message="Нет авторизации" />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="heading-font text-2xl font-semibold text-gray-800">
-            Группы
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Управление тренировочными группами
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowCreate(true)}
-          className="px-4 py-2 rounded-xl bg-admin-500 text-white text-sm font-medium hover:bg-admin-700"
-        >
-          + Создать группу
-        </button>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Группы"
+        description="Управление тренировочными группами текущего филиала."
+        actions={
+          <Button type="button" onClick={() => setShowCreate(true)}>
+            <PlusIcon className="h-4 w-4" />
+            Создать группу
+          </Button>
+        }
+      />
 
       <GroupFilters value={filters} onChange={setFilters} />
 
-      {loading ? (
-        <div className="bg-white p-4 rounded-xl border text-sm text-gray-500">
-          Загрузка групп…
-        </div>
+      {error ? (
+        <ErrorState message={error} onRetry={loadGroups} />
+      ) : loading ? (
+        <LoadingState label="Загрузка групп..." />
+      ) : filteredGroups.length === 0 ? (
+        <EmptyState
+          title="Группы не найдены"
+          description="Создайте первую группу или измените фильтры."
+        />
       ) : (
         <GroupsTable groups={filteredGroups} />
       )}
@@ -97,14 +106,11 @@ const GroupsPage: React.FC = () => {
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false);
-            // перезагрузка списка
-            if (branchId && token) {
-              GroupApi.listByBranch(branchId, token).then(setGroups);
-            }
+            void loadGroups();
           }}
         />
       )}
-    </div>
+    </PageShell>
   );
 };
 

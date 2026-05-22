@@ -13,61 +13,15 @@ import { ScheduleApi } from './groups/schedule/schedule.api';
 import { GroupScheduleDto, DayOfWeek } from './groups/schedule/schedule.types';
 import toast from 'react-hot-toast';
 import { apiClient } from '../../shared/api';
+import AnalyticsDashboard from '../../shared/analytics/AnalyticsDashboard';
+import {
+  EmptyState,
+  LoadingState,
+  PageHeader,
+  PageShell,
+  SectionCard,
+} from '../../shared/ui';
 
-interface FunnelAnalyticsOutput {
-  totals?: Record<string, number>;
-  rates?: {
-    win_rate_on_closed?: number;
-    trial_scheduled_to_won?: number;
-  };
-  series?: Array<Record<string, string | number>>;
-}
-
-interface CoachLoadRow {
-  coachId: string;
-  coachName: string;
-  groups: number;
-  scheduledSlots: number;
-}
-
-interface CoachLoadAnalyticsOutput {
-  rows?: CoachLoadRow[];
-}
-
-interface RetentionGroupRow {
-  groupId: string;
-  groupName: string;
-  totalSchedules?: number;
-  cancelled?: number;
-  retentionIndex?: number;
-}
-
-interface RetentionCohortPoint {
-  periodIndex: number;
-  retentionRate: number;
-}
-
-interface RetentionCohort {
-  cohort: string;
-  points: RetentionCohortPoint[];
-}
-
-interface RetentionAnalyticsOutput {
-  groups?: RetentionGroupRow[];
-  cohorts?: RetentionCohort[];
-}
-
-const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
-const FUNNEL_LABELS: Record<string, string> = {
-  NEW: "Новый лид",
-  CONTACTED: "Связались",
-  QUALIFIED: "Квалифицирован",
-  TRIAL_SCHEDULED: "Пробное назначено",
-  TRIAL_DONE: "Пробное проведено",
-  WAITING_PAYMENT: "Ожидает оплату",
-  WON: "Стал клиентом",
-  LOST: "Отказался",
-};
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -81,10 +35,6 @@ const Dashboard: React.FC = () => {
   const [selectedSchedule, setSelectedSchedule] = useState<GroupScheduleDto | null>(null);
   const [coachInfo, setCoachInfo] = useState<{ firstName: string; lastName: string; phone?: string; email?: string } | null>(null);
   const [loadingCoach, setLoadingCoach] = useState(false);
-  const [funnelAnalytics, setFunnelAnalytics] = useState<FunnelAnalyticsOutput | null>(null);
-  const [coachLoadAnalytics, setCoachLoadAnalytics] = useState<CoachLoadAnalyticsOutput | null>(null);
-  const [retentionAnalytics, setRetentionAnalytics] = useState<RetentionAnalyticsOutput | null>(null);
-
   const stats = useMemo(() => ({
     totalGroups: groups.length,
     activeSchedules: schedules.filter((s) => s.status === 'ACTIVE').length,
@@ -152,51 +102,6 @@ const Dashboard: React.FC = () => {
       .finally(() => setLoadingCoach(false));
   }, [token, selectedSchedule]);
 
-  useEffect(() => {
-    if (!token || !branchId) return;
-    const dateTo = new Date();
-    const dateFrom = new Date();
-    dateFrom.setDate(dateFrom.getDate() - 30);
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    const funnelQs = new URLSearchParams({
-      branchId,
-      dateFrom: toDateInput(dateFrom),
-      dateTo: toDateInput(dateTo),
-      groupBy: "WEEK",
-      timezone,
-    });
-    const coachLoadQs = new URLSearchParams({
-      branchId,
-      dateFrom: toDateInput(dateFrom),
-      dateTo: toDateInput(dateTo),
-      groupBy: "WEEK",
-      timezone,
-    });
-    const retentionQs = new URLSearchParams({
-      branchId,
-      cohortBy: "MONTH",
-      periods: "6",
-      timezone,
-    });
-
-    Promise.all([
-      apiClient.get<FunnelAnalyticsOutput>(`/admin/analytics/funnel?${funnelQs.toString()}`),
-      apiClient.get<CoachLoadAnalyticsOutput>(`/admin/analytics/coach-load?${coachLoadQs.toString()}`),
-      apiClient.get<RetentionAnalyticsOutput>(`/admin/analytics/retention?${retentionQs.toString()}`),
-    ])
-      .then(([funnel, coachLoad, retention]) => {
-        setFunnelAnalytics(funnel);
-        setCoachLoadAnalytics(coachLoad);
-        setRetentionAnalytics(retention);
-      })
-      .catch(() => {
-        setFunnelAnalytics(null);
-        setCoachLoadAnalytics(null);
-        setRetentionAnalytics(null);
-      });
-  }, [token, branchId]);
-
   const groupMeta = useMemo(() => {
     const palette = [
       { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700' },
@@ -220,219 +125,34 @@ const Dashboard: React.FC = () => {
     return { total: schedules.length, active, cancelled };
   }, [schedules]);
 
-  const totals = funnelAnalytics?.totals ?? {};
-  const leadTotal = Object.values(totals).reduce((acc, value) => acc + (value ?? 0), 0);
-  const trialToWon = funnelAnalytics?.rates?.trial_scheduled_to_won ?? 0;
-  const winRate = funnelAnalytics?.rates?.win_rate_on_closed ?? 0;
-  const coachesLoadRows = coachLoadAnalytics?.rows ?? [];
-  const retentionByGroup = retentionAnalytics?.groups ?? [];
-  const retentionCohorts = retentionAnalytics?.cohorts ?? [];
   return (
-    <div className="space-y-6">
-      <h2 className="heading-font text-2xl font-semibold text-admin-700">
-        Панель администратора
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card for contracts */}
-        <div className="p-4 bg-white shadow rounded-2xl flex items-center space-x-4">
-          <div className="p-2 bg-admin-100 rounded-full">
-            <DocumentTextIcon className="h-6 w-6 text-admin-500" />
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">Группы филиала</div>
-            <div className="text-2xl font-bold text-admin-700">{stats.totalGroups}</div>
-          </div>
-        </div>
-        {/* Card for pending payments */}
-        <div className="p-4 bg-white shadow rounded-2xl flex items-center space-x-4">
-          <div className="p-2 bg-admin-100 rounded-full">
-            <CreditCardIcon className="h-6 w-6 text-admin-500" />
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">Активные занятия</div>
-            <div className="text-2xl font-bold text-admin-700">{stats.activeSchedules}</div>
-          </div>
-        </div>
-        {/* Card for active users */}
-        <div className="p-4 bg-white shadow rounded-2xl flex items-center space-x-4">
-          <div className="p-2 bg-admin-100 rounded-full">
-            <UserIcon className="h-6 w-6 text-admin-500" />
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">Отменённые занятия</div>
-            <div className="text-2xl font-bold text-admin-700">{stats.cancelledSchedules}</div>
-          </div>
-        </div>
+    <PageShell>
+      <PageHeader
+        title="Панель администратора"
+        description="Ежедневный обзор филиала: группы, расписание, операционная аналитика и риски."
+      />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <DashboardMetric
+          title="Группы филиала"
+          value={stats.totalGroups}
+          icon={<DocumentTextIcon className="h-5 w-5" />}
+        />
+        <DashboardMetric
+          title="Активные занятия"
+          value={stats.activeSchedules}
+          icon={<CreditCardIcon className="h-5 w-5" />}
+        />
+        <DashboardMetric
+          title="Отмененные занятия"
+          value={stats.cancelledSchedules}
+          icon={<UserIcon className="h-5 w-5" />}
+        />
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="heading-font text-lg font-semibold text-admin-700">Операционная аналитика</h3>
-        <p className="mt-1 text-xs text-slate-500">
-          Блок для контроля продаж, нагрузки команды и удержания групп. Подходит для ежедневного управленческого среза.
-        </p>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <div className="text-xs text-slate-500">Лиды всего</div>
-            <div className="text-xl font-semibold text-slate-900">{leadTotal}</div>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <div className="text-xs text-slate-500">Win Rate</div>
-            <div className="text-xl font-semibold text-slate-900">{winRate.toFixed(1)}%</div>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <div className="text-xs text-slate-500">Trial Completion</div>
-            <div className="text-xl font-semibold text-slate-900">{trialToWon.toFixed(1)}%</div>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <div className="text-xs text-slate-500">Тренеров с нагрузкой</div>
-            <div className="text-xl font-semibold text-slate-900">{coachesLoadRows.length}</div>
-          </div>
-        </div>
+      <AnalyticsDashboard scope="admin" branchId={branchId} />
 
-        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 p-3">
-            <div className="text-sm font-semibold text-slate-700">Конверсия по воронке</div>
-            <p className="mt-1 text-xs text-slate-500">
-              Показывает, сколько лидов находится на каждом этапе пути до оплаты.
-            </p>
-            <div className="mt-2 space-y-1 text-sm">
-              {Object.entries(totals).map(([status, value]) => (
-                <div key={status} className="flex items-center justify-between">
-                  <span className="text-slate-600">{FUNNEL_LABELS[status] ?? status}</span>
-                  <span className="font-medium text-slate-900">{value ?? 0}</span>
-                </div>
-              ))}
-              {Object.keys(totals).length === 0 && <div className="text-slate-500">Нет данных</div>}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 p-3 xl:col-span-2">
-            <div className="text-sm font-semibold text-slate-700">Нагрузка по тренерам</div>
-            <p className="mt-1 text-xs text-slate-500">
-              Сколько групп и слотов закреплено за каждым тренером. Нужен для балансировки нагрузки.
-            </p>
-            <div className="mt-2 overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="text-xs text-slate-500">
-                  <tr>
-                    <th className="px-2 py-1 text-left">Тренер</th>
-                    <th className="px-2 py-1 text-left">Группы</th>
-                    <th className="px-2 py-1 text-left">Слоты расписания</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {coachesLoadRows.map((row) => (
-                    <tr key={row.coachId} className="border-t border-slate-100">
-                      <td className="px-2 py-1">{row.coachName}</td>
-                      <td className="px-2 py-1">{row.groups}</td>
-                      <td className="px-2 py-1">{row.scheduledSlots}</td>
-                    </tr>
-                  ))}
-                  {coachesLoadRows.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="px-2 py-2 text-slate-500">Нет данных</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-xl border border-slate-200 p-3">
-          <div className="text-sm font-semibold text-slate-700">Retention по группам</div>
-          <p className="mt-1 text-xs text-slate-500">
-            Индекс удержания группы: чем выше, тем стабильнее посещаемость и меньше отмен в расписании.
-          </p>
-          <div className="mt-2 overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="text-xs text-slate-500">
-                <tr>
-                  <th className="px-2 py-1 text-left">Группа</th>
-                  <th className="px-2 py-1 text-left">Retention</th>
-                  <th className="px-2 py-1 text-left">Слотов</th>
-                  <th className="px-2 py-1 text-left">Отмен</th>
-                </tr>
-              </thead>
-              <tbody>
-                {retentionByGroup.map((row) => (
-                  <tr key={row.groupId ?? row.groupName} className="border-t border-slate-100">
-                    <td className="px-2 py-1">{row.groupName}</td>
-                    <td className="px-2 py-1">{(row.retentionIndex ?? 0).toFixed(1)}%</td>
-                    <td className="px-2 py-1">{row.totalSchedules ?? 0}</td>
-                    <td className="px-2 py-1">{row.cancelled ?? 0}</td>
-                  </tr>
-                ))}
-                {retentionByGroup.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-2 py-2 text-slate-500">Нет данных</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 p-3">
-            <div className="text-sm font-semibold text-slate-700">Тренд конверсии</div>
-            <p className="mt-1 text-xs text-slate-500">
-              Динамика квалифицированных и успешно закрытых лидов по периодам.
-            </p>
-            <div className="mt-3 space-y-2">
-              {(funnelAnalytics?.series ?? []).map((row, idx) => (
-                <div key={String(row.bucket ?? idx)}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="text-slate-600">{String(row.bucket ?? `P${idx + 1}`)}</span>
-                    <span className="text-slate-900">Квалиф.:{Number(row.QUALIFIED ?? 0)} / Клиенты:{Number(row.WON ?? 0)}</span>
-                  </div>
-                  <div className="h-2 rounded bg-slate-100">
-                    <div className="h-2 rounded bg-admin-500" style={{ width: `${Math.min(100, Number(row.QUALIFIED ?? 0))}%` }} />
-                  </div>
-                </div>
-              ))}
-              {(funnelAnalytics?.series ?? []).length === 0 && <div className="text-xs text-slate-500">Нет данных</div>}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 p-3">
-            <div className="text-sm font-semibold text-slate-700">Retention cohorts</div>
-            <p className="mt-1 text-xs text-slate-500">
-              Удержание по когортам: M0 — старт, M1/M2 — доля сохранившихся клиентов через 1/2 периода.
-            </p>
-            <div className="mt-2 overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="text-xs text-slate-500">
-                  <tr>
-                    <th className="px-2 py-1 text-left">Cohort</th>
-                    <th className="px-2 py-1 text-left">M0</th>
-                    <th className="px-2 py-1 text-left">M1</th>
-                    <th className="px-2 py-1 text-left">M2</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {retentionCohorts.map((row) => (
-                    <tr key={row.cohort} className="border-t border-slate-100">
-                      <td className="px-2 py-1">{row.cohort}</td>
-                      <td className="px-2 py-1">{(row.points.find((p) => p.periodIndex === 0)?.retentionRate ?? 0).toFixed(1)}%</td>
-                      <td className="px-2 py-1">{(row.points.find((p) => p.periodIndex === 1)?.retentionRate ?? 0).toFixed(1)}%</td>
-                      <td className="px-2 py-1">{(row.points.find((p) => p.periodIndex === 2)?.retentionRate ?? 0).toFixed(1)}%</td>
-                    </tr>
-                  ))}
-                  {retentionCohorts.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-2 py-2 text-slate-500">Нет данных</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Calendar */}
-      <div className="bg-white shadow rounded-2xl p-5">
+      <SectionCard>
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-admin-700">
@@ -510,11 +230,12 @@ const Dashboard: React.FC = () => {
 
         <div className="mt-4">
           {loadingSchedules ? (
-            <div className="text-sm text-gray-500">Загрузка расписания…</div>
+            <LoadingState label="Загрузка расписания..." />
           ) : schedules.length === 0 ? (
-            <div className="text-sm text-gray-500">
-              Расписание не найдено
-            </div>
+            <EmptyState
+              title="Расписание не найдено"
+              description="Для выбранного филиала и фильтра пока нет занятий."
+            />
           ) : (
             <WeekCalendar
               schedules={schedules}
@@ -523,7 +244,7 @@ const Dashboard: React.FC = () => {
             />
           )}
         </div>
-      </div>
+      </SectionCard>
 
       {selectedSchedule && (
         <ScheduleDetailsModal
@@ -568,11 +289,29 @@ const Dashboard: React.FC = () => {
           }}
         />
       )}
-    </div>
+    </PageShell>
   );
 };
 
 export default Dashboard;
+
+const DashboardMetric: React.FC<{
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+}> = ({ title, value, icon }) => (
+  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <div className="text-sm text-slate-500">{title}</div>
+        <div className="mt-1 text-2xl font-semibold text-slate-900">{value}</div>
+      </div>
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-admin-100 text-admin-700">
+        {icon}
+      </div>
+    </div>
+  </div>
+);
 
 const DAYS: { key: DayOfWeek; label: string }[] = [
   { key: 'MONDAY', label: 'Пн' },

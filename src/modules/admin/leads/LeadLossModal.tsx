@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { buttonStyles } from "../../../shared/ui/buttonStyles";
+import { Button, ModalShell } from "../../../shared/ui";
 import { Lead, LeadActionType, LeadLossReason } from "./types";
 
 interface LeadLossModalProps {
@@ -61,21 +61,38 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
     isRejectFlow ? "Отклонить лид" : "Подтвердить потерю";
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white shadow-2xl">
-        <div className="border-b border-slate-200 px-6 py-4">
-          <h3 className="heading-font text-xl font-semibold text-slate-900">{title}</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Укажите, почему лид не дошел до оплаты.
-          </p>
-          {lead ? (
-            <p className="mt-2 text-xs text-slate-500">
-              {lead.parentName || "Лид"}{lead.phone ? ` • ${lead.phone}` : ""}
-            </p>
-          ) : null}
+    <ModalShell
+      title={title}
+      description={`Укажите, почему лид не дошел до оплаты.${lead ? ` ${lead.parentName || "Лид"}${lead.phone ? ` · ${lead.phone}` : ""}` : ""}`}
+      eyebrow="Причина потери"
+      onClose={onClose}
+      closeDisabled={submitting}
+      maxWidthClassName="max-w-lg"
+      footer={
+        <div className="flex items-center justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
+            Отмена
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={async () => {
+              setSubmitAttempted(true);
+              if (!canSubmit) return;
+              await onConfirm({
+                lostReasonCode,
+                lostComment: lostComment.trim() || undefined,
+              });
+            }}
+            disabled={!canSubmit}
+            isLoading={submitting}
+          >
+            {confirmLabel}
+          </Button>
         </div>
-
-        <div className="space-y-4 px-6 py-5">
+      }
+    >
+        <div className="space-y-4">
           <label className="block space-y-1 text-sm text-slate-600">
             <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
               Причина <span className="text-rose-500">*</span>
@@ -129,34 +146,7 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
             ) : null}
           </label>
         </div>
-
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className={buttonStyles("secondary", "md", "rounded-xl")}
-            disabled={submitting}
-          >
-            Отмена
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              setSubmitAttempted(true);
-              if (!canSubmit) return;
-              await onConfirm({
-                lostReasonCode,
-                lostComment: lostComment.trim() || undefined,
-              });
-            }}
-            disabled={!canSubmit}
-            className={buttonStyles("danger", "md", "rounded-xl")}
-          >
-            {submitting ? "Сохранение..." : confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 };
 
