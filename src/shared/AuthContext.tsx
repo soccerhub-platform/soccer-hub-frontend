@@ -1,6 +1,11 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getApiUrl } from './api';
-import { clearStoredUser, readStoredUser, writeStoredUser } from './auth-storage';
+import {
+  clearStoredUser,
+  readStoredUser,
+  subscribeAuthChanges,
+  writeStoredUser,
+} from './auth-storage';
 
 export interface User {
   email: string;
@@ -22,6 +27,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => readStoredUser());
+
+  useEffect(() => {
+    return subscribeAuthChanges(() => {
+      setUser(readStoredUser());
+    });
+  }, []);
 
   const login = async (email: string, password: string, role = 'ADMIN') => {
     const response = await fetch(getApiUrl('/auth/login'), {

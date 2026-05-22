@@ -12,7 +12,7 @@ import DispatcherLeadsPage from './leads/DispatcherLeadsPage';
 /**
  * Defines all routes for the dispatcher module.  Unauthenticated
  * users attempting to access protected pages are redirected to
- * `/dispatcher/login`.  The layout wraps protected pages to
+ * shared `/login`.  The layout wraps protected pages to
  * provide a consistent sidebar and header.  */
 const DispatcherRoutes: React.FC = () => {
   return (

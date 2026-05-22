@@ -1,4 +1,12 @@
 import { apiClient } from "../../shared/api";
+import type {
+  BaseUserProfile,
+  BaseUserProfileUpdate,
+  UserAvailability,
+  UserNotificationSettings,
+  UserWorkspaceBranch,
+  UserWorkspaceGroup,
+} from "../../shared/profile/foundation";
 
 export type CoachSessionStatus =
   | "PLANNED"
@@ -87,54 +95,18 @@ export interface CoachSimpleStatusResponse {
   status: CoachSessionStatus;
 }
 
-export interface CoachProfileBranch {
-  branchId: string;
-  branchName: string;
-}
+export type CoachProfileBranch = UserWorkspaceBranch;
+export type CoachProfileGroup = UserWorkspaceGroup;
 
-export interface CoachProfileGroup {
-  groupId: string;
-  groupName: string;
-  branchId: string;
-  branchName: string;
-  role: "MAIN" | "ASSISTANT" | string;
-}
-
-export interface CoachProfileResponse {
+export interface CoachProfileResponse extends BaseUserProfile {
   coachId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
   specialization?: string | null;
   bio?: string | null;
-  status: "ACTIVE" | "INACTIVE" | string;
-  branches: CoachProfileBranch[];
-  groups: CoachProfileGroup[];
-  createdAt: string;
 }
 
-export interface CoachProfileUpdateRequest {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email: string;
-  specialization?: string;
-  bio?: string;
-}
-
-export interface CoachAvailabilityResponse {
-  days: string[];
-  timeFrom: string;
-  timeTo: string;
-  timezone: string;
-}
-
-export interface CoachNotificationSettings {
-  todaySessions: boolean;
-  overdueReports: boolean;
-  scheduleChanges: boolean;
-}
+export type CoachProfileUpdateRequest = BaseUserProfileUpdate;
+export type CoachAvailabilityResponse = UserAvailability;
+export type CoachNotificationSettings = UserNotificationSettings;
 
 export interface ChangePasswordRequest {
   currentPassword: string;

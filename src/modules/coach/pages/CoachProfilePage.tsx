@@ -11,6 +11,14 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../../shared/AuthContext";
 import { CoachApi, CoachProfileGroup } from "../coach.api";
+import { getApiErrorMessage } from "../../../shared/api";
+import {
+  ChangePasswordForm,
+  UserAvailability,
+  UserNotificationSettings,
+  validateAvailability,
+  validatePasswordForm,
+} from "../../../shared/profile/foundation";
 
 const inputClassName =
   "w-full rounded-xl border border-teal-100 bg-white px-3 py-2.5 text-sm text-teal-950 outline-none transition focus:border-teal-700 focus:ring-4 focus:ring-teal-100";
@@ -26,18 +34,6 @@ const SectionError: React.FC<{ message: string }> = ({ message }) => {
       {message}
     </div>
   );
-};
-
-const userFriendlyError = (error: unknown) => {
-  const message = error instanceof Error ? error.message : "";
-  switch (message) {
-    case "Current password is incorrect":
-      return "Текущий пароль указан неверно";
-    case "Validation failed":
-      return "Проверьте заполнение полей";
-    default:
-      return message || "Не удалось выполнить действие";
-  }
 };
 
 const DAYS = [
@@ -74,7 +70,7 @@ const CoachProfilePage: React.FC = () => {
     specialization: "",
     bio: "",
   });
-  const [notifications, setNotifications] = useState({
+  const [notifications, setNotifications] = useState<UserNotificationSettings>({
     todaySessions: true,
     overdueReports: true,
     scheduleChanges: true,
@@ -83,7 +79,7 @@ const CoachProfilePage: React.FC = () => {
   const [timeFrom, setTimeFrom] = useState("10:00");
   const [timeTo, setTimeTo] = useState("20:00");
   const [timezone, setTimezone] = useState("Asia/Almaty");
-  const [passwordForm, setPasswordForm] = useState({
+  const [passwordForm, setPasswordForm] = useState<ChangePasswordForm>({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -180,7 +176,7 @@ const CoachProfilePage: React.FC = () => {
     } catch (err) {
       setSectionErrors((prev) => ({
         ...prev,
-        profile: userFriendlyError(err),
+        profile: getApiErrorMessage(err, "Не удалось сохранить профиль"),
       }));
     } finally {
       setSavingProfile(false);
@@ -189,28 +185,23 @@ const CoachProfilePage: React.FC = () => {
 
   const saveAvailability = async () => {
     setSectionErrors((prev) => ({ ...prev, availability: "" }));
-    if (availableDays.length === 0) {
+    const availability: UserAvailability = {
+      days: availableDays,
+      timeFrom,
+      timeTo,
+      timezone,
+    };
+    const availabilityError = validateAvailability(availability);
+    if (availabilityError) {
       setSectionErrors((prev) => ({
         ...prev,
-        availability: "Выберите хотя бы один рабочий день",
-      }));
-      return;
-    }
-    if (timeFrom >= timeTo) {
-      setSectionErrors((prev) => ({
-        ...prev,
-        availability: "Время окончания должно быть позже начала",
+        availability: availabilityError,
       }));
       return;
     }
     setSavingAvailability(true);
     try {
-      const data = await CoachApi.updateAvailability({
-        days: availableDays,
-        timeFrom,
-        timeTo,
-        timezone,
-      });
+      const data = await CoachApi.updateAvailability(availability);
       setAvailableDays(data.days ?? []);
       setTimeFrom(data.timeFrom ?? "10:00");
       setTimeTo(data.timeTo ?? "20:00");
@@ -219,7 +210,7 @@ const CoachProfilePage: React.FC = () => {
     } catch (err) {
       setSectionErrors((prev) => ({
         ...prev,
-        availability: userFriendlyError(err),
+        availability: getApiErrorMessage(err, "Не удалось сохранить доступность"),
       }));
     } finally {
       setSavingAvailability(false);
@@ -228,22 +219,12 @@ const CoachProfilePage: React.FC = () => {
 
   const changePassword = async () => {
     setSectionErrors((prev) => ({ ...prev, password: "" }));
-    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+    const passwordError = validatePasswordForm(passwordForm);
+    if (passwordError) {
       setSectionErrors((prev) => ({
         ...prev,
-        password: "Заполните текущий и новый пароль",
+        password: passwordError,
       }));
-      return;
-    }
-    if (passwordForm.newPassword.length < 8) {
-      setSectionErrors((prev) => ({
-        ...prev,
-        password: "Новый пароль должен быть минимум 8 символов",
-      }));
-      return;
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setSectionErrors((prev) => ({ ...prev, password: "Пароли не совпадают" }));
       return;
     }
     setSavingPassword(true);
@@ -257,7 +238,7 @@ const CoachProfilePage: React.FC = () => {
     } catch (err) {
       setSectionErrors((prev) => ({
         ...prev,
-        password: userFriendlyError(err),
+        password: getApiErrorMessage(err, "Не удалось обновить пароль"),
       }));
     } finally {
       setSavingPassword(false);
@@ -274,7 +255,7 @@ const CoachProfilePage: React.FC = () => {
     } catch (err) {
       setSectionErrors((prev) => ({
         ...prev,
-        notifications: userFriendlyError(err),
+        notifications: getApiErrorMessage(err, "Не удалось сохранить уведомления"),
       }));
     } finally {
       setSavingNotifications(false);

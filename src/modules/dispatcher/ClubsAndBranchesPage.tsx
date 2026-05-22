@@ -8,7 +8,7 @@ import {
   EnvelopeIcon,
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
-import { apiClient } from "../../shared/api";
+import { apiClient, getApiErrorMessage } from "../../shared/api";
 import toast from "react-hot-toast";
 import LoaderButton from "../../shared/LoaderButton";
 import {
@@ -196,8 +196,8 @@ const ClubsAndBranchesPage: React.FC = () => {
       setClubForm({ name: "", slug: "", email: "", phone: "", address: "" });
 
       loadClubs();
-    } catch {
-      // ошибки уже показываются через apiRequest/toast, если так настроено
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Не удалось создать клуб"));
     }
   };
 
@@ -222,7 +222,9 @@ const ClubsAndBranchesPage: React.FC = () => {
       setBranchForm({ name: "", address: "" });
 
       loadBranches();
-    } catch {}
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Не удалось создать филиал"));
+    }
   };
 
   // ---- Удалить клуб ----
@@ -236,7 +238,9 @@ const ClubsAndBranchesPage: React.FC = () => {
       setExpandedClubId((prev) => (prev === clubId ? null : prev));
       loadClubs();
       loadBranches();
-    } catch {}
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Не удалось удалить клуб"));
+    }
   };
 
   // ---- Удалить филиал ----
@@ -248,7 +252,9 @@ const ClubsAndBranchesPage: React.FC = () => {
 
       toast.success("Филиал удалён");
       loadBranches();
-    } catch {}
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Не удалось удалить филиал"));
+    }
   };
 
   // ---- Раскрытие строки клуба ----

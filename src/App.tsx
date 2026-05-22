@@ -19,12 +19,13 @@ const App: React.FC = () => {
 
       {/* Глобальный toaster */}
       <Toaster
-        position="top-right"
+        position="top-center"
         toastOptions={{
           duration: 3000,
           style: {
             borderRadius: "12px",
             padding: "12px 16px",
+            maxWidth: "420px",
             background: "#fff",
             color: "#1f2937",
             boxShadow: "0 4px 20px rgba(0,0,0,0.08)",

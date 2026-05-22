@@ -14,10 +14,12 @@ export const getApiUrl = (path: string) => {
 interface ApiErrorPayload {
   message?: string;
   code?: string;
+  fields?: Record<string, string>;
 }
 
 interface ApiRequestInit extends RequestInit {
   suppressErrorToast?: boolean;
+  showErrorToast?: boolean;
 }
 
 interface RefreshResponse {
@@ -27,6 +29,36 @@ interface RefreshResponse {
 }
 
 let refreshInFlight: Promise<boolean> | null = null;
+
+export class ApiError extends Error {
+  status: number;
+  code: string;
+  fields?: Record<string, string>;
+
+  constructor(message: string, status: number, code = "N/A", fields?: Record<string, string>) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.fields = fields;
+  }
+}
+
+export const getApiErrorMessage = (error: unknown, fallback = "Не удалось выполнить действие") => {
+  if (error instanceof ApiError || error instanceof Error) {
+    switch (error.message) {
+      case "Current password is incorrect":
+        return "Текущий пароль указан неверно";
+      case "Validation failed":
+        return "Проверьте заполнение полей";
+      case "Произошла ошибка":
+        return fallback;
+      default:
+        return error.message || fallback;
+    }
+  }
+  return fallback;
+};
 
 const withAuthHeader = (init?: RequestInit): RequestInit => {
   const headers = new Headers(init?.headers ?? {});
@@ -97,7 +129,7 @@ export async function apiRequest<T = unknown>(
   retriedAfterRefresh = false
 ): Promise<T> {
   try {
-    const { suppressErrorToast, ...fetchOptions } = options;
+    const { suppressErrorToast, showErrorToast, ...fetchOptions } = options;
     const res = await fetch(url, withAuthHeader(fetchOptions));
 
     if (!res.ok) {
@@ -120,8 +152,8 @@ export async function apiRequest<T = unknown>(
         clearStoredUser();
       }
 
-      if (!suppressErrorToast) {
-        toast.error(`Ошибка\n${message}\n\nКод: ${code}`, {
+      if (showErrorToast && !suppressErrorToast) {
+        toast.error(getApiErrorMessage(new ApiError(message, res.status, code, payload?.fields)), {
           style: {
             whiteSpace: "pre-line",
             background: "#fee2e2",
@@ -129,7 +161,7 @@ export async function apiRequest<T = unknown>(
           },
         });
       }
-      throw new Error(message);
+      throw new ApiError(message, res.status, code, payload?.fields);
     }
 
     if (success) {

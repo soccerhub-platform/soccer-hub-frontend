@@ -18,7 +18,7 @@ import LeadKanbanPage from './leads/LeadKanbanPage';
 /**
  * Defines routes for the admin module.  Admins have access to
  * contracts, payments and user management.  Unauthenticated or
- * unauthorized users are redirected to `/admin/login`.  */
+ * unauthorized users are redirected to the shared `/login`.  */
 const AdminRoutes: React.FC = () => {
   return (
     <AdminBranchProvider>
