@@ -54,21 +54,21 @@ const GroupSummary: React.FC<Props> = ({
   }) => (
     <div
       className={`
-        rounded-2xl p-4 border
-        ${highlight ? "bg-admin-50 border-admin-200" : "bg-gray-50"}
+        rounded-2xl border bg-white p-4 shadow-sm
+        ${highlight ? "border-cyan-200" : "border-slate-200"}
       `}
     >
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-admin-100 flex items-center justify-center">
-          <Icon className="h-5 w-5 text-admin-700" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50">
+          <Icon className="h-5 w-5 text-cyan-800" />
         </div>
-        <div>
-          <div className="text-xs text-gray-500">{label}</div>
-          <div className="font-semibold text-gray-800 text-sm">
+        <div className="min-w-0">
+          <div className="text-xs text-slate-500">{label}</div>
+          <div className="truncate text-sm font-semibold text-slate-900">
             {value}
           </div>
           {hint && (
-            <div className="text-[11px] text-gray-400 mt-0.5">
+            <div className="mt-0.5 text-[11px] text-slate-400">
               {hint}
             </div>
           )}
@@ -78,7 +78,7 @@ const GroupSummary: React.FC<Props> = ({
   );
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Item
         icon={UsersIcon}
         label="Тренеры"

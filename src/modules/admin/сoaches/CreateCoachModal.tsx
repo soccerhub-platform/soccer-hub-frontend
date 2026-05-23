@@ -2,13 +2,18 @@ import React, { useState } from 'react';
 import { useAuth } from '../../../shared/AuthContext';
 import { useAdminBranch } from '../BranchContext';
 import { CoachApi } from './coach.api';
-import LoaderButton from '../../../shared/LoaderButton';
 import toast from 'react-hot-toast';
 import {
   formatPhoneInput,
   isValidFormattedPhone,
   normalizePhoneForSubmit,
 } from '../../../shared/phone';
+import {
+  Button,
+  FormField,
+  ModalShell,
+  formControlClassName,
+} from '../../../shared/ui';
 
 interface Props {
   onClose: () => void;
@@ -25,9 +30,11 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
     lastName: '',
     email: '',
     phone: '',
+    specialization: '',
   });
 
   const [loading, setLoading] = useState(false);
+  const [createdPassword, setCreatedPassword] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!token) {
@@ -61,17 +68,23 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
 
     setLoading(true);
     try {
-      await CoachApi.create(
+      const created = await CoachApi.create(
         {
           ...form,
           phone: normalizePhoneForSubmit(form.phone),
           branchId,
+          specialization: form.specialization.trim() || undefined,
         },
         token
       );
+      const password = created.tempPassword ?? created.temporaryPassword ?? null;
+      if (password) {
+        setCreatedPassword(password);
+      } else {
+        onClose();
+      }
 
       toast.success('Тренер успешно создан');
-      onClose();
       onCreated();
     } catch (e) {
       console.error(e);
@@ -82,29 +95,26 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
+    <>
+      {!createdPassword ? (
+      <ModalShell
+        title="Добавить тренера"
+        description="Создайте учетную запись тренера и привяжите ее к текущему филиалу."
+        onClose={onClose}
+        closeDisabled={loading}
+        maxWidthClassName="max-w-lg"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" disabled={loading} onClick={onClose}>
+              Отмена
+            </Button>
+            <Button type="button" isLoading={loading} onClick={handleSubmit}>
+              Создать
+            </Button>
+          </div>
+        }
       >
-        {/* HEADER */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-admin-700">
-            Добавить тренера
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* FORM */}
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
             label="Имя*"
             value={form.firstName}
@@ -128,28 +138,44 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
             placeholder="+7 777 123 45 67"
             type="tel"
           />
+          <Input
+            label="Специализация"
+            value={form.specialization}
+            onChange={(v) => setForm({ ...form, specialization: v })}
+          />
         </div>
-
-        {/* ACTIONS */}
-        <div className="flex justify-end gap-2 pt-5">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm border rounded-xl hover:bg-gray-50"
-            disabled={loading}
-          >
-            Отмена
-          </button>
-
-          <LoaderButton
-            loading={loading}
-            onClick={handleSubmit}
-            className="px-4 py-2 text-sm bg-admin-500 text-white rounded-xl hover:bg-admin-700"
-          >
-            Создать
-          </LoaderButton>
+      </ModalShell>
+      ) : null}
+      {createdPassword ? (
+      <ModalShell
+        title="Тренер создан"
+        description="Временный пароль показан один раз."
+        onClose={() => {
+          setCreatedPassword(null);
+          onClose();
+        }}
+        maxWidthClassName="max-w-md"
+        footer={
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => {
+                setCreatedPassword(null);
+                onClose();
+              }}
+            >
+              Готово
+            </Button>
+          </div>
+        }
+      >
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <code className="text-sm font-semibold text-slate-900">{createdPassword}</code>
         </div>
-      </div>
-    </div>
+        <p className="mt-2 text-xs text-rose-600">Сохраните пароль сейчас. Повторно он показан не будет.</p>
+      </ModalShell>
+      ) : null}
+    </>
   );
 };
 
@@ -170,10 +196,7 @@ const Input = ({
   type?: string;
   placeholder?: string;
 }) => (
-  <div className="space-y-1">
-    <label className="block text-xs font-medium text-gray-600">
-      {label}
-    </label>
+  <FormField label={label}>
     <input
       type={type}
       placeholder={placeholder}
@@ -184,8 +207,7 @@ const Input = ({
       inputMode={type === 'tel' ? 'tel' : undefined}
       autoComplete={type === 'tel' ? 'tel' : undefined}
       maxLength={type === 'tel' ? 16 : undefined}
-      className="w-full border rounded-xl px-3.5 py-2.5 text-sm
-                 focus:outline-none focus:ring-2 focus:ring-admin-500"
+      className={formControlClassName}
     />
-  </div>
+  </FormField>
 );

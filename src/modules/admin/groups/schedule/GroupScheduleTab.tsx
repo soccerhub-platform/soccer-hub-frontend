@@ -7,6 +7,13 @@ import EditScheduleModal from "./EditScheduleModal";
 import { GroupScheduleDto, ScheduleBatch } from "./schedule.types";
 import { GroupApi, GroupCoachApiModel } from "../group.api";
 import toast from "react-hot-toast";
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from "../../../../shared/ui";
+import { PlusIcon } from "@heroicons/react/24/outline";
 
 const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   const { user } = useAuth();
@@ -15,20 +22,37 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   const [schedules, setSchedules] = useState<GroupScheduleDto[]>([]);
   const [coaches, setCoaches] = useState<GroupCoachApiModel[]>([]);
   const [editingBatch, setEditingBatch] = useState<ScheduleBatch | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) {
       toast.error("Нет авторизации");
       return;
     }
-    reload();
-    GroupApi.getCoaches(groupId, token).then((r) => setCoaches(r.coaches));
+    void reload();
+    GroupApi.getCoaches(groupId, token)
+      .then((r) => setCoaches(r.coaches))
+      .catch((e) => {
+        console.error("Failed to load group coaches", e);
+        toast.error("Не удалось загрузить тренеров группы");
+      });
   }, [groupId, token]);
 
   const reload = async () => {
     if (!token) return;
-    const data = await ScheduleApi.listByGroup(groupId, token);
-    setSchedules(data);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await ScheduleApi.listByGroup(groupId, token);
+      setSchedules(data);
+    } catch (e) {
+      console.error("Failed to load group schedule", e);
+      setError("Не удалось загрузить расписание группы");
+      setSchedules([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ===== COACH MAP ===== */
@@ -55,22 +79,22 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   }));
 
   if (!token) {
-    return <div className="text-sm text-red-500">Нет авторизации</div>;
+    return <ErrorState message="Нет авторизации" />;
   }
 
   return (
     <div className="space-y-5">
       {/* HEADER */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-sm font-semibold">Расписание группы</div>
-          <div className="text-xs text-gray-500">
-            Расписания задаются периодами
+          <div className="text-sm font-semibold text-slate-900">Расписание группы</div>
+          <div className="text-xs text-slate-500">
+            Задайте период, дни недели и ответственного тренера
           </div>
         </div>
 
-        <button
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-admin-500 text-white text-sm"
+        <Button
+          type="button"
           onClick={() => {
             if (coachOptions.length === 0) {
               toast.error("Сначала назначьте тренера группе");
@@ -87,38 +111,71 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
             });
           }}
         >
-          + Добавить период
-        </button>
+          <PlusIcon className="h-4 w-4" />
+          Добавить период
+        </Button>
       </div>
-
-      <hr className="border-t border-gray-200" />
 
       {/* BATCH LIST */}
-      <div className="space-y-4">
-        {batches.map((batch) => (
-          <ScheduleBatchCard
-            key={batch.key}
-            batch={batch}
-            onEdit={() => setEditingBatch(batch)}
-            onDelete={async () => {
-              if (!confirm("Удалить период расписания?")) return;
+      {error ? (
+        <ErrorState message={error} onRetry={reload} />
+      ) : loading ? (
+        <LoadingState label="Загрузка расписания..." />
+      ) : batches.length === 0 ? (
+        <EmptyState
+          title="Расписание не создано"
+          description="Добавьте период расписания, чтобы тренировки появились у тренера."
+          action={
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                if (coachOptions.length === 0) {
+                  toast.error("Сначала назначьте тренера группе");
+                  return;
+                }
+                setEditingBatch({
+                  key: "new",
+                  coachId: coachOptions[0].id,
+                  type: "REGULAR",
+                  startDate: new Date().toISOString().slice(0, 10),
+                  endDate: "",
+                  schedules: [],
+                });
+              }}
+            >
+              <PlusIcon className="h-4 w-4" />
+              Добавить период
+            </Button>
+          }
+        />
+      ) : (
+        <div className="space-y-4">
+          {batches.map((batch) => (
+            <ScheduleBatchCard
+              key={batch.key}
+              batch={batch}
+              onEdit={() => setEditingBatch(batch)}
+              onDelete={async () => {
+                if (!confirm("Удалить период расписания?")) return;
 
-              await ScheduleApi.deleteBatch(
-                groupId,
-                {
-                  coachId: batch.coachId,
-                  type: batch.type,
-                  startDate: batch.startDate,
-                  endDate: batch.endDate,
-                },
-                token
-              );
+                await ScheduleApi.deleteBatch(
+                  groupId,
+                  {
+                    coachId: batch.coachId,
+                    type: batch.type,
+                    startDate: batch.startDate,
+                    endDate: batch.endDate,
+                  },
+                  token
+                );
 
-              await reload();
-            }}
-          />
-        ))}
-      </div>
+                await reload();
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* MODAL */}
       {editingBatch && (

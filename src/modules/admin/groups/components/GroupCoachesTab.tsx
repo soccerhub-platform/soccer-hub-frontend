@@ -11,6 +11,12 @@ import { useAuth } from "../../../../shared/AuthContext";
 import { GroupApi, GroupCoachApiModel } from "../group.api";
 import AssignCoachModal from "./AssignCoachModal";
 import { useAdminBranch } from "../../BranchContext";
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from "../../../../shared/ui";
 
 interface Props {
   groupId: string;
@@ -22,8 +28,8 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_STYLES: Record<string, string> = {
-  MAIN: "bg-blue-100 text-blue-700",
-  ASSISTANT: "bg-purple-100 text-purple-700",
+  MAIN: "border-cyan-100 bg-cyan-50 text-cyan-800",
+  ASSISTANT: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
 const GroupCoachesTab: React.FC<Props> = ({ groupId }) => {
@@ -33,15 +39,21 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId }) => {
 
   const [coaches, setCoaches] = useState<GroupCoachApiModel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [showAssign, setShowAssign] = useState(false);
 
   const loadCoaches = async () => {
     if (!token) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await GroupApi.getCoaches(groupId, token);
       setCoaches(res.coaches);
+    } catch (e) {
+      console.error("Failed to load group coaches", e);
+      setError("Не удалось загрузить тренеров группы");
+      setCoaches([]);
     } finally {
       setLoading(false);
     }
@@ -69,84 +81,98 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId }) => {
   const assignedCoachIds = coaches.map((c) => c.coachId);
 
   if (!token) {
-    return <div className="text-sm text-red-500">Нет авторизации</div>;
+    return <ErrorState message="Нет авторизации" />;
   }
 
   return (
     <div className="space-y-5">
       {/* HEADER */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-sm font-semibold">Тренеры группы</div>
-          <div className="text-xs text-gray-500">
+          <div className="text-sm font-semibold text-slate-900">Тренеры группы</div>
+          <div className="text-xs text-slate-500">
             Назначенные тренеры и их роли
           </div>
         </div>
 
-        <button
-          onClick={loadCoaches}
-          disabled={loading}
-          className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border"
-        >
+        <Button type="button" size="sm" variant="secondary" onClick={loadCoaches} disabled={loading}>
           <ArrowPathIcon className={`h-4 w-4 ${loading && "animate-spin"}`} />
           Обновить
-        </button>
+        </Button>
       </div>
 
       {/* LIST */}
-      {coaches.map((coach) => (
-        <div
-          key={coach.groupCoachId}
-          className="flex justify-between items-center border rounded-xl px-4 py-3"
-        >
-          <div className="flex gap-3">
-            <UserCircleIcon className="h-10 w-10 text-gray-300" />
+      {error ? (
+        <ErrorState message={error} onRetry={loadCoaches} />
+      ) : loading ? (
+        <LoadingState label="Загрузка тренеров..." />
+      ) : coaches.length === 0 ? (
+        <EmptyState
+          title="Тренеры не назначены"
+          description="Назначьте главного тренера, чтобы можно было вести расписание и занятия."
+        />
+      ) : (
+        <div className="space-y-3">
+          {coaches.map((coach) => (
+            <div
+              key={coach.groupCoachId}
+              className="flex flex-col gap-3 rounded-xl border border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="flex gap-3">
+                <UserCircleIcon className="h-10 w-10 text-slate-300" />
 
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">
-                  {coach.coachFirstName} {coach.coachLastName}
-                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-slate-900">
+                      {coach.coachFirstName} {coach.coachLastName}
+                    </span>
 
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full ${ROLE_STYLES[coach.coachRole]}`}
-                >
-                  {ROLE_LABELS[coach.coachRole]}
-                </span>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[10px] ${ROLE_STYLES[coach.coachRole]}`}
+                    >
+                      {ROLE_LABELS[coach.coachRole]}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 space-y-1 text-xs text-slate-500">
+                    <div className="flex items-center gap-1">
+                      <EnvelopeIcon className="h-4 w-4" />
+                      {coach.email}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <PhoneIcon className="h-4 w-4" />
+                      {coach.phone}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="text-xs text-gray-500 mt-1 space-y-1">
-                <div className="flex items-center gap-1">
-                  <EnvelopeIcon className="h-4 w-4" />
-                  {coach.email}
-                </div>
-                <div className="flex items-center gap-1">
-                  <PhoneIcon className="h-4 w-4" />
-                  {coach.phone}
-                </div>
-              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="softDanger"
+                isLoading={removingId === coach.groupCoachId}
+                onClick={() => removeCoach(coach.groupCoachId)}
+              >
+                <UserMinusIcon className="h-4 w-4" />
+                Убрать
+              </Button>
             </div>
-          </div>
-
-          <button
-            disabled={removingId === coach.groupCoachId}
-            onClick={() => removeCoach(coach.groupCoachId)}
-            className="text-red-500 disabled:opacity-50"
-          >
-            <UserMinusIcon className="h-5 w-5" />
-          </button>
+          ))}
         </div>
-      ))}
+      )}
 
       {/* ASSIGN */}
-      <button
+      <Button
+        type="button"
+        variant="secondary"
         disabled={!branchId}
         onClick={() => setShowAssign(true)}
-        className="w-full py-2 border border-dashed rounded-xl text-sm"
+        className="w-full justify-center border-dashed"
       >
-        <UserPlusIcon className="h-4 w-4 inline mr-1" />
+        <UserPlusIcon className="h-4 w-4" />
         Назначить тренера
-      </button>
+      </Button>
 
       {showAssign && branchId && (
         <AssignCoachModal

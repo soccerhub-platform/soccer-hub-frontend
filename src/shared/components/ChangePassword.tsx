@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../shared/AuthContext';
-import { apiClient } from '../api';
+import { ApiError, apiClient, getApiErrorMessage } from '../api';
 import toast from 'react-hot-toast';
 
 const ChangePasswordPage: React.FC = () => {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,6 +18,16 @@ const ChangePasswordPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!currentPassword.trim()) {
+      toast.error('Введите текущий пароль');
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.error('Новый пароль должен быть не короче 8 символов');
+      return;
+    }
+
     if (password !== confirm) {
       toast.error('Пароли не совпадают');
       return;
@@ -24,13 +35,20 @@ const ChangePasswordPage: React.FC = () => {
 
     setLoading(true);
     try {
-      await apiClient.post('/auth/change-password', { newPassword: password });
+      await apiClient.post('/auth/change-password', {
+        currentPassword,
+        newPassword: password,
+      });
 
       toast.success('Пароль успешно изменён');
       logout();
       navigate(redirectTo, { replace: true });
-    } catch {
-      toast.error('Ошибка смены пароля');
+    } catch (error) {
+      if (error instanceof ApiError && error.fields?.currentPassword) {
+        toast.error('Текущий пароль указан неверно');
+      } else {
+        toast.error(getApiErrorMessage(error, 'Ошибка смены пароля'));
+      }
     } finally {
       setLoading(false);
     }
@@ -53,10 +71,21 @@ const ChangePasswordPage: React.FC = () => {
         <div className="mt-4 space-y-3">
           <input
             type="password"
+            placeholder="Текущий пароль"
+            className="w-full border rounded-lg px-3 py-2"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+          />
+
+          <input
+            type="password"
             placeholder="Новый пароль"
             className="w-full border rounded-lg px-3 py-2"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
             required
           />
 
@@ -66,6 +95,7 @@ const ChangePasswordPage: React.FC = () => {
             className="w-full border rounded-lg px-3 py-2"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
+            autoComplete="new-password"
             required
           />
         </div>

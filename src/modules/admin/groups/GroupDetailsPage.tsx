@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { UserGroupIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowLeftIcon,
+  ExclamationTriangleIcon,
+  PauseIcon,
+  PlayIcon,
+  StopIcon,
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
 import { useAuth } from "../../../shared/AuthContext";
 import {
   GroupApi,
@@ -10,14 +17,22 @@ import {
 import GroupTabs from "./components/GroupTabs";
 import GroupSummary from "./components/GroupSummary";
 import toast from "react-hot-toast";
+import {
+  Button,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  PageShell,
+  SectionCard,
+} from "../../../shared/ui";
 
 /* ================= STATUS BADGE ================= */
 
 const StatusBadge = ({ status }: { status: GroupApiModel["status"] }) => {
   const map: Record<string, string> = {
-    ACTIVE: "bg-green-100 text-green-700",
-    PAUSED: "bg-yellow-100 text-yellow-700",
-    STOPPED: "bg-red-100 text-red-700",
+    ACTIVE: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    PAUSED: "border-amber-100 bg-amber-50 text-amber-700",
+    STOPPED: "border-rose-100 bg-rose-50 text-rose-700",
   };
 
   const label =
@@ -29,7 +44,7 @@ const StatusBadge = ({ status }: { status: GroupApiModel["status"] }) => {
 
   return (
     <span
-      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${map[status]}`}
+      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${map[status]}`}
     >
       {label}
     </span>
@@ -49,23 +64,35 @@ const GroupDetailsPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   /* ================= LOAD ================= */
 
-  useEffect(() => {
+  const loadGroup = async () => {
     if (!token) return;
     if (!groupId) return;
 
     setLoading(true);
-    Promise.all([
-      GroupApi.getById(groupId, token),
-      GroupApi.getSummary(groupId, token),
-    ])
-      .then(([groupData, summaryData]) => {
-        setGroup(groupData);
-        setSummary(summaryData);
-      })
-      .finally(() => setLoading(false));
+    setError(null);
+    try {
+      const [groupData, summaryData] = await Promise.all([
+        GroupApi.getById(groupId, token),
+        GroupApi.getSummary(groupId, token),
+      ]);
+      setGroup(groupData);
+      setSummary(summaryData);
+    } catch (e) {
+      console.error("Failed to load group details", e);
+      setError("Не удалось загрузить данные группы");
+      setGroup(null);
+      setSummary(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadGroup();
   }, [groupId, token]);
 
   /* ================= STATUS ================= */
@@ -86,6 +113,7 @@ const GroupDetailsPage: React.FC = () => {
     try {
       await GroupApi.updateStatus(group.groupId, status, token);
       setGroup({ ...group, status });
+      toast.success("Статус группы обновлен");
     } catch (e) {
       console.error(e);
       toast.error("Не удалось изменить статус группы");
@@ -97,99 +125,109 @@ const GroupDetailsPage: React.FC = () => {
   /* ================= UI ================= */
 
   if (!token) {
-    return <div className="text-sm text-red-500">Нет авторизации</div>;
+    return <ErrorState message="Нет авторизации" />;
   }
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="bg-white rounded-2xl border p-6 animate-pulse">
-          <div className="h-5 w-48 bg-gray-200 rounded mb-2" />
-          <div className="h-3 w-64 bg-gray-100 rounded" />
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-20 bg-gray-100 rounded-xl animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
+      <PageShell>
+        <LoadingState label="Загрузка группы..." />
+      </PageShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageShell>
+        <ErrorState message={error} onRetry={loadGroup} />
+      </PageShell>
     );
   }
 
   if (!group) {
     return (
-      <div className="text-sm text-red-500">Группа не найдена</div>
+      <PageShell>
+        <ErrorState message="Группа не найдена" />
+      </PageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* BACK */}
-      <button
-        onClick={() => navigate(-1)}
-        className="text-sm text-gray-500 hover:text-gray-700"
-      >
-        ← Назад к группам
-      </button>
+    <PageShell>
+      <PageHeader
+        title={group.name}
+        description={`Возраст ${group.ageFrom}-${group.ageTo} лет · уровень ${group.level}`}
+        actions={
+          <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
+            <ArrowLeftIcon className="h-4 w-4" />
+            К группам
+          </Button>
+        }
+      />
 
-      {/* HEADER */}
-      <div className="bg-white rounded-2xl border shadow-sm p-6">
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-full bg-admin-100 flex items-center justify-center">
-            <UserGroupIcon className="h-6 w-6 text-admin-700" />
-          </div>
-
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-gray-800">
-                {group.name}
-              </h1>
-              <StatusBadge status={group.status} />
+      <SectionCard>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cyan-50">
+              <UserGroupIcon className="h-6 w-6 text-cyan-800" />
             </div>
 
-            <div className="text-sm text-gray-500 mt-1">
-              возраст {group.ageFrom}–{group.ageTo} · уровень{" "}
-              {group.level}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="heading-font text-xl font-semibold text-slate-900">{group.name}</h2>
+                <StatusBadge status={group.status} />
+              </div>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                {group.description || "Описание группы пока не добавлено."}
+              </p>
+              {group.status === "STOPPED" ? (
+                <div className="mt-3 flex items-start gap-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                  <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                  Группа остановлена. Расписание и новые занятия для нее недоступны.
+                </div>
+              ) : null}
             </div>
           </div>
 
-          {/* ACTIONS */}
-          <div className="flex gap-2">
-            {group.status === "PAUSED" && (
-              <button
-                disabled={updating}
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            {group.status === "PAUSED" ? (
+              <Button
+                type="button"
+                variant="soft"
+                isLoading={updating}
                 onClick={() => changeStatus("ACTIVE")}
-                className="px-3 py-1.5 text-sm rounded-xl border text-green-700 hover:bg-green-50"
               >
+                <PlayIcon className="h-4 w-4" />
                 Активировать
-              </button>
-            )}
+              </Button>
+            ) : null}
 
-            {group.status === "ACTIVE" && (
-              <button
-                disabled={updating}
+            {group.status === "ACTIVE" ? (
+              <Button
+                type="button"
+                variant="secondary"
+                isLoading={updating}
                 onClick={() => changeStatus("PAUSED")}
-                className="px-3 py-1.5 text-sm rounded-xl border hover:bg-gray-50"
               >
-                Пауза
-              </button>
-            )}
+                <PauseIcon className="h-4 w-4" />
+                Поставить на паузу
+              </Button>
+            ) : null}
 
-            {group.status !== "STOPPED" && (
-              <button
-                disabled={updating}
+            {group.status !== "STOPPED" ? (
+              <Button
+                type="button"
+                variant="softDanger"
+                isLoading={updating}
                 onClick={() => changeStatus("STOPPED")}
-                className="px-3 py-1.5 text-sm rounded-xl border text-red-600 hover:bg-red-50"
               >
+                <StopIcon className="h-4 w-4" />
                 Остановить
-              </button>
-            )}
+              </Button>
+            ) : null}
           </div>
         </div>
-      </div>
+      </SectionCard>
 
       {/* SUMMARY */}
       {summary && (
@@ -205,7 +243,7 @@ const GroupDetailsPage: React.FC = () => {
 
       {/* TABS */}
       <GroupTabs groupId={group.groupId} />
-    </div>
+    </PageShell>
   );
 };
 

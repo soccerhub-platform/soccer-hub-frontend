@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
   BellIcon,
@@ -9,18 +9,22 @@ import {
   ShieldCheckIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
+import { getApiErrorMessage } from "../api";
 import { useAuth } from "../AuthContext";
 import {
   ChangePasswordForm,
+  UserNotificationSettings,
   validatePasswordForm,
 } from "./foundation";
 import {
   Button,
   FormField,
+  LoadingState,
   PageShell,
   SectionCard,
   formControlClassName,
 } from "../ui";
+import { ProfileScope, RoleProfileApi, RoleProfileResponse } from "./profile.api";
 
 type ProfileTheme = {
   text: string;
@@ -30,31 +34,11 @@ type ProfileTheme = {
   ring: string;
 };
 
-type WorkspaceItem = {
-  title: string;
-  description: string;
-};
-
-type NotificationItem = {
-  key: string;
-  label: string;
-  defaultEnabled: boolean;
-};
-
-type UserProfileMockPageProps = {
+type UserProfilePageProps = {
+  scope: ProfileScope;
   roleLabel: string;
   roleDescription: string;
-  defaultProfile: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-    emailFallback: string;
-    position: string;
-    bio: string;
-  };
   workspaceTitle: string;
-  workspaceItems: WorkspaceItem[];
-  notificationItems: NotificationItem[];
   helpText: string;
   theme: ProfileTheme;
 };
@@ -68,41 +52,82 @@ const SectionError: React.FC<{ message: string }> = ({ message }) => {
   );
 };
 
-const UserProfileMockPage: React.FC<UserProfileMockPageProps> = ({
+const UserProfilePage: React.FC<UserProfilePageProps> = ({
+  scope,
   roleLabel,
   roleDescription,
-  defaultProfile,
   workspaceTitle,
-  workspaceItems,
-  notificationItems,
   helpText,
   theme,
 }) => {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [profileRaw, setProfileRaw] = useState<RoleProfileResponse | null>(null);
   const [sectionErrors, setSectionErrors] = useState({
     profile: "",
     notifications: "",
     password: "",
   });
+
   const [profile, setProfile] = useState({
-    firstName: defaultProfile.firstName,
-    lastName: defaultProfile.lastName,
-    phone: defaultProfile.phone,
-    email: user?.email ?? defaultProfile.emailFallback,
-    position: defaultProfile.position,
-    bio: defaultProfile.bio,
+    firstName: "",
+    lastName: "",
+    phone: "",
+    email: "",
+    specialization: "",
   });
-  const [notifications, setNotifications] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(notificationItems.map((item) => [item.key, item.defaultEnabled]))
-  );
+
+  const [notifications, setNotifications] = useState<UserNotificationSettings>({
+    todaySessions: true,
+    overdueReports: true,
+    scheduleChanges: true,
+  });
+
   const [passwordForm, setPasswordForm] = useState<ChangePasswordForm>({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [profileData, notificationData] = await Promise.all([
+          RoleProfileApi.getProfile(scope),
+          RoleProfileApi.getNotificationSettings(scope),
+        ]);
+        if (!isMounted) return;
+        setProfileRaw(profileData);
+        setProfile({
+          firstName: profileData.firstName ?? "",
+          lastName: profileData.lastName ?? "",
+          phone: profileData.phone ?? "",
+          email: profileData.email ?? user?.email ?? "",
+          specialization: profileData.specialization ?? "",
+        });
+        setNotifications(notificationData);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error(err);
+        setError(getApiErrorMessage(err, "Не удалось загрузить профиль"));
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    void load();
+    return () => {
+      isMounted = false;
+    };
+  }, [scope, user?.email]);
 
   const initials = useMemo(() => {
     return [profile.firstName, profile.lastName]
@@ -112,7 +137,27 @@ const UserProfileMockPage: React.FC<UserProfileMockPageProps> = ({
       .toUpperCase();
   }, [profile.firstName, profile.lastName]);
 
-  const saveProfile = () => {
+  const workspaceItems = useMemo(() => {
+    if (!profileRaw) return [];
+    const branches = (profileRaw.branches ?? []).map((branch) => ({
+      title: branch.branchName,
+      description: `Филиал ID: ${branch.branchId}`,
+    }));
+    const rights =
+      scope === "admin"
+        ? (profileRaw as { permissions?: string[] }).permissions ?? []
+        : (profileRaw as { responsibilities?: string[] }).responsibilities ?? [];
+
+    if (rights.length > 0) {
+      branches.push({
+        title: scope === "admin" ? "Ключевые доступы" : "Зоны ответственности",
+        description: rights.join(", "),
+      });
+    }
+    return branches;
+  }, [profileRaw, scope]);
+
+  const saveProfile = async () => {
     setSectionErrors((prev) => ({ ...prev, profile: "" }));
     if (!profile.firstName.trim() || !profile.lastName.trim()) {
       setSectionErrors((prev) => ({ ...prev, profile: "Укажите имя и фамилию" }));
@@ -122,23 +167,57 @@ const UserProfileMockPage: React.FC<UserProfileMockPageProps> = ({
       setSectionErrors((prev) => ({ ...prev, profile: "Укажите телефон" }));
       return;
     }
+    if (!profile.email.trim()) {
+      setSectionErrors((prev) => ({ ...prev, profile: "Укажите email" }));
+      return;
+    }
+
     setSavingProfile(true);
-    window.setTimeout(() => {
+    try {
+      const updated = await RoleProfileApi.updateProfile(scope, {
+        firstName: profile.firstName.trim(),
+        lastName: profile.lastName.trim(),
+        email: profile.email.trim(),
+        phone: profile.phone.trim(),
+        specialization: profile.specialization.trim() || undefined,
+      });
+      setProfileRaw(updated);
+      setProfile({
+        firstName: updated.firstName ?? "",
+        lastName: updated.lastName ?? "",
+        phone: updated.phone ?? "",
+        email: updated.email ?? "",
+        specialization: updated.specialization ?? "",
+      });
+      toast.success("Профиль сохранен");
+    } catch (err) {
+      setSectionErrors((prev) => ({
+        ...prev,
+        profile: getApiErrorMessage(err, "Не удалось сохранить профиль"),
+      }));
+    } finally {
       setSavingProfile(false);
-      toast.success("Профиль сохранен локально");
-    }, 350);
+    }
   };
 
-  const saveNotifications = () => {
+  const saveNotifications = async () => {
     setSectionErrors((prev) => ({ ...prev, notifications: "" }));
     setSavingNotifications(true);
-    window.setTimeout(() => {
+    try {
+      const data = await RoleProfileApi.updateNotificationSettings(scope, notifications);
+      setNotifications(data);
+      toast.success("Уведомления сохранены");
+    } catch (err) {
+      setSectionErrors((prev) => ({
+        ...prev,
+        notifications: getApiErrorMessage(err, "Не удалось сохранить уведомления"),
+      }));
+    } finally {
       setSavingNotifications(false);
-      toast.success("Уведомления сохранены локально");
-    }, 350);
+    }
   };
 
-  const changePassword = () => {
+  const changePassword = async () => {
     setSectionErrors((prev) => ({ ...prev, password: "" }));
     const passwordError = validatePasswordForm(passwordForm);
     if (passwordError) {
@@ -146,12 +225,38 @@ const UserProfileMockPage: React.FC<UserProfileMockPageProps> = ({
       return;
     }
     setSavingPassword(true);
-    window.setTimeout(() => {
+    try {
+      await RoleProfileApi.changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      toast.success("Пароль обновлен");
+    } catch (err) {
+      setSectionErrors((prev) => ({
+        ...prev,
+        password: getApiErrorMessage(err, "Не удалось обновить пароль"),
+      }));
+    } finally {
       setSavingPassword(false);
-      toast.success("Пароль проверен локально");
-    }, 350);
+    }
   };
+
+  if (loading) {
+    return (
+      <PageShell>
+        <LoadingState label="Загрузка профиля..." />
+      </PageShell>
+    );
+  }
+
+  if (error || !profileRaw) {
+    return (
+      <PageShell>
+        <SectionError message={error || "Не удалось загрузить профиль"} />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell className="max-w-6xl space-y-5">
@@ -168,7 +273,7 @@ const UserProfileMockPage: React.FC<UserProfileMockPageProps> = ({
               <div className="mt-1 truncate text-sm text-slate-500">{profile.email}</div>
               <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
                 <CheckCircleIcon className="h-3.5 w-3.5" />
-                Активный пользователь
+                {profileRaw.status === "ACTIVE" ? "Активный пользователь" : profileRaw.status}
               </div>
             </div>
           </div>
@@ -215,18 +320,10 @@ const UserProfileMockPage: React.FC<UserProfileMockPageProps> = ({
                 />
               </FormField>
             </div>
-            <FormField label="Должность" className="mt-3">
+            <FormField label="Специализация" className="mt-3">
               <input
-                value={profile.position}
-                onChange={(event) => setProfile({ ...profile, position: event.target.value })}
-                className={formControlClassName}
-              />
-            </FormField>
-            <FormField label="О себе / зона ответственности" className="mt-3">
-              <textarea
-                value={profile.bio}
-                onChange={(event) => setProfile({ ...profile, bio: event.target.value })}
-                rows={3}
+                value={profile.specialization}
+                onChange={(event) => setProfile({ ...profile, specialization: event.target.value })}
                 className={formControlClassName}
               />
             </FormField>
@@ -247,16 +344,20 @@ const UserProfileMockPage: React.FC<UserProfileMockPageProps> = ({
             title="Уведомления"
             icon={<BellIcon className={`h-5 w-5 ${theme.text}`} />}
           >
-            {notificationItems.map((item) => (
-              <label key={item.key} className="flex items-center justify-between gap-3 border-t border-slate-100 py-3 first:border-t-0">
-                <span className="text-sm text-slate-800">{item.label}</span>
+            {[
+              ["todaySessions", "Напоминать о тренировках на сегодня"],
+              ["overdueReports", "Показывать напоминания о незакрытых отчетах"],
+              ["scheduleChanges", "Сообщать об изменениях расписания"],
+            ].map(([key, label]) => (
+              <label key={key} className="flex items-center justify-between gap-3 border-t border-slate-100 py-3 first:border-t-0">
+                <span className="text-sm text-slate-800">{label}</span>
                 <input
                   type="checkbox"
-                  checked={notifications[item.key] ?? false}
+                  checked={notifications[key as keyof UserNotificationSettings]}
                   onChange={(event) =>
                     setNotifications({
                       ...notifications,
-                      [item.key]: event.target.checked,
+                      [key]: event.target.checked,
                     })
                   }
                   className={`h-5 w-5 rounded border-slate-300 ${theme.ring}`}
@@ -281,12 +382,18 @@ const UserProfileMockPage: React.FC<UserProfileMockPageProps> = ({
             icon={<BuildingOffice2Icon className={`h-5 w-5 ${theme.text}`} />}
           >
             <div className="space-y-2">
-              {workspaceItems.map((item) => (
-                <div key={item.title} className="rounded-xl bg-slate-50 px-3 py-3">
-                  <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-                  <div className="mt-1 text-xs leading-5 text-slate-500">{item.description}</div>
+              {workspaceItems.length === 0 ? (
+                <div className="rounded-xl bg-slate-50 px-3 py-3 text-xs text-slate-500">
+                  Данные рабочей зоны пока не получены.
                 </div>
-              ))}
+              ) : (
+                workspaceItems.map((item) => (
+                  <div key={item.title} className="rounded-xl bg-slate-50 px-3 py-3">
+                    <div className="text-sm font-semibold text-slate-900">{item.title}</div>
+                    <div className="mt-1 text-xs leading-5 text-slate-500">{item.description}</div>
+                  </div>
+                ))
+              )}
             </div>
           </SectionCard>
 
@@ -345,4 +452,5 @@ const UserProfileMockPage: React.FC<UserProfileMockPageProps> = ({
   );
 };
 
-export default UserProfileMockPage;
+export default UserProfilePage;
+
