@@ -101,11 +101,14 @@ jobs:
           script: |
             set -euo pipefail
             cd "$DEPLOY_PATH"
-            cat > .env.frontend <<EOF
-            IMAGE_FRONTEND=$IMAGE
-            EOF
 
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-            docker compose --env-file .env.frontend pull frontend
-            docker compose --env-file .env.frontend up -d --remove-orphans frontend
+            docker pull "$IMAGE"
+            docker rm -f soccerhub-front || true
+            docker run -d \
+              --name soccerhub-front \
+              --restart unless-stopped \
+              --network infrastructure_default \
+              -p 80:80 \
+              "$IMAGE"
             docker image prune -f
