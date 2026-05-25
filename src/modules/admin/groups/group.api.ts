@@ -59,10 +59,90 @@ export interface GroupSummaryModel {
   scheduleActive: boolean;
 }
 
+export type GroupHealth =
+  | "OK"
+  | "NO_COACH"
+  | "NO_SCHEDULE"
+  | "OVER_CAPACITY"
+  | "PAUSED"
+  | "STOPPED";
+
+export interface GroupOverviewSummary {
+  total: number;
+  active: number;
+  paused: number;
+  stopped: number;
+  withoutCoach: number;
+  withoutSchedule: number;
+  overCapacity: number;
+}
+
+export interface GroupOverviewItem {
+  groupId: string;
+  name: string;
+  status: "ACTIVE" | "PAUSED" | "STOPPED";
+  ageFrom: number;
+  ageTo: number;
+  level: string;
+  capacity: number;
+  studentsCount: number;
+  coachesCount: number;
+  scheduleActive: boolean;
+  nextSessionAt: string | null;
+  health: GroupHealth;
+}
+
+export interface GroupOverviewResponse {
+  summary: GroupOverviewSummary;
+  groups: GroupOverviewItem[];
+}
+
+export interface GroupHealthIssue {
+  code: "NO_MAIN_COACH" | "NO_SCHEDULE_PERIOD" | "OVER_CAPACITY" | "NO_UPCOMING_SESSION" | string;
+  message: string;
+}
+
+export interface GroupHealthResponse {
+  groupId: string;
+  health: GroupHealth;
+  issues: GroupHealthIssue[];
+  recommendedActions: string[];
+}
+
+export interface GroupMemberItem {
+  clientId: string;
+  playerId: string;
+  childName: string;
+  birthDate: string;
+  attendanceRate: number;
+  contractStatus: "ACTIVE" | "UPCOMING" | "EXPIRED" | string;
+  joinedAt: string;
+}
+
+export interface GroupMembersResponse {
+  content: GroupMemberItem[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export interface GroupScheduleRisksResponse {
+  hasConflicts: boolean;
+  conflictsCount: number;
+  emptyDaysCount: number;
+  nextSessionAt: string | null;
+}
+
 /* ================= API ================= */
 
 export const GroupApi = {
   /* ===== READ (organization) ===== */
+
+  overview(branchId: string, _token: string): Promise<GroupOverviewResponse> {
+    const qs = new URLSearchParams({ branchId });
+    return apiClient.get<GroupOverviewResponse>(`/admin/groups/overview?${qs}`);
+  },
 
   listByBranch(
     branchId: string,
@@ -76,6 +156,19 @@ export const GroupApi = {
     _token: string
   ): Promise<GroupApiModel> {
     return apiClient.get<GroupApiModel>(`/organization/groups/${groupId}`);
+  },
+
+  getHealth(groupId: string, _token: string): Promise<GroupHealthResponse> {
+    return apiClient.get<GroupHealthResponse>(`/admin/groups/${groupId}/health`);
+  },
+
+  getMembers(groupId: string, page: number, size: number, _token: string): Promise<GroupMembersResponse> {
+    const qs = new URLSearchParams({ page: String(page), size: String(size) });
+    return apiClient.get<GroupMembersResponse>(`/admin/groups/${groupId}/members?${qs}`);
+  },
+
+  getScheduleRisks(groupId: string, _token: string): Promise<GroupScheduleRisksResponse> {
+    return apiClient.get<GroupScheduleRisksResponse>(`/admin/groups/${groupId}/schedule/risks`);
   },
 
   /* ===== WRITE (admin) ===== */

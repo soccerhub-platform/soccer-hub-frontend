@@ -12,6 +12,7 @@ import { useAuth } from "../../../shared/AuthContext";
 import {
   GroupApi,
   GroupApiModel,
+  GroupHealthResponse,
   GroupSummaryModel,
 } from "./group.api";
 import GroupTabs from "./components/GroupTabs";
@@ -61,6 +62,7 @@ const GroupDetailsPage: React.FC = () => {
 
   const [group, setGroup] = useState<GroupApiModel | null>(null);
   const [summary, setSummary] = useState<GroupSummaryModel | null>(null);
+  const [health, setHealth] = useState<GroupHealthResponse | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -75,17 +77,20 @@ const GroupDetailsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [groupData, summaryData] = await Promise.all([
+      const [groupData, summaryData, healthData] = await Promise.all([
         GroupApi.getById(groupId, token),
         GroupApi.getSummary(groupId, token),
+        GroupApi.getHealth(groupId, token),
       ]);
       setGroup(groupData);
       setSummary(summaryData);
+      setHealth(healthData);
     } catch (e) {
       console.error("Failed to load group details", e);
       setError("Не удалось загрузить данные группы");
       setGroup(null);
       setSummary(null);
+      setHealth(null);
     } finally {
       setLoading(false);
     }
@@ -119,6 +124,38 @@ const GroupDetailsPage: React.FC = () => {
       toast.error("Не удалось изменить статус группы");
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const openTab = (tab: "members" | "coaches" | "schedule") => {
+    navigate({
+      pathname: `/admin/groups/${groupId}`,
+      search: `?tab=${tab}`,
+    });
+  };
+
+  const mapRecommendedAction = (action: string) => {
+    switch (action) {
+      case "ASSIGN_MAIN_COACH":
+        return {
+          label: "Назначить главного тренера",
+          hint: "Откроется вкладка тренеров, где можно выдать роль MAIN.",
+          onClick: () => openTab("coaches"),
+        };
+      case "CHECK_SCHEDULE":
+        return {
+          label: "Проверить расписание",
+          hint: "Откроется расписание группы для проверки конфликтов и пустых дней.",
+          onClick: () => openTab("schedule"),
+        };
+      case "OPEN_MEMBERS":
+        return {
+          label: "Открыть состав группы",
+          hint: "Откроется список учеников и статусы их контрактов.",
+          onClick: () => openTab("members"),
+        };
+      default:
+        return null;
     }
   };
 
@@ -240,6 +277,40 @@ const GroupDetailsPage: React.FC = () => {
           scheduleActive={summary.scheduleActive}
         />
       )}
+
+      {health && health.issues.length > 0 ? (
+        <SectionCard title="Требует внимания" description="Проблемы, которые важно закрыть по этой группе">
+          <div className="space-y-2">
+            {health.issues.map((issue) => (
+              <div
+                key={issue.code}
+                className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+              >
+                <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <div className="font-medium">{issue.message}</div>
+                  <div className="text-xs text-amber-700/80">Код: {issue.code}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {health.recommendedActions.length > 0 ? (
+            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {health.recommendedActions
+                .map((action) => mapRecommendedAction(action))
+                .filter((action): action is { label: string; hint: string; onClick: () => void } => Boolean(action))
+                .map((action) => (
+                  <div key={action.label} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <Button type="button" size="sm" variant="secondary" onClick={action.onClick}>
+                      {action.label}
+                    </Button>
+                    <p className="mt-2 text-xs text-slate-600">{action.hint}</p>
+                  </div>
+                ))}
+            </div>
+          ) : null}
+        </SectionCard>
+      ) : null}
 
       {/* TABS */}
       <GroupTabs groupId={group.groupId} />

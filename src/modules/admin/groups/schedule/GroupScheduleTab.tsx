@@ -5,7 +5,11 @@ import { groupSchedulesToBatches } from "./schedule.batch";
 import ScheduleBatchCard from "./ScheduleBatchCard";
 import EditScheduleModal from "./EditScheduleModal";
 import { GroupScheduleDto, ScheduleBatch } from "./schedule.types";
-import { GroupApi, GroupCoachApiModel } from "../group.api";
+import {
+  GroupApi,
+  GroupCoachApiModel,
+  GroupScheduleRisksResponse,
+} from "../group.api";
 import toast from "react-hot-toast";
 import {
   Button,
@@ -13,7 +17,11 @@ import {
   ErrorState,
   LoadingState,
 } from "../../../../shared/ui";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import {
+  CalendarDaysIcon,
+  ExclamationTriangleIcon,
+  PlusIcon,
+} from "@heroicons/react/24/outline";
 
 const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   const { user } = useAuth();
@@ -21,6 +29,7 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
 
   const [schedules, setSchedules] = useState<GroupScheduleDto[]>([]);
   const [coaches, setCoaches] = useState<GroupCoachApiModel[]>([]);
+  const [risks, setRisks] = useState<GroupScheduleRisksResponse | null>(null);
   const [editingBatch, setEditingBatch] = useState<ScheduleBatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,12 +53,17 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await ScheduleApi.listByGroup(groupId, token);
+      const [data, risksData] = await Promise.all([
+        ScheduleApi.listByGroup(groupId, token),
+        GroupApi.getScheduleRisks(groupId, token),
+      ]);
       setSchedules(data);
+      setRisks(risksData);
     } catch (e) {
       console.error("Failed to load group schedule", e);
       setError("Не удалось загрузить расписание группы");
       setSchedules([]);
+      setRisks(null);
     } finally {
       setLoading(false);
     }
@@ -81,6 +95,16 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   if (!token) {
     return <ErrorState message="Нет авторизации" />;
   }
+
+  const formatSessionDateTime = (value: string | null) => {
+    if (!value) return "Нет ближайших занятий";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat("ru-RU", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(date);
+  };
 
   return (
     <div className="space-y-5">
@@ -115,6 +139,41 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
           Добавить период
         </Button>
       </div>
+
+      {risks ? (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div
+            className={`rounded-xl border px-3 py-3 text-sm ${
+              risks.hasConflicts
+                ? "border-rose-200 bg-rose-50 text-rose-800"
+                : "border-emerald-200 bg-emerald-50 text-emerald-800"
+            }`}
+          >
+            <div className="mb-1 flex items-center gap-2 font-semibold">
+              <ExclamationTriangleIcon className="h-4 w-4" />
+              Конфликты расписания
+            </div>
+            <div>
+              {risks.hasConflicts
+                ? `Найдено конфликтов: ${risks.conflictsCount}`
+                : "Конфликтов не обнаружено"}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
+            <div className="mb-1 flex items-center gap-2 font-semibold">
+              <CalendarDaysIcon className="h-4 w-4" />
+              Дни без занятий
+            </div>
+            <div>{risks.emptyDaysCount}</div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+            <div className="mb-1 font-semibold text-slate-900">Следующее занятие</div>
+            <div>{formatSessionDateTime(risks.nextSessionAt)}</div>
+          </div>
+        </div>
+      ) : null}
 
       {/* BATCH LIST */}
       {error ? (

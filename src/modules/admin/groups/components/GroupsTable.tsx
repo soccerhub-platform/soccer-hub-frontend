@@ -1,10 +1,10 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRightIcon, UserGroupIcon } from "@heroicons/react/24/outline";
-import { GroupApiModel } from "../group.api";
+import { GroupOverviewItem } from "../group.api";
 
 interface Props {
-  groups: GroupApiModel[];
+  groups: GroupOverviewItem[];
 }
 
 const GroupsTable: React.FC<Props> = ({ groups }) => {
@@ -26,7 +26,9 @@ const GroupsTable: React.FC<Props> = ({ groups }) => {
             <th className="px-5 py-3 text-left">Группа</th>
             <th className="px-5 py-3 text-left">Возраст</th>
             <th className="px-5 py-3 text-left">Уровень</th>
+            <th className="px-5 py-3 text-left">Состав</th>
             <th className="px-5 py-3 text-left">Статус</th>
+            <th className="px-5 py-3 text-left">Состояние</th>
             <th className="px-5 py-3"></th>
           </tr>
         </thead>
@@ -57,8 +59,16 @@ const GroupsTable: React.FC<Props> = ({ groups }) => {
                 {humanizeLevel(g.level)}
               </td>
 
+              <td className="px-5 py-4 text-sm text-gray-700">
+                {g.studentsCount}/{g.capacity}
+              </td>
+
               <td className="px-5 py-4">
                 <StatusBadge status={g.status} />
+              </td>
+
+              <td className="px-5 py-4">
+                <HealthBadge health={g.health} />
               </td>
 
               <td className="px-5 py-4 text-right">
@@ -82,7 +92,7 @@ function humanizeLevel(level: string) {
   return map[level] ?? level;
 }
 
-const StatusBadge = ({ status }: { status: GroupApiModel["status"] }) => {
+const StatusBadge = ({ status }: { status: GroupOverviewItem["status"] }) => {
   const map = {
     ACTIVE: { label: "Активна", cls: "bg-green-100 text-green-700" },
     PAUSED: { label: "На паузе", cls: "bg-yellow-100 text-yellow-700" },
@@ -98,6 +108,19 @@ const StatusBadge = ({ status }: { status: GroupApiModel["status"] }) => {
       {cfg.label}
     </span>
   );
+};
+
+const HealthBadge = ({ health }: { health: GroupOverviewItem["health"] }) => {
+  const map = {
+    OK: { label: "OK", cls: "border border-emerald-100 bg-emerald-50 text-emerald-700" },
+    NO_COACH: { label: "Нет тренера", cls: "border border-amber-100 bg-amber-50 text-amber-700" },
+    NO_SCHEDULE: { label: "Нет расписания", cls: "border border-amber-100 bg-amber-50 text-amber-700" },
+    OVER_CAPACITY: { label: "Переполнена", cls: "border border-rose-100 bg-rose-50 text-rose-700" },
+    PAUSED: { label: "На паузе", cls: "border border-amber-100 bg-amber-50 text-amber-700" },
+    STOPPED: { label: "Остановлена", cls: "border border-rose-100 bg-rose-50 text-rose-700" },
+  } as const;
+  const cfg = map[health] ?? { label: health, cls: "border border-slate-200 bg-slate-50 text-slate-600" };
+  return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${cfg.cls}`}>{cfg.label}</span>;
 };
 
 export default GroupsTable;

@@ -1,0 +1,7 @@
+services:
+  frontend:
+    image: ${IMAGE_FRONTEND:-ghcr.io/soccerhub-platform/soccer-hub-front:latest}
+    container_name: soccerhub-front
+    restart: unless-stopped
+    ports:
+      - "80:80"
