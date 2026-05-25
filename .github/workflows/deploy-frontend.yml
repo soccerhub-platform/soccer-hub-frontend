@@ -27,17 +27,14 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Pin npm version
-        run: npm i -g npm@10.9.2
-
       - name: Install deps
-        run: npm ci
+        run: npx -y npm@10.9.2 ci
 
       - name: Typecheck
-        run: npm run typecheck
+        run: npx -y npm@10.9.2 run typecheck
 
       - name: Build
-        run: npm run build
+        run: npx -y npm@10.9.2 run build
 
   build-and-push:
     if: github.event_name == 'push'
@@ -53,9 +50,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Pin npm version
-        run: npm i -g npm@10.9.2
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
