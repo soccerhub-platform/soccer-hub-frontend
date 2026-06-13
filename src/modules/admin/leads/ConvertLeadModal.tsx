@@ -51,7 +51,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 }) => {
   const today = useMemo(() => toIsoDate(new Date()), []);
   const [participantId, setParticipantId] = useState(
-    participants.length === 1 ? participants[0].id : ""
+    participants.length === 1 ? participants[0].id ?? "" : ""
   );
   const [groupId, setGroupId] = useState(groups.length === 1 ? groups[0].groupId : "");
   const [participantBirthDate, setParticipantBirthDate] = useState(
@@ -64,7 +64,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    setParticipantId(participants.length === 1 ? participants[0].id : "");
+    setParticipantId(participants.length === 1 ? participants[0].id ?? "" : "");
     setGroupId(groups.length === 1 ? groups[0].groupId : "");
     setParticipantBirthDate(participants.length === 1 ? participants[0].birthDate ?? "" : "");
     setContractStartDate(today);

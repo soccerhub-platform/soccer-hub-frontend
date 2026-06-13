@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../shared/AuthContext';
 import { Button } from '../../shared/ui';
+import BrandMark from '../../shared/ui/BrandMark';
 
 /**
  * Layout component for dispatcher pages.  Provides a sidebar with
@@ -40,11 +41,16 @@ const DispatcherLayout: React.FC = () => {
       {/* Sidebar */}
       <aside className="flex w-64 flex-col border-r border-slate-200 bg-white/95 shadow-sm backdrop-blur">
         <div className="p-5">
-          <div className="heading-font text-dispatcher-700 font-semibold text-lg tracking-tight">
-            Football CRM
-          </div>
-          <div className="text-xs text-slate-500 mt-1">
-            Dispatcher Desk
+          <div className="flex items-center gap-3">
+            <BrandMark compact />
+            <div>
+              <div className="heading-font text-dispatcher-700 font-semibold text-lg tracking-tight">
+                Club Hub
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                Dispatcher Desk
+              </div>
+            </div>
           </div>
         </div>
         <nav className="mt-2 flex-1 space-y-1">

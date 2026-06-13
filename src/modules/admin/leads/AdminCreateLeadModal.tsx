@@ -459,8 +459,8 @@ const AdminCreateLeadModal: React.FC<AdminCreateLeadModalProps> = ({
                   }
                   className={`${inputBaseClassName} border-slate-200 focus:border-cyan-700 focus:ring-cyan-100`}
                 >
-                  <option value="MALE">{leadType === "ADULT" ? "Мужчина" : "Мальчик"}</option>
-                  <option value="FEMALE">{leadType === "ADULT" ? "Женщина" : "Девочка"}</option>
+                  <option value="MALE">Мальчик</option>
+                  <option value="FEMALE">Девочка</option>
                 </select>
               </label>
 

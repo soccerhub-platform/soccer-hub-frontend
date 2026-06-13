@@ -4,13 +4,12 @@ import {
   ArrowRightIcon,
   EyeIcon,
   EyeSlashIcon,
-  ShieldCheckIcon,
-  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import { useAuth } from "../../shared/AuthContext";
 import { readStoredUser } from "../../shared/auth-storage";
 import { canRoleAccessPath, getHomePathForRoles } from "../../shared/roleRedirect";
+import BrandMark from "../../shared/ui/BrandMark";
 
 interface LoginLocationState {
   from?: { pathname?: string };
@@ -79,16 +78,16 @@ const LoginPage: React.FC = () => {
       <div className="mx-auto grid min-h-screen w-full max-w-6xl grid-cols-1 lg:grid-cols-[1fr_460px]">
         <section className="hidden flex-col justify-between px-10 py-10 lg:flex">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-teal-100 bg-white px-3 py-2 text-sm text-teal-900 shadow-sm">
-            <ShieldCheckIcon className="h-4 w-4 text-teal-700" />
-            Football CRM
+            <BrandMark compact />
+            <span className="font-semibold">Club Hub</span>
           </div>
 
           <div className="max-w-xl">
             <div className="heading-font text-4xl font-semibold text-teal-950">
-              Один вход для всей команды
+              Одна платформа для всей команды
             </div>
             <p className="mt-4 text-base leading-7 text-teal-900/75">
-              Система определит рабочее пространство автоматически: администратор, диспетчер или тренер попадут в свой интерфейс без выбора роли.
+              Универсальное рабочее пространство для клуба: администратор, диспетчер и тренер попадут в свой интерфейс автоматически, без лишних шагов.
             </p>
 
             <div className="mt-8 grid grid-cols-3 gap-3">
@@ -106,7 +105,7 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className="text-xs text-teal-900/45">
-            Secure workspace access
+            Club operations platform
           </div>
         </section>
 
@@ -115,14 +114,14 @@ const LoginPage: React.FC = () => {
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <div className="heading-font text-2xl font-semibold text-teal-950">
-                  Вход в CRM
+                  Вход в Club Hub
                 </div>
                 <p className="mt-1 text-sm text-teal-900/65">
                   Введите рабочий email и пароль.
                 </p>
               </div>
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-teal-50">
-                <UserCircleIcon className="h-6 w-6 text-teal-700" />
+              <div className="shrink-0">
+                <BrandMark />
               </div>
             </div>
 

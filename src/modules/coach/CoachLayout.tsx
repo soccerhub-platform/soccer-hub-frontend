@@ -5,10 +5,10 @@ import {
   ClockIcon,
   HomeIcon,
   ArrowRightOnRectangleIcon,
-  ShieldCheckIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../shared/AuthContext";
+import BrandMark from "../../shared/ui/BrandMark";
 
 const CoachLayout: React.FC = () => {
   const { logout, user } = useAuth();
@@ -24,11 +24,9 @@ const CoachLayout: React.FC = () => {
       <header className="sticky top-0 z-10 border-b border-teal-100 bg-white/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-50">
-              <ShieldCheckIcon className="h-5 w-5 text-teal-700" />
-            </div>
+            <BrandMark compact />
             <div>
-              <div className="heading-font text-sm font-semibold text-teal-950">Рабочее место тренера</div>
+              <div className="heading-font text-sm font-semibold text-teal-950">Club Hub</div>
               <div className="text-xs text-teal-800/65">{user?.email ?? "Тренер"}</div>
             </div>
           </div>
