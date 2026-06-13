@@ -66,18 +66,29 @@ export const experienceLabel = (value?: string | null) => {
   }
 };
 
-export const childGenderLabel = (value?: string | null) => {
+export const participantGenderLabel = (value?: string | null, leadType?: string | null) => {
   switch (value) {
-    case "MALE": return "Мальчик";
-    case "FEMALE": return "Девочка";
+    case "MALE": return leadType === "ADULT" ? "Мужчина" : "Мальчик";
+    case "FEMALE": return leadType === "ADULT" ? "Женщина" : "Девочка";
     default: return "Не указано";
   }
+};
+
+export const formatBirthDate = (value?: string | null) => {
+  if (!value) return "Не указано";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
 };
 
 export const formatPreferredDays = (value?: string | null) => {
   if (!value) return "Не указано";
   const dayMap: Record<string, string> = { MON: "Пн", TUE: "Вт", WED: "Ср", THU: "Чт", FRI: "Пт", SAT: "Сб", SUN: "Вс" };
-  const timeMap: Record<string, string> = { MORNING: "утро", DAY: "день", EVENING: "вечер" };
+  const timeMap: Record<string, string> = { MORNING: "утро", AFTERNOON: "день", DAY: "день", EVENING: "вечер" };
   const parts = value.split(";").map((part) => part.trim()).filter(Boolean);
   const rawDays = parts[0]?.split(",").map((part) => part.trim()).filter(Boolean) ?? [];
   const rawTime = parts[1]?.trim();

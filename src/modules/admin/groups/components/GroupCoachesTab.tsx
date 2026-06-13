@@ -7,6 +7,7 @@ import {
   UserPlusIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../../shared/AuthContext";
 import { GroupApi, GroupCoachApiModel } from "../group.api";
 import AssignCoachModal from "./AssignCoachModal";
@@ -20,6 +21,7 @@ import {
 
 interface Props {
   groupId: string;
+  branchId?: string | null;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -32,16 +34,20 @@ const ROLE_STYLES: Record<string, string> = {
   ASSISTANT: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
-const GroupCoachesTab: React.FC<Props> = ({ groupId }) => {
+const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const token = user?.accessToken;
-  const { branchId } = useAdminBranch();
+  const { branchId: branchIdFromContext } = useAdminBranch();
+  const branchId = branchIdProp ?? branchIdFromContext;
 
   const [coaches, setCoaches] = useState<GroupCoachApiModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [showAssign, setShowAssign] = useState(false);
+  const preferredRole = searchParams.get("action") === "assign-main" ? "MAIN" : "ASSISTANT";
+  const lockRole = searchParams.get("action") === "assign-main";
 
   const loadCoaches = async () => {
     if (!token) return;
@@ -62,6 +68,22 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId }) => {
   useEffect(() => {
     loadCoaches();
   }, [groupId, token]);
+
+  useEffect(() => {
+    if (!branchId) return;
+    if (searchParams.get("tab") !== "coaches") return;
+    if (searchParams.get("action") !== "assign-main") return;
+    setShowAssign(true);
+  }, [branchId, searchParams]);
+
+  const closeAssignModal = () => {
+    setShowAssign(false);
+    if (searchParams.get("action")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("action");
+      setSearchParams(next, { replace: true });
+    }
+  };
 
   const removeCoach = async (groupCoachId: string) => {
     if (!token) return;
@@ -179,7 +201,9 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId }) => {
           groupId={groupId}
           branchId={branchId}
           assignedCoachIds={assignedCoachIds}
-          onClose={() => setShowAssign(false)}
+          preferredRole={preferredRole}
+          lockRole={lockRole}
+          onClose={closeAssignModal}
           onAssigned={loadCoaches}
         />
       )}

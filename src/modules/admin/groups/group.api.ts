@@ -6,6 +6,7 @@ export interface GroupApiModel {
   groupId: string;
   name: string;
   branchId: string;
+  audienceType?: "CHILDREN" | "ADULT";
   ageFrom: number;
   ageTo: number;
   level: string;
@@ -18,6 +19,7 @@ export interface GroupCreatePayload {
   name: string;
   description?: string;
   branchId: string;
+  audienceType: "CHILDREN" | "ADULT";
   ageFrom?: number;
   ageTo?: number;
   capacity?: number;
@@ -81,6 +83,7 @@ export interface GroupOverviewItem {
   groupId: string;
   name: string;
   status: "ACTIVE" | "PAUSED" | "STOPPED";
+  audienceType?: "CHILDREN" | "ADULT";
   ageFrom: number;
   ageTo: number;
   level: string;

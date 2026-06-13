@@ -15,6 +15,11 @@ const LEVELS = [
   { value: "PRO", label: "Продвинутый" },
 ];
 
+const AUDIENCE_TYPES = [
+  { value: "CHILDREN", label: "Детская группа" },
+  { value: "ADULT", label: "Взрослая группа" },
+] as const;
+
 const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const { user } = useAuth();
   const token = user?.accessToken;
@@ -23,6 +28,7 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const [form, setForm] = useState({
     name: "",
     description: "",
+    audienceType: "CHILDREN",
     ageFrom: "",
     ageTo: "",
     capacity: "",
@@ -49,15 +55,15 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
     const ageTo = form.ageTo ? Number(form.ageTo) : undefined;
     const capacity = form.capacity ? Number(form.capacity) : undefined;
 
-    if (ageFrom !== undefined && (!Number.isFinite(ageFrom) || ageFrom <= 0)) {
+    if (form.audienceType === "CHILDREN" && ageFrom !== undefined && (!Number.isFinite(ageFrom) || ageFrom <= 0)) {
       toast.error("Возраст от должен быть положительным числом");
       return;
     }
-    if (ageTo !== undefined && (!Number.isFinite(ageTo) || ageTo <= 0)) {
+    if (form.audienceType === "CHILDREN" && ageTo !== undefined && (!Number.isFinite(ageTo) || ageTo <= 0)) {
       toast.error("Возраст до должен быть положительным числом");
       return;
     }
-    if (ageFrom !== undefined && ageTo !== undefined && ageFrom > ageTo) {
+    if (form.audienceType === "CHILDREN" && ageFrom !== undefined && ageTo !== undefined && ageFrom > ageTo) {
       toast.error("Возраст от не может быть больше возраста до");
       return;
     }
@@ -73,8 +79,9 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
           name: form.name,
           description: form.description || undefined,
           branchId,
-          ageFrom,
-          ageTo,
+          audienceType: form.audienceType as "CHILDREN" | "ADULT",
+          ageFrom: form.audienceType === "CHILDREN" ? ageFrom : undefined,
+          ageTo: form.audienceType === "CHILDREN" ? ageTo : undefined,
           capacity,
           level: form.level,
         },
@@ -110,10 +117,39 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
 
           <Input label="Описание" value={form.description} onChange={(v) => setForm({ ...form, description: v })} />
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Возраст от" value={form.ageFrom} onChange={(v) => setForm({ ...form, ageFrom: v })} />
-            <Input label="Возраст до" value={form.ageTo} onChange={(v) => setForm({ ...form, ageTo: v })} />
+          <div>
+            <div className="text-xs text-gray-500 mb-1">Тип аудитории</div>
+            <select
+              value={form.audienceType}
+              onChange={(e) => setForm({ ...form, audienceType: e.target.value })}
+              className="w-full border rounded-xl px-3 py-2"
+            >
+              {AUDIENCE_TYPES.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label={form.audienceType === "ADULT" ? "Возраст от (необязательно)" : "Возраст от"}
+              value={form.ageFrom}
+              onChange={(v) => setForm({ ...form, ageFrom: v })}
+            />
+            <Input
+              label={form.audienceType === "ADULT" ? "Возраст до (необязательно)" : "Возраст до"}
+              value={form.ageTo}
+              onChange={(v) => setForm({ ...form, ageTo: v })}
+            />
+          </div>
+
+          {form.audienceType === "ADULT" ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              Для взрослых групп возрастной диапазон можно не задавать.
+            </div>
+          ) : null}
 
           <Input label="Вместимость" value={form.capacity} onChange={(v) => setForm({ ...form, capacity: v })} />
 

@@ -46,6 +46,39 @@ export interface ScheduleBatchCommand {
 export type CreateScheduleBatchCommand = ScheduleBatchCommand;
 export type UpdateScheduleBatchCommand = ScheduleBatchCommand;
 
+export interface GroupScheduleValidationCommand extends ScheduleBatchCommand {
+  excludeScheduleIds?: string[];
+}
+
+export type ScheduleValidationConflictCode =
+  | "EMPTY_SLOTS"
+  | "INVALID_DATE_RANGE"
+  | "INVALID_TIME_RANGE"
+  | "OVERLAPPING_INPUT_SLOTS"
+  | "GROUP_SCHEDULE_CONFLICT"
+  | "COACH_SCHEDULE_CONFLICT";
+
+export interface ScheduleValidationConflict {
+  code: ScheduleValidationConflictCode | string;
+  coachId?: string | null;
+  dayOfWeek?: DayOfWeek | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  overlapStart?: string | null;
+  overlapEnd?: string | null;
+  conflictingGroupId?: string | null;
+  conflictingGroupName?: string | null;
+  conflictingScheduleId?: string | null;
+  conflictingPeriodStart?: string | null;
+  conflictingPeriodEnd?: string | null;
+  message?: string | null;
+}
+
+export interface ScheduleValidationResult {
+  valid: boolean;
+  conflicts: ScheduleValidationConflict[];
+}
+
 export interface ScheduleBatch {
   key: string;
   coachId: string;

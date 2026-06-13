@@ -45,7 +45,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [optionsError, setOptionsError] = useState<string | null>(null);
 
-  const [childIndex, setChildIndex] = useState(0);
+  const [participantIndex, setParticipantIndex] = useState(0);
   const [groupId, setGroupId] = useState("");
   const [coachId, setCoachId] = useState("");
   const [trialDate, setTrialDate] = useState(getToday());
@@ -72,7 +72,13 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
 
         if (!isMounted) return;
 
-        setGroups(groupsData.filter((group) => group.status === "ACTIVE"));
+        setGroups(
+          groupsData.filter(
+            (group) =>
+              group.status === "ACTIVE" &&
+              (!group.audienceType || group.audienceType === lead.leadType)
+          )
+        );
         setCoaches(coachesPage.content.filter((coach) => coach.active));
       } catch (err) {
         if (!isMounted) return;
@@ -96,8 +102,8 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
     };
   }, [branchId, token]);
 
-  const selectedChild = lead.children[childIndex] ?? null;
-  const selectedChildId = selectedChild?.id ?? null;
+  const selectedParticipant = lead.participants[participantIndex] ?? null;
+  const selectedParticipantId = selectedParticipant?.id ?? null;
   const selectedGroup = groups.find((group) => group.groupId === groupId) ?? null;
   const selectedCoach = coaches.find((coach) => coach.id === coachId) ?? null;
 
@@ -144,18 +150,18 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
   }, [trialDate, groupId, coachId, token]);
 
   const isValid = useMemo(() => {
-    if (!selectedChild) return false;
-    if (!selectedChildId) return false;
+    if (!selectedParticipant) return false;
+    if (!selectedParticipantId) return false;
     if (!trialDate) return false;
     if (!selectedSlot) return false;
     return Boolean(groupId || coachId);
-  }, [selectedChild, selectedChildId, trialDate, selectedSlot, groupId, coachId]);
+  }, [selectedParticipant, selectedParticipantId, trialDate, selectedSlot, groupId, coachId]);
 
   const handleSubmit = async () => {
-    if (!selectedChildId || !selectedSlot || !isValid) return;
+    if (!selectedParticipantId || !selectedSlot || !isValid) return;
 
     const payload: ScheduleTrialPayload = {
-      childId: selectedChildId,
+      participantId: selectedParticipantId,
       slot: {
         date: selectedSlot.date,
         startTime: selectedSlot.startTime,
@@ -195,7 +201,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
                 Назначить пробное занятие
               </h3>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                {lead.parentName}. Выберите ребенка, исполнителя и свободный слот.
+                {lead.primaryContact.fullName}. Выберите участника, исполнителя и свободный слот.
               </p>
             </div>
             <button
@@ -248,10 +254,10 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
                 </div>
               ) : null}
 
-              {lead.children.length === 0 ? (
+              {lead.participants.length === 0 ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  У лида нет детей. Сначала квалифицируйте лид или добавьте данные
-                  ребенка.
+                  У лида нет участников. Сначала квалифицируйте лид или добавьте данные
+                  участника.
                 </div>
               ) : null}
 
@@ -268,17 +274,17 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <label className="space-y-1.5 text-sm text-slate-600">
                     <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Ребенок
+                      Участник
                     </span>
                     <select
-                      value={String(childIndex)}
-                      onChange={(event) => setChildIndex(Number(event.target.value))}
-                      disabled={lead.children.length === 0}
+                      value={String(participantIndex)}
+                      onChange={(event) => setParticipantIndex(Number(event.target.value))}
+                      disabled={lead.participants.length === 0}
                       className={fieldClassName}
                     >
-                      {lead.children.map((child, index) => (
-                        <option key={`${child.childName}-${index}`} value={index}>
-                          {child.childName} ({child.childAge})
+                      {lead.participants.map((participant, index) => (
+                        <option key={`${participant.fullName}-${index}`} value={index}>
+                          {participant.fullName}
                         </option>
                       ))}
                     </select>
@@ -311,7 +317,9 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
                         <option key={group.groupId} value={group.groupId}>
                           {formatOptionLabel(
                             group.name,
-                            `${group.ageFrom}-${group.ageTo} лет`
+                            group.audienceType === "ADULT"
+                              ? "взрослая группа"
+                              : `${group.ageFrom}-${group.ageTo} лет`
                           )}
                         </option>
                       ))}
@@ -354,7 +362,9 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
                         </div>
                         <div className="mt-1 font-semibold">{selectedGroup.name}</div>
                         <div className="mt-1 text-admin-700/80">
-                          Возраст: {selectedGroup.ageFrom}-{selectedGroup.ageTo}
+                          {selectedGroup.audienceType === "ADULT"
+                            ? "Формат: взрослая группа"
+                            : `Возраст: ${selectedGroup.ageFrom}-${selectedGroup.ageTo}`}
                         </div>
                       </div>
                     ) : null}
@@ -511,9 +521,9 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
                 </div>
               ) : null}
 
-              {!selectedChildId && selectedChild ? (
+              {!selectedParticipantId && selectedParticipant ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Бэк еще не возвращает `childId` в `lead.children`, поэтому пробное
+                  Бэк еще не возвращает `participantId` в `lead.participants`, поэтому пробное
                   занятие нельзя сохранить корректно.
                 </div>
               ) : null}

@@ -22,12 +22,13 @@ import LeadLossModal from "./LeadLossModal";
 import ConvertLeadModal from "./ConvertLeadModal";
 import { Button, ErrorState, LoadingState, SectionCard } from "../../../shared/ui";
 import {
-  childGenderLabel,
   experienceLabel,
+  formatBirthDate,
   formatLeadDateTime,
   formatPreferredDays,
   formatTrialTime,
   LEAD_STATUS_LABELS,
+  participantGenderLabel,
   trialStatusLabel,
 } from "./lead.format";
 
@@ -111,8 +112,9 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     contractId: string;
     status: string;
   } | null>(null);
-  const trialChild =
-    lead?.trial && lead.children.find((child) => child.id === lead.trial?.childId);
+  const trialParticipant =
+    lead?.trial &&
+    lead.participants.find((participant) => participant.id === lead.trial?.participantId);
   const currentUserId = getCurrentUserId(token);
 
   useEffect(() => {
@@ -154,7 +156,13 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
       try {
         const list = await GroupApi.listByBranch(branchId, token);
         if (!isMounted) return;
-        setGroups(list.filter((item) => item.status === "ACTIVE"));
+        setGroups(
+          list.filter(
+            (item) =>
+              item.status === "ACTIVE" &&
+              (!lead?.leadType || !item.audienceType || item.audienceType === lead.leadType)
+          )
+        );
       } catch (err) {
         if (!isMounted) return;
         console.error(err);
@@ -171,7 +179,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [branchId, token]);
+  }, [branchId, lead?.leadType, token]);
 
   useEffect(() => {
     let isMounted = true;
@@ -377,7 +385,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
           <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="heading-font text-2xl font-semibold text-slate-900">
-              {loading ? "Загрузка..." : lead?.parentName ?? "Лид"}
+              {loading ? "Загрузка..." : lead?.primaryContact.fullName ?? "Лид"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">Полная карточка лида</p>
           </div>
@@ -410,18 +418,21 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
                     {formatLeadDateTime(lead.createdAt)}
                   </span>
+                  <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-medium text-cyan-700">
+                    {lead.leadType === "ADULT" ? "Взрослый клуб" : "Детский клуб"}
+                  </span>
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-slate-900">
-                  {lead.parentName}
+                  {lead.primaryContact.fullName}
                 </h3>
                 <div className="mt-4 space-y-3 text-sm text-slate-600">
                   <div className="flex items-center gap-2">
                     <PhoneIcon className="h-4 w-4 text-slate-400" />
-                    <span>{lead.phone}</span>
+                    <span>{lead.primaryContact.phone}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <EnvelopeIcon className="h-4 w-4 text-slate-400" />
-                    <span>{lead.email || "Email не указан"}</span>
+                    <span>{lead.primaryContact.email || "Email не указан"}</span>
                   </div>
                 </div>
               </SectionCard>
@@ -501,30 +512,33 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
                   <UserGroupIcon className="h-4 w-4" />
-                  Дети
+                  Участники
                 </div>
                 <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
-                  {lead.children.length > 0 ? (
+                  {lead.participants.length > 0 ? (
                     <div className="space-y-2">
-                      {lead.children.map((child) => (
+                      {lead.participants.map((participant) => (
                         <div
-                          key={child.id}
+                          key={participant.id}
                           className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-700"
                         >
                           <div className="font-medium text-slate-800">
-                            {child.childName} ({child.childAge})
+                            {participant.fullName}
                           </div>
                           <div className="mt-1 text-xs text-slate-500">
-                            Пол: {childGenderLabel(child.gender)}
+                            Дата рождения: {formatBirthDate(participant.birthDate)}
                           </div>
                           <div className="text-xs text-slate-500">
-                            Уровень: {experienceLabel(child.experience)}
+                            Пол: {participantGenderLabel(participant.gender, lead.leadType)}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            Уровень: {experienceLabel(participant.experience)}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-sm text-slate-400">Нет данных о детях</div>
+                    <div className="text-sm text-slate-400">Нет данных об участниках</div>
                   )}
                 </div>
               </section>
@@ -586,7 +600,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                         Предпочтительные дни
                       </div>
                       <div className="mt-1">
-                        {formatPreferredDays(lead.qualificationData?.preferredDays)}
+                        {formatPreferredDays(lead.preferredDays ?? lead.qualificationData?.preferredDays)}
                       </div>
                     </div>
                     <div>
@@ -594,7 +608,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                         Опыт
                       </div>
                       <div className="mt-1">
-                        {experienceLabel(lead.qualificationData?.experience)}
+                        {experienceLabel(lead.experience ?? lead.qualificationData?.experience)}
                       </div>
                     </div>
                     <div>
@@ -602,7 +616,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                         Заметки
                       </div>
                       <div className="mt-1 whitespace-pre-wrap">
-                        {lead.qualificationData?.notes || "Не указано"}
+                        {lead.notes ?? lead.qualificationData?.notes ?? "Не указано"}
                       </div>
                     </div>
                   </div>
@@ -619,11 +633,11 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                     <div className="space-y-3">
                       <div>
                         <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                          Ребенок
+                          Участник
                         </div>
                         <div className="mt-1">
-                          {trialChild
-                            ? `${trialChild.childName} (${trialChild.childAge})`
+                          {trialParticipant
+                            ? trialParticipant.fullName
                             : "Не указано"}
                         </div>
                       </div>
@@ -778,8 +792,8 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
       {lead ? (
         <ConvertLeadModal
           isOpen={showConvertModal}
-          leadName={lead.parentName || "Лид"}
-          children={lead.children ?? []}
+          leadName={lead.primaryContact.fullName || "Лид"}
+          participants={lead.participants ?? []}
           groups={groups}
           loadingGroups={groupsLoading}
           groupsError={groupsError}

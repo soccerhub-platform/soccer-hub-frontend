@@ -1,8 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { LeadChild, LeadDetails, QualifyLeadPayload } from "./types";
+import {
+  ExperienceLevel,
+  Gender,
+  LeadDetails,
+  LeadParticipant,
+  QualifyLeadPayload,
+  TimePreference,
+} from "./types";
 import { LeadApi } from "./lead.api";
-import { experienceLabel } from "./lead.format";
 import { buttonStyles } from "../../../shared/ui/buttonStyles";
 
 interface QualifyLeadModalProps {
@@ -13,13 +19,10 @@ interface QualifyLeadModalProps {
   onSuccess: () => Promise<void> | void;
 }
 
-type ChildGender = "MALE" | "FEMALE";
-type ChildExperience = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-type TimePreference = "MORNING" | "DAY" | "EVENING" | "";
-
-interface QualificationChildForm extends LeadChild {
-  gender: ChildGender;
-  experience: ChildExperience;
+interface QualificationParticipantForm extends LeadParticipant {
+  gender: Gender;
+  experience: ExperienceLevel;
+  birthDate: string;
 }
 
 const DAY_OPTIONS = [
@@ -32,16 +35,16 @@ const DAY_OPTIONS = [
   { value: "SUN", label: "Вс" },
 ] as const;
 
-const TIME_OPTIONS = [
+const TIME_OPTIONS: Array<{ value: TimePreference; label: string }> = [
   { value: "MORNING", label: "Утро" },
-  { value: "DAY", label: "День" },
+  { value: "AFTERNOON", label: "День" },
   { value: "EVENING", label: "Вечер" },
-] as const;
+];
 
-const EMPTY_CHILD = (): QualificationChildForm => ({
+const EMPTY_PARTICIPANT = (): QualificationParticipantForm => ({
   id: "",
-  childName: "",
-  childAge: 0,
+  fullName: "",
+  birthDate: "",
   gender: "MALE",
   experience: "BEGINNER",
 });
@@ -57,49 +60,48 @@ const cardClassName =
 
 const parsePreferredDays = (value?: string | null) => {
   if (!value) {
-    return { days: [] as string[], timePreference: "" as TimePreference };
+    return { days: [] as string[], timePreference: null as TimePreference | null };
   }
 
-  const normalized = value.toUpperCase();
-  const days = DAY_OPTIONS.filter((day) => normalized.includes(day.value)).map(
-    (day) => day.value
-  );
-
-  const timePreference = TIME_OPTIONS.find((option) =>
-    normalized.includes(option.value)
-  )?.value as TimePreference | undefined;
+  const parts = value
+    .split(";")
+    .map((part) => part.trim().toUpperCase())
+    .filter(Boolean);
+  const rawDays = parts[0]?.split(",").filter(Boolean) ?? [];
+  const rawTime = parts[1] ?? null;
+  const normalizedTime =
+    rawTime === "DAY" ? "AFTERNOON" : (rawTime as TimePreference | null);
 
   return {
-    days,
-    timePreference: timePreference ?? "",
+    days: rawDays,
+    timePreference:
+      normalizedTime && TIME_OPTIONS.some((option) => option.value === normalizedTime)
+        ? normalizedTime
+        : null,
   };
 };
 
-const formatPreferredDays = (days: string[], timePreference: TimePreference) => {
-  const dayPart = days.join(",");
-  return [dayPart, timePreference].filter(Boolean).join(";");
-};
-
-const buildChildren = (lead: LeadDetails | null): QualificationChildForm[] => {
-  if (lead?.children?.length) {
-    return lead.children.map((child) => ({
-      ...child,
-      gender: child.gender ?? "MALE",
-      experience: child.experience ?? "BEGINNER",
+const buildParticipants = (lead: LeadDetails | null): QualificationParticipantForm[] => {
+  if (lead?.participants?.length) {
+    return lead.participants.map((participant) => ({
+      ...participant,
+      birthDate: participant.birthDate ?? "",
+      gender: participant.gender ?? "MALE",
+      experience: participant.experience ?? "BEGINNER",
     }));
   }
 
-  if (lead?.qualificationData?.children?.length) {
-    return lead.qualificationData.children.map((child) => ({
+  if (lead?.qualificationData?.participants?.length) {
+    return lead.qualificationData.participants.map((participant) => ({
       id: "",
-      childName: child.childName,
-      childAge: child.childAge,
-      gender: child.gender ?? "MALE",
-      experience: child.experience ?? "BEGINNER",
+      fullName: participant.fullName,
+      birthDate: participant.birthDate ?? "",
+      gender: participant.gender ?? "MALE",
+      experience: participant.experience ?? "BEGINNER",
     }));
   }
 
-  return [EMPTY_CHILD()];
+  return [EMPTY_PARTICIPANT()];
 };
 
 const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
@@ -110,52 +112,61 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
   onSuccess,
 }) => {
   const preferredDaysState = parsePreferredDays(
-    initialLead?.qualificationData?.preferredDays
+    initialLead?.preferredDays ??
+      initialLead?.qualificationData?.preferredDays
   );
 
-  const [children, setChildren] = useState<QualificationChildForm[]>(
-    buildChildren(initialLead)
+  const [participants, setParticipants] = useState<QualificationParticipantForm[]>(
+    buildParticipants(initialLead)
   );
   const [selectedDays, setSelectedDays] = useState<string[]>(preferredDaysState.days);
-  const [timePreference, setTimePreference] = useState<TimePreference>(
-    preferredDaysState.timePreference
+  const [timePreference, setTimePreference] = useState<TimePreference | null>(
+    initialLead?.timePreference ??
+      initialLead?.qualificationData?.timePreference ??
+      preferredDaysState.timePreference
   );
-  const [experience, setExperience] = useState(
-    initialLead?.qualificationData?.experience ?? "BEGINNER"
+  const [experience, setExperience] = useState<ExperienceLevel>(
+    initialLead?.experience ??
+      (initialLead?.qualificationData?.experience as ExperienceLevel) ??
+      "BEGINNER"
   );
   const [notes, setNotes] = useState(
-    initialLead?.qualificationData?.notes ?? initialLead?.comment ?? ""
+    initialLead?.notes ??
+      initialLead?.qualificationData?.notes ??
+      initialLead?.comment ??
+      ""
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const leadType = initialLead?.leadType ?? "CHILDREN";
+  const participantLabel = leadType === "ADULT" ? "Игрок" : "Ребенок";
+  const participantsTitle = leadType === "ADULT" ? "Участники" : "Дети";
+
   const validation = useMemo(() => {
-    const childErrors = children.map((child) => ({
-      childName: child.childName.trim() ? "" : "Укажите имя ребенка",
-      childAge:
-        Number.isInteger(child.childAge) && child.childAge > 0 && child.childAge <= 25
-          ? ""
-          : "Укажите возраст от 1 до 25 лет",
+    const participantErrors = participants.map((participant) => ({
+      fullName: participant.fullName.trim() ? "" : `Укажите имя ${participantLabel.toLowerCase()}`,
+      birthDate: participant.birthDate ? "" : "Укажите дату рождения",
     }));
 
-    const hasValidChildren =
-      children.length > 0 &&
-        childErrors.every((child) => !child.childName && !child.childAge);
-
-    const isValid =
-      hasValidChildren && selectedDays.length > 0 && Boolean(timePreference);
+    const hasValidParticipants =
+      participants.length > 0 &&
+      participantErrors.every((participant) => !participant.fullName && !participant.birthDate);
 
     return {
-      childErrors,
-      isValid,
-      hasChildren: children.length > 0,
+      participantErrors,
+      isValid: hasValidParticipants && selectedDays.length > 0 && Boolean(timePreference),
+      hasParticipants: participants.length > 0,
     };
-  }, [children, selectedDays, timePreference]);
+  }, [participantLabel, participants, selectedDays, timePreference]);
 
-  const updateChild = (index: number, nextChild: QualificationChildForm) => {
-    setChildren((prev) =>
-      prev.map((child, childIndex) =>
-        childIndex === index ? nextChild : child
+  const updateParticipant = (
+    index: number,
+    nextParticipant: QualificationParticipantForm
+  ) => {
+    setParticipants((prev) =>
+      prev.map((participant, participantIndex) =>
+        participantIndex === index ? nextParticipant : participant
       )
     );
   };
@@ -167,17 +178,18 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!validation.isValid) return;
+    if (!validation.isValid || !timePreference) return;
 
     const payload: QualifyLeadPayload = {
-      children: children.map((child) => ({
-        childName: child.childName.trim(),
-        childAge: child.childAge,
-        gender: child.gender,
-        experience: child.experience,
+      participants: participants.map((participant) => ({
+        fullName: participant.fullName.trim(),
+        birthDate: participant.birthDate,
+        gender: participant.gender,
+        experience: participant.experience,
       })),
-      preferredDays: formatPreferredDays(selectedDays, timePreference),
-      experience: experience as "BEGINNER" | "INTERMEDIATE" | "ADVANCED",
+      preferredDays: selectedDays.join(","),
+      timePreference,
+      experience,
       notes: notes.trim(),
     };
 
@@ -209,7 +221,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                 Квалифицировать лид
               </h3>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                Заполните структуру семьи, предпочтения и уровень подготовки.
+                Заполните состав участников, предпочтения и уровень подготовки.
               </p>
             </div>
             <button
@@ -226,7 +238,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
           <div className="space-y-5">
             <section className={cardClassName}>
               <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
-                Родитель
+                Контакт
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
@@ -234,7 +246,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                     Имя
                   </div>
                   <div className="mt-1 text-sm font-semibold text-slate-900">
-                    {initialLead?.parentName || "Не указано"}
+                    {initialLead?.primaryContact?.fullName || "Не указано"}
                   </div>
                 </div>
                 <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
@@ -242,7 +254,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                     Телефон
                   </div>
                   <div className="mt-1 text-sm font-semibold text-slate-900">
-                    {initialLead?.phone || "Не указано"}
+                    {initialLead?.primaryContact?.phone || "Не указано"}
                   </div>
                 </div>
               </div>
@@ -252,37 +264,37 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
               <div className="mb-4 flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
-                    Дети
+                    {participantsTitle}
                   </div>
                   <h4 className="mt-1 text-base font-semibold text-slate-900">
-                    Добавьте детей для квалификации
+                    Добавьте участников для квалификации
                   </h4>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setChildren((prev) => [...prev, EMPTY_CHILD()])}
+                  onClick={() => setParticipants((prev) => [...prev, EMPTY_PARTICIPANT()])}
                   className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-900 transition hover:bg-cyan-100"
                 >
                   <PlusIcon className="h-3.5 w-3.5" />
-                  Добавить ребенка
+                  Добавить {participantLabel.toLowerCase()}
                 </button>
               </div>
 
               <div className="space-y-4">
-                {children.map((child, index) => (
+                {participants.map((participant, index) => (
                   <div
-                    key={`child-${index}`}
+                    key={`participant-${index}`}
                     className="rounded-3xl border border-stone-200 bg-[linear-gradient(180deg,#fafaf9_0%,#f8fafc_100%)] p-4"
                   >
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div className="text-sm font-semibold text-slate-900">
-                        Ребенок {index + 1}
+                        {participantLabel} {index + 1}
                       </div>
                       <button
                         type="button"
                         onClick={() =>
-                          setChildren((prev) =>
-                            prev.filter((_, childIndex) => childIndex !== index)
+                          setParticipants((prev) =>
+                            prev.filter((_, participantIndex) => participantIndex !== index)
                           )
                         }
                         className={buttonStyles("softDanger", "sm", "rounded-full")}
@@ -295,57 +307,54 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <label className="space-y-1.5 text-sm text-slate-600">
                         <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Имя ребенка
+                          Имя {participantLabel.toLowerCase()}
                         </span>
                         <input
                           type="text"
-                          value={child.childName}
+                          value={participant.fullName}
                           onChange={(event) =>
-                            updateChild(index, {
-                              ...child,
-                              childName: event.target.value,
+                            updateParticipant(index, {
+                              ...participant,
+                              fullName: event.target.value,
                             })
                           }
                           maxLength={MAX_NAME_LENGTH}
                           autoComplete="off"
                           className={`${fieldClassName} ${
-                            validation.childErrors[index]?.childName
+                            validation.participantErrors[index]?.fullName
                               ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
                               : ""
                           }`}
                         />
-                        {validation.childErrors[index]?.childName ? (
+                        {validation.participantErrors[index]?.fullName ? (
                           <p className="text-xs text-rose-600">
-                            {validation.childErrors[index].childName}
+                            {validation.participantErrors[index].fullName}
                           </p>
                         ) : null}
                       </label>
 
                       <label className="space-y-1.5 text-sm text-slate-600">
                         <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Возраст
+                          Дата рождения
                         </span>
                         <input
-                          type="number"
-                          min={1}
-                          max={25}
-                          value={child.childAge || ""}
+                          type="date"
+                          value={participant.birthDate}
                           onChange={(event) =>
-                            updateChild(index, {
-                              ...child,
-                              childAge: event.target.value ? Number(event.target.value) : 0,
+                            updateParticipant(index, {
+                              ...participant,
+                              birthDate: event.target.value,
                             })
                           }
-                          inputMode="numeric"
                           className={`${fieldClassName} ${
-                            validation.childErrors[index]?.childAge
+                            validation.participantErrors[index]?.birthDate
                               ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
                               : ""
                           }`}
                         />
-                        {validation.childErrors[index]?.childAge ? (
+                        {validation.participantErrors[index]?.birthDate ? (
                           <p className="text-xs text-rose-600">
-                            {validation.childErrors[index].childAge}
+                            {validation.participantErrors[index].birthDate}
                           </p>
                         ) : null}
                       </label>
@@ -355,37 +364,37 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                           Пол
                         </span>
                         <select
-                          value={child.gender}
+                          value={participant.gender}
                           onChange={(event) =>
-                            updateChild(index, {
-                              ...child,
-                              gender: event.target.value as ChildGender,
+                            updateParticipant(index, {
+                              ...participant,
+                              gender: event.target.value as Gender,
                             })
                           }
                           className={fieldClassName}
                         >
-                          <option value="MALE">Мальчик</option>
-                          <option value="FEMALE">Девочка</option>
+                          <option value="MALE">{leadType === "ADULT" ? "Мужчина" : "Мальчик"}</option>
+                          <option value="FEMALE">{leadType === "ADULT" ? "Женщина" : "Девочка"}</option>
                         </select>
                       </label>
 
                       <label className="space-y-1.5 text-sm text-slate-600">
                         <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Уровень ребенка
+                          Уровень
                         </span>
                         <select
-                          value={child.experience}
+                          value={participant.experience}
                           onChange={(event) =>
-                            updateChild(index, {
-                              ...child,
-                              experience: event.target.value as ChildExperience,
+                            updateParticipant(index, {
+                              ...participant,
+                              experience: event.target.value as ExperienceLevel,
                             })
                           }
                           className={fieldClassName}
                         >
-                          <option value="BEGINNER">{experienceLabel("BEGINNER")}</option>
-                          <option value="INTERMEDIATE">{experienceLabel("INTERMEDIATE")} уровень</option>
-                          <option value="ADVANCED">{experienceLabel("ADVANCED")}</option>
+                          <option value="BEGINNER">Начинающий</option>
+                          <option value="INTERMEDIATE">Средний уровень</option>
+                          <option value="ADVANCED">Продвинутый</option>
                         </select>
                       </label>
                     </div>
@@ -393,9 +402,9 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                 ))}
               </div>
 
-              {!validation.hasChildren ? (
+              {!validation.hasParticipants ? (
                 <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  Добавьте хотя бы одного ребенка.
+                  Добавьте хотя бы одного участника.
                 </div>
               ) : null}
             </section>
@@ -481,7 +490,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                   </span>
                   <select
                     value={experience}
-                    onChange={(event) => setExperience(event.target.value)}
+                    onChange={(event) => setExperience(event.target.value as ExperienceLevel)}
                     className={fieldClassName}
                   >
                     <option value="BEGINNER">Начинающий</option>
@@ -522,7 +531,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
             <div className="text-sm text-slate-500">
               {validation.isValid
                 ? "Форма заполнена корректно"
-                : "Заполните детей и выберите дни и время"}
+                : "Заполните участников и выберите дни и время"}
             </div>
             <div className="flex items-center justify-end gap-3">
               <button

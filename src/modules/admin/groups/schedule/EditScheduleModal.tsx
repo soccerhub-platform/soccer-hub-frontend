@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import { getApiErrorMessage } from "../../../../shared/api";
 import {
   DayScheduleSlot,
+  ScheduleValidationConflict,
+  ScheduleValidationResult,
   UpdateScheduleBatchCommand,
   ScheduleType,
   DayOfWeek,
@@ -21,7 +24,7 @@ interface Props {
   startDate: string;
   endDate: string;
   onClose: () => void;
-  onSave: (payload: UpdateScheduleBatchCommand) => Promise<void>;
+  onSave: (payload: UpdateScheduleBatchCommand) => Promise<ScheduleValidationResult>;
 }
 
 type EditableSlot = DayScheduleSlot & { enabled: boolean };
@@ -42,6 +45,7 @@ const EditScheduleModal: React.FC<Props> = ({
   const [to, setTo] = useState(endDate);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [conflicts, setConflicts] = useState<ScheduleValidationConflict[]>([]);
 
   const [slots, setSlots] = useState<EditableSlot[]>(
     DAYS.map((d) => {
@@ -56,6 +60,9 @@ const EditScheduleModal: React.FC<Props> = ({
   );
 
   const enabledSlots = slots.filter((s) => s.enabled);
+  const hasCoachConflict =
+    conflicts.some((conflict) => conflict.code === "COACH_SCHEDULE_CONFLICT") ||
+    (apiError?.toLowerCase().includes("конфликт расписания") ?? false);
 
   const errors = useMemo(() => {
     const e: string[] = [];
@@ -76,9 +83,10 @@ const EditScheduleModal: React.FC<Props> = ({
 
     setSaving(true);
     setApiError(null);
+    setConflicts([]);
 
     try {
-      await onSave({
+      const result = await onSave({
         coachId,
         type,
         startDate: from,
@@ -89,16 +97,42 @@ const EditScheduleModal: React.FC<Props> = ({
           endTime: slot.endTime,
         })),
       });
+      if (!result.valid) {
+        setConflicts(result.conflicts ?? []);
+        setApiError("Обнаружены конфликты расписания. Исправьте их перед сохранением.");
+        return;
+      }
       onClose();
     } catch (e: unknown) {
-      try {
-        const parsed = JSON.parse(e instanceof Error ? e.message : "");
-        setApiError(parsed.message || "Ошибка сохранения");
-      } catch {
-        setApiError("Ошибка сохранения");
-      }
+      setApiError(getApiErrorMessage(e, "Не удалось сохранить расписание"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const formatTimeRange = (start?: string | null, end?: string | null) => {
+    if (!start && !end) return null;
+    const shortStart = start?.slice(0, 5) ?? "";
+    const shortEnd = end?.slice(0, 5) ?? "";
+    return [shortStart, shortEnd].filter(Boolean).join(" - ");
+  };
+
+  const conflictTitle = (conflict: ScheduleValidationConflict) => {
+    switch (conflict.code) {
+      case "COACH_SCHEDULE_CONFLICT":
+        return "Конфликт тренера";
+      case "GROUP_SCHEDULE_CONFLICT":
+        return "Конфликт группы";
+      case "OVERLAPPING_INPUT_SLOTS":
+        return "Пересечение внутри формы";
+      case "INVALID_DATE_RANGE":
+        return "Некорректный диапазон дат";
+      case "INVALID_TIME_RANGE":
+        return "Некорректный диапазон времени";
+      case "EMPTY_SLOTS":
+        return "Не выбраны слоты";
+      default:
+        return conflict.code;
     }
   };
 
@@ -122,7 +156,9 @@ const EditScheduleModal: React.FC<Props> = ({
             <select
               value={coachId}
               onChange={(e) => setCoachId(e.target.value)}
-              className="border rounded-xl px-3 py-2 col-span-2"
+              className={`border rounded-xl px-3 py-2 col-span-2 ${
+                hasCoachConflict ? "border-rose-300 bg-rose-50" : ""
+              }`}
             >
               <option value="">Тренер</option>
               {coaches.map((c) => (
@@ -136,13 +172,17 @@ const EditScheduleModal: React.FC<Props> = ({
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="border rounded-xl px-3 py-2"
+              className={`border rounded-xl px-3 py-2 ${
+                hasCoachConflict ? "border-rose-300 bg-rose-50" : ""
+              }`}
             />
             <input
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="border rounded-xl px-3 py-2"
+              className={`border rounded-xl px-3 py-2 ${
+                hasCoachConflict ? "border-rose-300 bg-rose-50" : ""
+              }`}
             />
 
             <select
@@ -226,6 +266,61 @@ const EditScheduleModal: React.FC<Props> = ({
               {apiError}
             </div>
           )}
+
+          {conflicts.length > 0 ? (
+            <div className="space-y-2">
+              {conflicts.map((conflict, index) => (
+                <div
+                  key={`${conflict.code}-${conflict.conflictingScheduleId ?? index}`}
+                  className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-900"
+                >
+                  <div className="font-semibold">{conflictTitle(conflict)}</div>
+                  {conflict.message ? (
+                    <div className="mt-1 text-xs text-rose-800">{conflict.message}</div>
+                  ) : null}
+                  {conflict.dayOfWeek || conflict.startTime || conflict.endTime ? (
+                    <div className="mt-1 text-xs text-rose-800">
+                      Слот: {[conflict.dayOfWeek, formatTimeRange(conflict.startTime, conflict.endTime)]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </div>
+                  ) : null}
+                  {conflict.overlapStart || conflict.overlapEnd ? (
+                    <div className="mt-1 text-xs text-rose-800">
+                      Пересечение: {formatTimeRange(conflict.overlapStart, conflict.overlapEnd)}
+                    </div>
+                  ) : null}
+                  {conflict.conflictingGroupName || conflict.conflictingGroupId ? (
+                    <div className="mt-1 text-xs text-rose-800">
+                      Другая группа: {conflict.conflictingGroupName || conflict.conflictingGroupId}
+                    </div>
+                  ) : null}
+                  {conflict.conflictingPeriodStart || conflict.conflictingPeriodEnd ? (
+                    <div className="mt-1 text-xs text-rose-800">
+                      Период конфликта: {[conflict.conflictingPeriodStart, conflict.conflictingPeriodEnd]
+                        .filter(Boolean)
+                        .join(" - ")}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {hasCoachConflict ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
+              У этого тренера уже есть занятие в выбранный период. Попробуйте:
+              <div className="mt-2 text-xs text-amber-800">
+                1. Выбрать другого тренера
+              </div>
+              <div className="text-xs text-amber-800">
+                2. Изменить день недели или время занятия
+              </div>
+              <div className="text-xs text-amber-800">
+                3. Сдвинуть даты периода, если конфликт только в части диапазона
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* FOOTER */}

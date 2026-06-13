@@ -9,6 +9,8 @@ interface Props {
   groupId: string;
   branchId: string;
   assignedCoachIds: string[];
+  preferredRole?: "MAIN" | "ASSISTANT";
+  lockRole?: boolean;
   onClose: () => void;
   onAssigned: () => void;
 }
@@ -22,6 +24,8 @@ const AssignCoachModal: React.FC<Props> = ({
   groupId,
   branchId,
   assignedCoachIds,
+  preferredRole = "ASSISTANT",
+  lockRole = false,
   onClose,
   onAssigned,
 }) => {
@@ -57,7 +61,7 @@ const AssignCoachModal: React.FC<Props> = ({
       toast.error("Нет авторизации");
       return;
     }
-    const role = roles[coachId] ?? "ASSISTANT";
+    const role = roles[coachId] ?? preferredRole;
 
     setAssigningId(coachId);
     try {
@@ -81,7 +85,18 @@ const AssignCoachModal: React.FC<Props> = ({
       <div className="bg-white w-full max-w-lg rounded-2xl p-6">
         {/* HEADER */}
         <div className="flex justify-between mb-4">
-          <h3 className="font-semibold">Назначить тренера</h3>
+          <div>
+            <h3 className="font-semibold">
+              {lockRole && preferredRole === "MAIN"
+                ? "Назначить главного тренера"
+                : "Назначить тренера"}
+            </h3>
+            {lockRole && preferredRole === "MAIN" ? (
+              <p className="mt-1 text-xs text-slate-500">
+                Роль будет назначена автоматически как `Главный тренер`.
+              </p>
+            ) : null}
+          </div>
           <button onClick={onClose}>
             <XMarkIcon className="h-5 w-5" />
           </button>
@@ -106,9 +121,9 @@ const AssignCoachModal: React.FC<Props> = ({
                   </div>
                 </div>
 
-                {!assigned && (
+                {!assigned && !lockRole && (
                   <select
-                    value={roles[coach.id] ?? "ASSISTANT"}
+                    value={roles[coach.id] ?? preferredRole}
                     onChange={(e) =>
                       setRoles((prev) => ({
                         ...prev,
@@ -134,7 +149,11 @@ const AssignCoachModal: React.FC<Props> = ({
                     }
                   `}
                 >
-                  {assigned ? "Уже в группе" : "Назначить"}
+                  {assigned
+                    ? "Уже в группе"
+                    : lockRole && preferredRole === "MAIN"
+                    ? "Назначить главным"
+                    : "Назначить"}
                 </button>
               </div>
             );

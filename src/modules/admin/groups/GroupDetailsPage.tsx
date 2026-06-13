@@ -127,10 +127,17 @@ const GroupDetailsPage: React.FC = () => {
     }
   };
 
-  const openTab = (tab: "members" | "coaches" | "schedule") => {
+  const openTab = (
+    tab: "members" | "coaches" | "schedule",
+    action?: string
+  ) => {
+    const search = new URLSearchParams({ tab });
+    if (action) {
+      search.set("action", action);
+    }
     navigate({
       pathname: `/admin/groups/${groupId}`,
-      search: `?tab=${tab}`,
+      search: `?${search.toString()}`,
     });
   };
 
@@ -139,8 +146,8 @@ const GroupDetailsPage: React.FC = () => {
       case "ASSIGN_MAIN_COACH":
         return {
           label: "Назначить главного тренера",
-          hint: "Откроется вкладка тренеров, где можно выдать роль MAIN.",
-          onClick: () => openTab("coaches"),
+          hint: "Откроется окно назначения тренера с ролью MAIN по умолчанию.",
+          onClick: () => openTab("coaches", "assign-main"),
         };
       case "CHECK_SCHEDULE":
         return {
@@ -313,7 +320,7 @@ const GroupDetailsPage: React.FC = () => {
       ) : null}
 
       {/* TABS */}
-      <GroupTabs groupId={group.groupId} />
+      <GroupTabs groupId={group.groupId} branchId={group.branchId} />
     </PageShell>
   );
 };

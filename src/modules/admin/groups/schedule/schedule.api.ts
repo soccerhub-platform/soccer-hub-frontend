@@ -1,6 +1,8 @@
 import {
   GroupScheduleDto,
   CreateScheduleBatchCommand,
+  GroupScheduleValidationCommand,
+  ScheduleValidationResult,
   UpdateScheduleBatchCommand,
 } from "./schedule.types";
 import { apiClient } from "../../../../shared/api";
@@ -24,6 +26,17 @@ export const ScheduleApi = {
       ...(status ? { status } : {}),
     });
     return apiClient.get<GroupScheduleDto[]>(`/organization/schedules?${qs.toString()}`);
+  },
+
+  validateGroupSchedule(
+    groupId: string,
+    payload: GroupScheduleValidationCommand,
+    _token: string
+  ) {
+    return apiClient.post<ScheduleValidationResult>(
+      `/admin/groups/${groupId}/schedule/validate`,
+      payload
+    );
   },
 
   createGroupSchedule(groupId: string, payload: CreateScheduleBatchCommand, _token: string) {

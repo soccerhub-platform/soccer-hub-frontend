@@ -51,6 +51,8 @@ export const getApiErrorMessage = (error: unknown, fallback = "Не удалос
         return "Текущий пароль указан неверно";
       case "Validation failed":
         return "Проверьте заполнение полей";
+      case "Coach has schedule conflict":
+        return "У тренера конфликт расписания на выбранные день и время";
       case "Произошла ошибка":
         return fallback;
       default:

@@ -4,7 +4,7 @@ import { Lead, LeadActionType, LeadLossReason } from "./types";
 
 interface LeadLossModalProps {
   isOpen: boolean;
-  lead: Pick<Lead, "parentName" | "phone"> | null;
+  lead: Pick<Lead, "primaryContact"> | null;
   event: LeadActionType | "LOST" | "REJECT" | "NO_SHOW";
   reasons: LeadLossReason[];
   loadingReasons: boolean;
@@ -34,7 +34,7 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
     setLostReasonCode("");
     setLostComment("");
     setSubmitAttempted(false);
-  }, [isOpen, event, lead?.parentName, lead?.phone]);
+  }, [isOpen, event, lead?.primaryContact?.fullName, lead?.primaryContact?.phone]);
 
   const isOther = lostReasonCode === "OTHER";
   const fieldErrors = useMemo(() => {
@@ -63,7 +63,7 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
   return (
     <ModalShell
       title={title}
-      description={`Укажите, почему лид не дошел до оплаты.${lead ? ` ${lead.parentName || "Лид"}${lead.phone ? ` · ${lead.phone}` : ""}` : ""}`}
+      description={`Укажите, почему лид не дошел до оплаты.${lead ? ` ${lead.primaryContact?.fullName || "Лид"}${lead.primaryContact?.phone ? ` · ${lead.primaryContact.phone}` : ""}` : ""}`}
       eyebrow="Причина потери"
       onClose={onClose}
       closeDisabled={submitting}

@@ -29,8 +29,8 @@ const LeadCard: React.FC<LeadCardProps> = ({
   loadingActionType = null,
 }) => {
   const actions = lead.actions ?? [];
-  const primaryChild = lead.children[0];
-  const extraChildren = Math.max(0, lead.children.length - 1);
+  const primaryParticipant = lead.participants[0];
+  const extraParticipants = Math.max(0, lead.participants.length - 1);
   const trialPreview = formatTrialPreview(
     lead.trial?.trialDate,
     lead.trial?.startTime
@@ -50,11 +50,11 @@ const LeadCard: React.FC<LeadCardProps> = ({
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-semibold text-slate-900">
-              {lead.parentName}
+              {lead.primaryContact.fullName}
             </h3>
             <div className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
               <PhoneIcon className="h-3.5 w-3.5 shrink-0" />
-              <span className="min-w-0 truncate">{lead.phone}</span>
+              <span className="min-w-0 truncate">{lead.primaryContact.phone}</span>
             </div>
           </div>
           <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-slate-600">
@@ -66,20 +66,20 @@ const LeadCard: React.FC<LeadCardProps> = ({
           <div className="flex min-w-0 items-start gap-2 text-xs text-slate-600">
             <UserIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
             <div className="min-w-0">
-              {primaryChild ? (
+              {primaryParticipant ? (
                 <div className="space-y-1">
                   <div className="break-words leading-4">
-                    {primaryChild.childName} ({primaryChild.childAge})
+                    {primaryParticipant.fullName}
                   </div>
-                  {extraChildren > 0 ? (
+                  {extraParticipants > 0 ? (
                     <div className="text-[11px] font-medium text-slate-400">
-                      Еще детей: +{extraChildren}
+                      Еще участников: +{extraParticipants}
                     </div>
                   ) : null}
                 </div>
               ) : (
                 <div className="leading-4 text-slate-400">
-                  Нет данных о ребенке
+                  Нет данных об участнике
                 </div>
               )}
             </div>

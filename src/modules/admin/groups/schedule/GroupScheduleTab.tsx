@@ -4,7 +4,12 @@ import { ScheduleApi } from "./schedule.api";
 import { groupSchedulesToBatches } from "./schedule.batch";
 import ScheduleBatchCard from "./ScheduleBatchCard";
 import EditScheduleModal from "./EditScheduleModal";
-import { GroupScheduleDto, ScheduleBatch } from "./schedule.types";
+import {
+  GroupScheduleDto,
+  ScheduleBatch,
+  ScheduleValidationResult,
+  UpdateScheduleBatchCommand,
+} from "./schedule.types";
 import {
   GroupApi,
   GroupCoachApiModel,
@@ -104,6 +109,37 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
       dateStyle: "medium",
       timeStyle: "short",
     }).format(date);
+  };
+
+  const validateAndSaveBatch = async (
+    payload: UpdateScheduleBatchCommand
+  ): Promise<ScheduleValidationResult> => {
+    const validationPayload = {
+      ...payload,
+      ...(editingBatch && editingBatch.key !== "new"
+        ? { excludeScheduleIds: editingBatch.schedules.map((schedule) => schedule.scheduleId) }
+        : {}),
+    };
+
+    const validation = await ScheduleApi.validateGroupSchedule(
+      groupId,
+      validationPayload,
+      token
+    );
+
+    if (!validation.valid) {
+      return validation;
+    }
+
+    if (editingBatch?.key === "new") {
+      await ScheduleApi.createGroupSchedule(groupId, payload, token);
+    } else {
+      await ScheduleApi.updateGroupSchedule(groupId, payload, token);
+    }
+    await reload();
+    setEditingBatch(null);
+
+    return validation;
   };
 
   return (
@@ -246,15 +282,7 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
           startDate={editingBatch.startDate}
           endDate={editingBatch.endDate}
           onClose={() => setEditingBatch(null)}
-          onSave={async (payload) => {
-            if (editingBatch.key === "new") {
-              await ScheduleApi.createGroupSchedule(groupId, payload, token);
-            } else {
-              await ScheduleApi.updateGroupSchedule(groupId, payload, token);
-            }
-            await reload();
-            setEditingBatch(null);
-          }}
+          onSave={validateAndSaveBatch}
         />
       )}
     </div>

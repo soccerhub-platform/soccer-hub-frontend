@@ -45,14 +45,17 @@ const GroupsTable: React.FC<Props> = ({ groups }) => {
                   <div className="h-9 w-9 rounded-full bg-admin-100 flex items-center justify-center">
                     <UserGroupIcon className="h-5 w-5 text-admin-700" />
                   </div>
-                  <span className="font-medium text-gray-800">
-                    {g.name}
-                  </span>
+                  <div>
+                    <div className="font-medium text-gray-800">{g.name}</div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {g.audienceType === "ADULT" ? "Взрослая группа" : "Детская группа"}
+                    </div>
+                  </div>
                 </div>
               </td>
 
               <td className="px-5 py-4 text-sm text-gray-700">
-                {g.ageFrom}–{g.ageTo}
+                {g.audienceType === "ADULT" ? "Без детского диапазона" : `${g.ageFrom}–${g.ageTo}`}
               </td>
 
               <td className="px-5 py-4 text-sm text-gray-700">

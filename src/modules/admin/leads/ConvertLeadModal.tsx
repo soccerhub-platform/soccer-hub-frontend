@@ -1,21 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Button, ModalShell } from "../../../shared/ui";
 import { GroupApiModel } from "../groups/group.api";
-import { LeadChild } from "./types";
+import { LeadParticipant } from "./types";
+import { formatBirthDate } from "./lead.format";
 
 interface ConvertLeadModalProps {
   isOpen: boolean;
   leadName: string;
-  children: LeadChild[];
+  participants: LeadParticipant[];
   groups: GroupApiModel[];
   loadingGroups: boolean;
   groupsError: string | null;
   submitting: boolean;
   onClose: () => void;
   onSubmit: (payload: {
-    childId: string;
+    participantId: string;
     groupId: string;
-    childBirthDate: string;
+    participantBirthDate: string;
     contractStartDate: string;
     contractEndDate?: string | null;
     amount?: number | null;
@@ -29,24 +30,18 @@ const toIsoDate = (value: Date) => {
   return `${y}-${m}-${d}`;
 };
 
-const estimateBirthDate = (age?: number) => {
-  if (!age || age <= 0) return "";
-  const now = new Date();
-  return `${now.getFullYear() - age}-01-01`;
-};
-
-const childDisplayLabel = (child: LeadChild) => {
-  const parts = [child.childName];
-  if (child.childAge) parts.push(`${child.childAge} лет`);
-  if (child.gender === "MALE") parts.push("мальчик");
-  if (child.gender === "FEMALE") parts.push("девочка");
-  return parts.filter(Boolean).join(", ");
+const participantDisplayLabel = (participant: LeadParticipant) => {
+  const parts = [participant.fullName];
+  if (participant.birthDate) {
+    parts.push(formatBirthDate(participant.birthDate));
+  }
+  return parts.filter(Boolean).join(" · ");
 };
 
 const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
   isOpen,
   leadName,
-  children,
+  participants,
   groups,
   loadingGroups,
   groupsError,
@@ -55,10 +50,12 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
   onSubmit,
 }) => {
   const today = useMemo(() => toIsoDate(new Date()), []);
-  const [childId, setChildId] = useState(children.length === 1 ? children[0].id : "");
+  const [participantId, setParticipantId] = useState(
+    participants.length === 1 ? participants[0].id : ""
+  );
   const [groupId, setGroupId] = useState(groups.length === 1 ? groups[0].groupId : "");
-  const [childBirthDate, setChildBirthDate] = useState(
-    children.length === 1 ? estimateBirthDate(children[0].childAge) : ""
+  const [participantBirthDate, setParticipantBirthDate] = useState(
+    participants.length === 1 ? participants[0].birthDate ?? "" : ""
   );
   const [contractStartDate, setContractStartDate] = useState(today);
   const [contractEndDate, setContractEndDate] = useState("");
@@ -67,14 +64,14 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    setChildId(children.length === 1 ? children[0].id : "");
+    setParticipantId(participants.length === 1 ? participants[0].id : "");
     setGroupId(groups.length === 1 ? groups[0].groupId : "");
-    setChildBirthDate(children.length === 1 ? estimateBirthDate(children[0].childAge) : "");
+    setParticipantBirthDate(participants.length === 1 ? participants[0].birthDate ?? "" : "");
     setContractStartDate(today);
     setContractEndDate("");
     setAmount("");
     setSubmitAttempted(false);
-  }, [children, groups, isOpen, today]);
+  }, [participants, groups, isOpen, today]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -83,15 +80,15 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
     }
   }, [groupId, groups, isOpen]);
 
-  const selectedChild = useMemo(
-    () => children.find((child) => child.id === childId) ?? null,
-    [children, childId]
+  const selectedParticipant = useMemo(
+    () => participants.find((participant) => participant.id === participantId) ?? null,
+    [participants, participantId]
   );
 
   const fieldErrors = useMemo(() => {
-    const childError = childId ? "" : "Выберите ребенка";
+    const participantError = participantId ? "" : "Выберите участника";
     const groupError = groupId ? "" : "Выберите группу";
-    const birthDateError = childBirthDate ? "" : "Укажите дату рождения ребенка";
+    const birthDateError = participantBirthDate ? "" : "Укажите дату рождения участника";
     const startDateError = contractStartDate ? "" : "Укажите дату начала договора";
     const endDateError =
       contractEndDate && contractStartDate && contractEndDate < contractStartDate
@@ -104,14 +101,21 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
         : "";
 
     return {
-      childError,
+      participantError,
       groupError,
       birthDateError,
       startDateError,
       endDateError,
       amountError,
     };
-  }, [amount, childBirthDate, childId, contractEndDate, contractStartDate, groupId]);
+  }, [
+    amount,
+    participantBirthDate,
+    participantId,
+    contractEndDate,
+    contractStartDate,
+    groupId,
+  ]);
 
   const hasFieldErrors = Object.values(fieldErrors).some(Boolean);
   const submitDisabled = submitting || loadingGroups || Boolean(groupsError) || hasFieldErrors;
@@ -139,9 +143,9 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
               setSubmitAttempted(true);
               if (submitDisabled) return;
               await onSubmit({
-                childId,
+                participantId,
                 groupId,
-                childBirthDate,
+                participantBirthDate,
                 contractStartDate,
                 contractEndDate: contractEndDate || null,
                 amount: amount.trim().length > 0 ? Number(amount) : null,
@@ -153,138 +157,149 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
         </div>
       }
     >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Ребенок <span className="text-rose-500">*</span>
-            </span>
-            <select
-              value={childId}
-              onChange={(event) => {
-                const nextId = event.target.value;
-                setChildId(nextId);
-                const child = children.find((item) => item.id === nextId);
-                if (child && !childBirthDate) {
-                  setChildBirthDate(estimateBirthDate(child.childAge));
-                }
-              }}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-              disabled={submitting}
-            >
-              <option value="">Выберите ребенка</option>
-              {children.map((child) => (
-                <option key={child.id} value={child.id}>
-                  {childDisplayLabel(child)}
-                </option>
-              ))}
-            </select>
-            {submitAttempted && fieldErrors.childError ? (
-              <p className="text-xs text-rose-600">{fieldErrors.childError}</p>
-            ) : null}
-          </label>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <label className="space-y-1 text-sm text-slate-600">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Участник <span className="text-rose-500">*</span>
+          </span>
+          <select
+            value={participantId}
+            onChange={(event) => {
+              const nextId = event.target.value;
+              setParticipantId(nextId);
+              const participant = participants.find((item) => item.id === nextId);
+              if (participant) {
+                setParticipantBirthDate(participant.birthDate ?? "");
+              }
+            }}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            disabled={submitting}
+          >
+            <option value="">Выберите участника</option>
+            {participants.map((participant) => (
+              <option key={participant.id} value={participant.id}>
+                {participantDisplayLabel(participant)}
+              </option>
+            ))}
+          </select>
+          {submitAttempted && fieldErrors.participantError ? (
+            <p className="text-xs text-rose-600">{fieldErrors.participantError}</p>
+          ) : null}
+        </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Группа <span className="text-rose-500">*</span>
-            </span>
-            <select
-              value={groupId}
-              onChange={(event) => setGroupId(event.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-              disabled={loadingGroups || submitting}
-            >
-              <option value="">Выберите группу</option>
-              {groups.map((group) => (
-                <option key={group.groupId} value={group.groupId}>
-                  {[group.name, `${group.ageFrom}-${group.ageTo} лет`, group.level]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </option>
-              ))}
-            </select>
-            {!loadingGroups && !groupsError && groups.length === 0 ? (
-              <p className="text-xs text-amber-600">No groups found for this branch</p>
-            ) : null}
-            {groupsError ? (
-              <p className="text-xs text-rose-600">Не удалось загрузить группы</p>
-            ) : null}
-            {submitAttempted && fieldErrors.groupError ? (
-              <p className="text-xs text-rose-600">{fieldErrors.groupError}</p>
-            ) : null}
-          </label>
+        <label className="space-y-1 text-sm text-slate-600">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Группа <span className="text-rose-500">*</span>
+          </span>
+          <select
+            value={groupId}
+            onChange={(event) => setGroupId(event.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            disabled={loadingGroups || submitting}
+          >
+            <option value="">Выберите группу</option>
+            {groups.map((group) => (
+              <option key={group.groupId} value={group.groupId}>
+                {[
+                  group.name,
+                  group.audienceType === "ADULT"
+                    ? "взрослая группа"
+                    : `${group.ageFrom}-${group.ageTo} лет`,
+                  group.level,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </option>
+            ))}
+          </select>
+          {!loadingGroups && !groupsError && groups.length === 0 ? (
+            <p className="text-xs text-amber-600">Нет доступных групп для этого филиала</p>
+          ) : null}
+          {groupsError ? (
+            <p className="text-xs text-rose-600">Не удалось загрузить группы</p>
+          ) : null}
+          {submitAttempted && fieldErrors.groupError ? (
+            <p className="text-xs text-rose-600">{fieldErrors.groupError}</p>
+          ) : null}
+        </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Дата рождения <span className="text-rose-500">*</span>
-            </span>
-            <input
-              type="date"
-              value={childBirthDate}
-              onChange={(event) => setChildBirthDate(event.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-              disabled={submitting}
-            />
-            {selectedChild?.childAge ? (
-              <p className="text-xs text-slate-400">
-                Возраст в лиде: {selectedChild.childAge} лет
-              </p>
-            ) : null}
-            {submitAttempted && fieldErrors.birthDateError ? (
-              <p className="text-xs text-rose-600">{fieldErrors.birthDateError}</p>
-            ) : null}
-          </label>
+        <label className="space-y-1 text-sm text-slate-600">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Дата рождения <span className="text-rose-500">*</span>
+          </span>
+          <input
+            type="date"
+            value={participantBirthDate}
+            onChange={(event) => setParticipantBirthDate(event.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            disabled={submitting}
+          />
+          {submitAttempted && fieldErrors.birthDateError ? (
+            <p className="text-xs text-rose-600">{fieldErrors.birthDateError}</p>
+          ) : null}
+        </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Дата начала договора <span className="text-rose-500">*</span>
-            </span>
-            <input
-              type="date"
-              value={contractStartDate}
-              onChange={(event) => setContractStartDate(event.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-              disabled={submitting}
-            />
-            {submitAttempted && fieldErrors.startDateError ? (
-              <p className="text-xs text-rose-600">{fieldErrors.startDateError}</p>
-            ) : null}
-          </label>
+        <label className="space-y-1 text-sm text-slate-600">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Дата начала договора <span className="text-rose-500">*</span>
+          </span>
+          <input
+            type="date"
+            value={contractStartDate}
+            onChange={(event) => setContractStartDate(event.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            disabled={submitting}
+          />
+          {submitAttempted && fieldErrors.startDateError ? (
+            <p className="text-xs text-rose-600">{fieldErrors.startDateError}</p>
+          ) : null}
+        </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Дата окончания
-            </span>
-            <input
-              type="date"
-              value={contractEndDate}
-              onChange={(event) => setContractEndDate(event.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-              disabled={submitting}
-            />
-            {submitAttempted && fieldErrors.endDateError ? (
-              <p className="text-xs text-rose-600">{fieldErrors.endDateError}</p>
-            ) : null}
-          </label>
+        <label className="space-y-1 text-sm text-slate-600">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Дата окончания
+          </span>
+          <input
+            type="date"
+            value={contractEndDate}
+            onChange={(event) => setContractEndDate(event.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            disabled={submitting}
+          />
+          {submitAttempted && fieldErrors.endDateError ? (
+            <p className="text-xs text-rose-600">{fieldErrors.endDateError}</p>
+          ) : null}
+        </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Сумма
-            </span>
-            <input
-              type="number"
-              min={0}
-              step={100}
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              placeholder="Например, 30000"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-              disabled={submitting}
-            />
-            {submitAttempted && fieldErrors.amountError ? (
-              <p className="text-xs text-rose-600">{fieldErrors.amountError}</p>
-            ) : null}
-          </label>
-        </div>
+        <label className="space-y-1 text-sm text-slate-600">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Сумма
+          </span>
+          <input
+            type="number"
+            min={0}
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            disabled={submitting}
+          />
+          {submitAttempted && fieldErrors.amountError ? (
+            <p className="text-xs text-rose-600">{fieldErrors.amountError}</p>
+          ) : null}
+        </label>
+
+        {selectedParticipant ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:col-span-2">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Выбранный участник
+            </div>
+            <div className="mt-1 font-medium text-slate-900">{selectedParticipant.fullName}</div>
+            <div className="mt-1 text-slate-500">
+              Дата рождения: {formatBirthDate(selectedParticipant.birthDate)}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </ModalShell>
   );
 };

@@ -11,31 +11,44 @@ export const LEAD_COLUMN_ORDER = [
 
 export type LeadStatus = (typeof LEAD_COLUMN_ORDER)[number];
 
-export interface LeadChild {
-  id: string;
-  childName: string;
-  childAge: number;
-  gender?: "MALE" | "FEMALE";
-  experience?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+export type LeadType = "CHILDREN" | "ADULT";
+export type TimePreference = "MORNING" | "AFTERNOON" | "EVENING";
+export type Gender = "MALE" | "FEMALE";
+export type ExperienceLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+
+export interface LeadPrimaryContact {
+  fullName: string;
+  phone: string;
+  email?: string;
+}
+
+export interface LeadParticipant {
+  id?: string;
+  fullName: string;
+  birthDate?: string;
+  gender?: Gender;
+  experience?: ExperienceLevel;
 }
 
 export interface LeadTrial {
   id: string;
-  childId: string;
+  leadId: string;
+  participantId: string;
   groupId?: string;
   coachId?: string;
   trialDate: string;
   startTime: string;
-  endTime?: string;
+  endTime: string;
   comment?: string;
   status: "SCHEDULED" | "COMPLETED" | "CANCELED";
 }
 
 export interface LeadQualificationData {
-  children: Array<
-    Pick<LeadChild, "childName" | "childAge" | "gender" | "experience">
+  participants: Array<
+    Pick<LeadParticipant, "fullName" | "birthDate" | "gender" | "experience">
   >;
   preferredDays?: string | null;
+  timePreference?: TimePreference | null;
   experience?: string | null;
   notes?: string | null;
 }
@@ -73,10 +86,9 @@ export interface LeadActivity {
 
 export interface Lead {
   id: string;
-  parentName: string;
-  phone: string;
-  email?: string;
-  children: LeadChild[];
+  leadType: LeadType;
+  primaryContact: LeadPrimaryContact;
+  participants: LeadParticipant[];
   status: LeadStatus;
   actions: LeadAction[];
   assignedAdminId?: string;
@@ -94,6 +106,10 @@ export interface Lead {
   playerId?: string | null;
   contractId?: string | null;
   trial?: LeadTrial;
+  preferredDays?: string | null;
+  timePreference?: TimePreference | null;
+  experience?: ExperienceLevel | null;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -106,19 +122,20 @@ export interface LeadDetails extends Lead {
 }
 
 export interface QualifyLeadPayload {
-  children: Array<
-    Pick<LeadChild, "childName" | "childAge"> & {
-      gender: "MALE" | "FEMALE";
-      experience: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  participants: Array<
+    Pick<LeadParticipant, "fullName" | "birthDate"> & {
+      gender: Gender;
+      experience: ExperienceLevel;
     }
   >;
   preferredDays: string;
-  experience: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  timePreference: TimePreference;
+  experience: ExperienceLevel;
   notes: string;
 }
 
 export interface ScheduleTrialPayload {
-  childId: string;
+  participantId: string;
   groupId?: string;
   coachId?: string;
   slot: {
@@ -134,18 +151,19 @@ export interface AvailableSlot {
   endTime?: string | null;
 }
 
-export interface CreateLeadChildInput {
-  childName: string;
-  childAge: number;
+export interface CreateLeadParticipantInput {
+  fullName: string;
+  birthDate: string;
+  gender?: Gender;
+  experience?: ExperienceLevel;
 }
 
 export interface CreateAdminLeadPayload {
-  name: string;
-  phone: string;
+  leadType: LeadType;
+  primaryContact: LeadPrimaryContact;
   branchId: string;
-  email?: string;
   comment?: string;
-  children: CreateLeadChildInput[];
+  participants: CreateLeadParticipantInput[];
 }
 
 export type LeadLossReason = {
@@ -160,9 +178,9 @@ export type LeadTransitionRequest = {
 };
 
 export type ConvertLeadRequest = {
-  childId: string;
+  participantId: string;
   groupId: string;
-  childBirthDate: string;
+  participantBirthDate: string;
   contractStartDate: string;
   contractEndDate?: string | null;
   amount?: number | null;

@@ -9,7 +9,10 @@ import GroupCoachesTab from "./GroupCoachesTab";
 import GroupScheduleTab from "../schedule/GroupScheduleTab";
 import GroupMembersTab from "./GroupMembersTab";
 
-const GroupTabs: React.FC<{ groupId: string }> = ({ groupId }) => {
+const GroupTabs: React.FC<{ groupId: string; branchId?: string | null }> = ({
+  groupId,
+  branchId,
+}) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab");
   const initialTab =
@@ -77,7 +80,7 @@ const GroupTabs: React.FC<{ groupId: string }> = ({ groupId }) => {
 
       <div className="p-4 sm:p-6">
         {active === "members" && <GroupMembersTab groupId={groupId} />}
-        {active === "coaches" && <GroupCoachesTab groupId={groupId} />}
+        {active === "coaches" && <GroupCoachesTab groupId={groupId} branchId={branchId} />}
         {active === "schedule" && <GroupScheduleTab groupId={groupId} />}
       </div>
     </div>
