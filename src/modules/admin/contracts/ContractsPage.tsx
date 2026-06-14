@@ -398,44 +398,57 @@ const ContractsPage: React.FC = () => {
     setModalError(null);
 
     try {
-      const payload: CreateContractRequest | UpdateContractRequest = {
-        branchId,
-        leadType: form.leadType,
-        participantId: form.createMode === "existing" || drawerMode === "edit" ? form.participantId : undefined,
-        primaryContactId: form.createMode === "existing" || drawerMode === "edit" ? form.primaryContactId : undefined,
-        participantDraft:
-          drawerMode === "create" && form.createMode === "new"
-            ? {
-                fullName: form.participantFullName.trim(),
-                birthDate: form.participantBirthDate,
-              }
-            : undefined,
-        primaryContactDraft:
-          drawerMode === "create" && form.createMode === "new"
-            ? {
-                fullName: form.contactFullName.trim(),
-                phone: form.contactPhone.trim(),
-                email: form.contactEmail.trim() || undefined,
-              }
-            : undefined,
-        groupId: form.groupId,
-        coachId: form.coachId || null,
-        contractNumber: form.contractNumber || undefined,
-        startDate: form.startDate,
-        endDate: form.endDate,
-        amount: Number(form.amount),
-        currency: form.currency,
-        notes: form.notes.trim() || undefined,
-      };
-
       if (drawerMode === "create") {
-        const result = await ContractsApi.create(payload as CreateContractRequest, token);
+        const payload: CreateContractRequest = {
+          branchId,
+          leadType: form.leadType,
+          participantId: form.createMode === "existing" ? form.participantId : undefined,
+          primaryContactId: form.createMode === "existing" ? form.primaryContactId : undefined,
+          participantDraft:
+            form.createMode === "new"
+              ? {
+                  fullName: form.participantFullName.trim(),
+                  birthDate: form.participantBirthDate,
+                }
+              : undefined,
+          primaryContactDraft:
+            form.createMode === "new"
+              ? {
+                  fullName: form.contactFullName.trim(),
+                  phone: form.contactPhone.trim(),
+                  email: form.contactEmail.trim() || undefined,
+                }
+              : undefined,
+          groupId: form.groupId,
+          coachId: form.coachId || null,
+          contractNumber: form.contractNumber || undefined,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          amount: Number(form.amount),
+          currency: form.currency,
+          notes: form.notes.trim() || undefined,
+        };
+        const result = await ContractsApi.create(payload, token);
         if ("valid" in result && !result.valid) {
           setModalError(result.errors.map((error) => error.message).join("\n"));
           return;
         }
         toast.success("Контракт создан");
       } else if (selectedContract) {
+        const payload: UpdateContractRequest = {
+          branchId,
+          leadType: form.leadType,
+          participantId: form.participantId,
+          primaryContactId: form.primaryContactId,
+          groupId: form.groupId,
+          coachId: form.coachId || null,
+          contractNumber: form.contractNumber || undefined,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          amount: Number(form.amount),
+          currency: form.currency,
+          notes: form.notes.trim() || undefined,
+        };
         const result = await ContractsApi.update(selectedContract.id, payload, token);
         if ("valid" in result && !result.valid) {
           setModalError(result.errors.map((error) => error.message).join("\n"));
@@ -1347,7 +1360,7 @@ const ContractCancelModal: React.FC<{
         <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Причина</span>
         <select
           value={reasonCode}
-          onChange={(event) => setReasonCode(event.target.value)}
+          onChange={(event) => setReasonCode(event.target.value as CancelReasonCode)}
           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
         >
           <option value="CLIENT_REQUEST">По просьбе клиента</option>
