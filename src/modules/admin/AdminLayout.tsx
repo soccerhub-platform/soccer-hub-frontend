@@ -7,6 +7,7 @@ import {
   BuildingOffice2Icon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../shared/AuthContext";
 import { useAdminBranch } from "./BranchContext";
@@ -63,6 +64,10 @@ const AdminLayout: React.FC = () => {
           <NavLink to="/admin/groups" className={linkClasses}>
             <UserGroupIcon className="h-5 w-5 mr-3" />
             <span>Группы</span>
+          </NavLink>
+          <NavLink to="/admin/contracts" className={linkClasses}>
+            <DocumentTextIcon className="h-5 w-5 mr-3" />
+            <span>Контракты</span>
           </NavLink>
         </nav>
 

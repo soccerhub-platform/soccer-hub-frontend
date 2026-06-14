@@ -29,10 +29,10 @@ const ModalShell: React.FC<ModalShellProps> = ({
   closeDisabled = false,
 }) => {
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-sm sm:p-4">
+    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-slate-950/45 p-3 backdrop-blur-sm sm:items-center sm:p-4">
       <div
         className={classNames(
-          "flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl",
+          "my-auto flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)]",
           maxWidthClassName,
           heightClassName
         )}
