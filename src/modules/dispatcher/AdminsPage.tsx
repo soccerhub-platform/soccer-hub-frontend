@@ -373,7 +373,7 @@ const AdminsPage: React.FC = () => {
     <PageShell>
       <PageHeader
         title="Администраторы"
-        description="Создание администраторов и управление доступом к филиалам. Операционные пользователи филиала управляются в разделе admin/users."
+        description="Создание администраторов и управление доступом к филиалам. Операционные пользователи филиала управляются в разделе «Сотрудники» у администратора филиала."
         actions={
           <Button type="button" onClick={() => setShowCreateModal(true)}>
             <PlusIcon className="h-4 w-4" />

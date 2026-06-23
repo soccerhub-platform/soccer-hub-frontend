@@ -41,7 +41,7 @@ const UsersPage: React.FC = () => {
       <h2 className="text-xl font-bold text-admin-700 mb-2">Сотрудники филиала</h2>
       <p className="mb-4 text-sm text-slate-600">
         Операционное управление пользователями филиала. Создание и привязка администраторов к филиалам
-        выполняются в разделе диспетчера «Администраторы».
+        выполняется в разделе диспетчера «Администраторы».
       </p>
       {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
       <div className="overflow-x-auto">
