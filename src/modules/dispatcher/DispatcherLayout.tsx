@@ -5,6 +5,7 @@ import {
   HomeIcon,
   UserGroupIcon,
   Squares2X2Icon,
+  ClipboardDocumentCheckIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
@@ -69,6 +70,14 @@ const DispatcherLayout: React.FC = () => {
           <NavLink to="/dispatcher/leads" className={linkClasses}>
             <Squares2X2Icon className="h-5 w-5 mr-3" />
             <span>Лиды</span>
+          </NavLink>
+          <NavLink to="/dispatcher/clients" className={linkClasses}>
+            <UserGroupIcon className="h-5 w-5 mr-3" />
+            <span>Клиенты</span>
+          </NavLink>
+          <NavLink to="/dispatcher/trial-trainings" className={linkClasses}>
+            <ClipboardDocumentCheckIcon className="h-5 w-5 mr-3" />
+            <span>Пробные</span>
           </NavLink>
         </nav>
 

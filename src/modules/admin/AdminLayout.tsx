@@ -8,6 +8,8 @@ import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   DocumentTextIcon,
+  BanknotesIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../shared/AuthContext";
 import { useAdminBranch } from "./BranchContext";
@@ -68,6 +70,14 @@ const AdminLayout: React.FC = () => {
           <NavLink to="/admin/contracts" className={linkClasses}>
             <DocumentTextIcon className="h-5 w-5 mr-3" />
             <span>Контракты</span>
+          </NavLink>
+          <NavLink to="/admin/payments" className={linkClasses}>
+            <BanknotesIcon className="h-5 w-5 mr-3" />
+            <span>Платежи</span>
+          </NavLink>
+          <NavLink to="/admin/users" className={linkClasses}>
+            <UsersIcon className="h-5 w-5 mr-3" />
+            <span>Сотрудники</span>
           </NavLink>
         </nav>
 
