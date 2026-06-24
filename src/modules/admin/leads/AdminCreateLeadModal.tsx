@@ -67,6 +67,7 @@ const AdminCreateLeadModal: React.FC<AdminCreateLeadModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const participantLabel = leadType === "ADULT" ? "Игрок" : "Ребенок";
+  const participantNameLabel = leadType === "ADULT" ? "игрока" : "ребенка";
   const participantsTitle = leadType === "ADULT" ? "Участники" : "Дети";
   const contactLabel =
     leadType === "ADULT" ? "Игрок / контактное лицо" : "Родитель / представитель";
@@ -104,7 +105,7 @@ const AdminCreateLeadModal: React.FC<AdminCreateLeadModalProps> = ({
       const hasBirthDate = participant.birthDate.trim().length > 0;
 
       return {
-        fullName: hasName ? "" : `Укажите имя ${participantLabel.toLowerCase()}`,
+        fullName: hasName ? "" : `Укажите имя ${participantNameLabel}`,
         birthDate: hasBirthDate ? "" : "Укажите дату рождения",
       };
     });
@@ -125,6 +126,7 @@ const AdminCreateLeadModal: React.FC<AdminCreateLeadModalProps> = ({
     email,
     leadType,
     participantLabel,
+    participantNameLabel,
     participants,
     phone,
     primaryContactName,
@@ -381,7 +383,7 @@ const AdminCreateLeadModal: React.FC<AdminCreateLeadModalProps> = ({
             className={buttonStyles("soft", "sm", "rounded-full")}
           >
             <PlusIcon className="h-3.5 w-3.5" />
-            Добавить {participantLabel.toLowerCase()}
+            Добавить {participantNameLabel}
           </button>
         </div>
 
@@ -393,7 +395,7 @@ const AdminCreateLeadModal: React.FC<AdminCreateLeadModalProps> = ({
             >
               <label className="space-y-1 text-sm text-slate-600">
                 <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Имя {participantLabel.toLowerCase()}
+                  Имя {participantNameLabel}
                 </span>
                 <input
                   type="text"

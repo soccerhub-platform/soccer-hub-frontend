@@ -35,7 +35,9 @@ export interface LeadTrial {
   leadId: string;
   participantId: string;
   groupId?: string;
+  groupName?: string | null;
   coachId?: string;
+  coachName?: string | null;
   trialDate: string;
   startTime: string;
   endTime: string;
@@ -54,9 +56,19 @@ export interface LeadQualificationData {
 }
 
 export type LeadActionType =
+  | "CONTACT_LEAD"
+  | "QUALIFY_LEAD"
+  | "SCHEDULE_TRIAL"
+  | "RESCHEDULE_TRIAL"
+  | "CONVERT_TO_CONTRACT"
+  | "ADD_PAYMENT"
+  | "MARK_TRIAL_DONE"
+  | "MARK_NO_SHOW"
+  | "CANCEL_TRIAL"
+  | "CLOSE_LEAD"
+  | "OPEN_CONTRACT"
   | "CONTACT"
   | "QUALIFY"
-  | "SCHEDULE_TRIAL"
   | "COMPLETE_TRIAL"
   | "CONVERT"
   | "NO_SHOW"
@@ -68,10 +80,28 @@ export type LeadActionType =
 
 export interface LeadAction {
   type: LeadActionType;
+  event?: string | null;
   label: string;
   primary: boolean;
   danger: boolean;
   enabled: boolean;
+}
+
+export interface LeadContractSnapshot {
+  contractId?: string | null;
+  contractNumber?: string | null;
+  status?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  amount?: number | null;
+}
+
+export interface LeadPaymentSummary {
+  paymentStatus?: string | null;
+  paidAmount?: number | null;
+  outstandingAmount?: number | null;
+  overpaidAmount?: number | null;
+  lastPaidAt?: string | null;
 }
 
 export interface LeadActivity {
@@ -105,6 +135,10 @@ export interface Lead {
   clientId?: string | null;
   playerId?: string | null;
   contractId?: string | null;
+  contract?: LeadContractSnapshot | null;
+  paymentSummary?: LeadPaymentSummary | null;
+  groupName?: string | null;
+  coachName?: string | null;
   trial?: LeadTrial;
   preferredDays?: string | null;
   timePreference?: TimePreference | null;
@@ -169,12 +203,24 @@ export interface CreateAdminLeadPayload {
 export type LeadLossReason = {
   code: string;
   name: string;
+  stages?: LeadLossStage[];
 };
+
+export type LeadLossStage =
+  | "PRE_QUALIFICATION"
+  | "TRIAL_NO_SHOW"
+  | "POST_TRIAL_REJECT"
+  | "PAYMENT_REJECT";
 
 export type LeadTransitionRequest = {
   event: LeadActionType | string;
   lostReasonCode?: string;
   lostComment?: string;
+};
+
+export type LeadEventResponse = {
+  status?: LeadStatus | string;
+  lead?: LeadDetails | null;
 };
 
 export type ConvertLeadRequest = {
@@ -192,4 +238,12 @@ export type ConvertLeadResponse = {
   playerId: string;
   contractId: string;
   status: string;
+  leadStatus?: string | null;
+  clientName?: string | null;
+  playerName?: string | null;
+  contractNumber?: string | null;
+  contractStatus?: string | null;
+  paymentStatus?: string | null;
+  amount?: number | null;
+  outstandingAmount?: number | null;
 };

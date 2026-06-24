@@ -6,6 +6,7 @@ import {
   CreateAdminLeadPayload,
   LeadLossReason,
   LeadTransitionRequest,
+  LeadEventResponse,
   LeadActivity,
   LeadDetails,
   LeadKanbanColumns,
@@ -34,8 +35,12 @@ export const LeadApi = {
     return (await apiClient.get<LeadActivity[]>(`/admin/leads/${leadId}/activities`)) ?? [];
   },
 
-  async getLeadLossReasons(_token: string): Promise<LeadLossReason[]> {
-    return (await apiClient.get<LeadLossReason[]>("/admin/leads/loss-reasons")) ?? [];
+  async getLeadLossReasons(
+    _token: string,
+    stage?: string | null
+  ): Promise<LeadLossReason[]> {
+    const query = stage ? `?stage=${encodeURIComponent(stage)}` : "";
+    return (await apiClient.get<LeadLossReason[]>(`/admin/leads/loss-reasons${query}`)) ?? [];
   },
 
   async qualify(
@@ -50,8 +55,11 @@ export const LeadApi = {
     leadId: string,
     payload: LeadTransitionRequest,
     _token: string
-  ): Promise<void> {
-    await apiClient.post(`/admin/leads/${leadId}/events`, payload);
+  ): Promise<LeadEventResponse | null> {
+    return await apiClient.post<LeadEventResponse | null>(
+      `/admin/leads/${leadId}/events`,
+      payload
+    );
   },
 
   async scheduleTrial(

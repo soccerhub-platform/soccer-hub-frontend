@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../shared/AuthContext";
 import {
   Button,
@@ -25,6 +26,14 @@ import QualifyLeadModal from "./QualifyLeadModal";
 import ScheduleTrialModal from "./ScheduleTrialModal";
 import AdminCreateLeadModal from "./AdminCreateLeadModal";
 import LeadLossModal from "./LeadLossModal";
+import {
+  getLeadActionEvent,
+  getLeadLossStage,
+  isConvertAction,
+  isLossAction,
+  isQualifyAction,
+  isScheduleTrialAction,
+} from "./lead.ui-actions";
 
 const COLUMN_TITLES: Record<LeadStatus, string> = {
   NEW: "Новые",
@@ -97,18 +106,19 @@ const LeadKanbanPage: React.FC = () => {
   const { user } = useAuth();
   const { branchId, branchName } = useAdminBranch();
   const token = user?.accessToken;
+  const navigate = useNavigate();
 
   const [columns, setColumns] = useState<LeadKanbanColumns>(createEmptyColumns);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [selectedLeadInitialAction, setSelectedLeadInitialAction] =
+    useState<LeadAction | null>(null);
   const [qualifyingLead, setQualifyingLead] = useState<Lead | null>(null);
   const [trialLead, setTrialLead] = useState<Lead | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [rejectingLead, setRejectingLead] = useState<Lead | null>(null);
-  const [rejectingEvent, setRejectingEvent] = useState<
-    "REJECT" | "LOST" | "NO_SHOW" | "POST_TRIAL_REJECT" | null
-  >(null);
+  const [rejectingAction, setRejectingAction] = useState<LeadAction | null>(null);
   const [lossReasons, setLossReasons] = useState<LeadLossReason[]>([]);
   const [lossReasonsLoading, setLossReasonsLoading] = useState(false);
   const [lossReasonsError, setLossReasonsError] = useState<string | null>(null);
@@ -182,53 +192,86 @@ const LeadKanbanPage: React.FC = () => {
     }
   };
 
+  const upsertLeadInColumns = (updatedLead: Lead) => {
+    setColumns((current) => {
+      const nextColumns = createEmptyColumns();
+
+      LEAD_COLUMN_ORDER.forEach((status) => {
+        nextColumns[status] = (current[status] ?? []).filter(
+          (item) => item.id !== updatedLead.id
+        );
+      });
+
+      const targetStatus = LEAD_COLUMN_ORDER.includes(updatedLead.status)
+        ? updatedLead.status
+        : null;
+
+      if (targetStatus) {
+        nextColumns[targetStatus] = [updatedLead, ...nextColumns[targetStatus]];
+      }
+
+      return nextColumns;
+    });
+  };
+
   const handleLeadAction = async (lead: Lead, action: LeadAction) => {
     if (!token) return;
     const isLeadAlreadyConverted = Boolean(
-      lead.status === "WON" || lead.clientId || lead.playerId || lead.contractId
+      lead.status === "WON" ||
+        lead.clientId ||
+        lead.playerId ||
+        lead.contractId ||
+        lead.contract?.contractId
     );
 
-    if (action.type === "QUALIFY") {
+    if (isQualifyAction(action)) {
       setQualifyingLead(lead);
       return;
     }
 
-    if (action.type === "SCHEDULE_TRIAL") {
+    if (isScheduleTrialAction(action)) {
       setTrialLead(lead);
       return;
     }
 
-    if (action.type === "CONVERT") {
+    if (isConvertAction(action)) {
       setSelectedLeadId(lead.id);
+      setSelectedLeadInitialAction(action);
       if (isLeadAlreadyConverted) {
-        toast("Лид уже конвертирован в клиента");
+        toast("Договор уже оформлен");
       }
       return;
     }
 
-    if (action.type === "CONFIRM_PAYMENT") {
-      setSelectedLeadId(lead.id);
-      toast(
-        isLeadAlreadyConverted
-          ? "Лид уже конвертирован в клиента"
-          : "Сначала выполните конвертацию лида в клиента"
-      );
+    if (action.type === "OPEN_CONTRACT") {
+      const contractId = lead.contractId || lead.contract?.contractId;
+      if (contractId) {
+        navigate(`/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view`);
+      }
       return;
     }
 
-    if (
-      action.type === "REJECT" ||
-      action.type === "LOST" ||
-      action.type === "NO_SHOW" ||
-      action.type === "POST_TRIAL_REJECT"
-    ) {
+    if (action.type === "ADD_PAYMENT") {
+      const contractId = lead.contractId || lead.contract?.contractId;
+      if (contractId) {
+        navigate(
+          `/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view&payment=create`
+        );
+      }
+      return;
+    }
+
+    if (isLossAction(action)) {
       setRejectingLead(lead);
-      setRejectingEvent(action.type);
-      if (!lossReasons.length && !lossReasonsLoading) {
+      setRejectingAction(action);
+      if (!lossReasonsLoading) {
         setLossReasonsLoading(true);
         setLossReasonsError(null);
         try {
-          const reasons = await LeadApi.getLeadLossReasons(token);
+          const reasons = await LeadApi.getLeadLossReasons(
+            token,
+            getLeadLossStage(action, lead.status)
+          );
           setLossReasons(reasons);
         } catch (err) {
           console.error(err);
@@ -244,8 +287,16 @@ const LeadKanbanPage: React.FC = () => {
     setError(null);
 
     try {
-      await LeadApi.sendLeadEvent(lead.id, { event: action.type }, token);
-      await refreshKanban();
+      const response = await LeadApi.sendLeadEvent(
+        lead.id,
+        { event: getLeadActionEvent(action) },
+        token
+      );
+      if (response?.lead) {
+        upsertLeadInColumns(response.lead);
+      } else {
+        await refreshKanban();
+      }
       toast.success("Статус лида обновлён");
     } catch (err) {
       console.error(err);
@@ -328,7 +379,12 @@ const LeadKanbanPage: React.FC = () => {
           isOpen={Boolean(selectedLeadId)}
           branchId={branchId}
           token={token}
-          onClose={() => setSelectedLeadId(null)}
+          initialAction={selectedLeadInitialAction}
+          onInitialActionHandled={() => setSelectedLeadInitialAction(null)}
+          onClose={() => {
+            setSelectedLeadId(null);
+            setSelectedLeadInitialAction(null);
+          }}
           onUpdated={refreshKanban}
         />
       ) : null}
@@ -368,11 +424,11 @@ const LeadKanbanPage: React.FC = () => {
         />
       ) : null}
 
-      {rejectingLead && rejectingEvent ? (
+      {rejectingLead && rejectingAction ? (
         <LeadLossModal
-          isOpen={Boolean(rejectingLead && rejectingEvent)}
+          isOpen={Boolean(rejectingLead && rejectingAction)}
           lead={rejectingLead}
-          event={rejectingEvent}
+          event={getLeadActionEvent(rejectingAction)}
           reasons={lossReasons}
           loadingReasons={lossReasonsLoading}
           reasonsError={lossReasonsError}
@@ -380,22 +436,30 @@ const LeadKanbanPage: React.FC = () => {
           onClose={() => {
             if (rejectSubmitLoading) return;
             setRejectingLead(null);
-            setRejectingEvent(null);
+            setRejectingAction(null);
           }}
           onConfirm={async ({ lostReasonCode, lostComment }) => {
-            if (!token || !rejectingLead || !rejectingEvent) return;
+            if (!token || !rejectingLead || !rejectingAction) return;
             setRejectSubmitLoading(true);
             setError(null);
             try {
-              await LeadApi.sendLeadEvent(
+              const response = await LeadApi.sendLeadEvent(
                 rejectingLead.id,
-                { event: rejectingEvent, lostReasonCode, lostComment },
+                {
+                  event: getLeadActionEvent(rejectingAction),
+                  lostReasonCode,
+                  lostComment,
+                },
                 token
               );
               toast.success("Причина потери сохранена");
               setRejectingLead(null);
-              setRejectingEvent(null);
-              await refreshKanban();
+              setRejectingAction(null);
+              if (response?.lead) {
+                upsertLeadInColumns(response.lead);
+              } else {
+                await refreshKanban();
+              }
             } catch (err) {
               console.error(err);
               setError(

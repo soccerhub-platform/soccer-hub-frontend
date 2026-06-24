@@ -40,15 +40,16 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const isReschedule = lead.trial?.status === "SCHEDULED";
   const [groups, setGroups] = useState<GroupApiModel[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [optionsError, setOptionsError] = useState<string | null>(null);
 
   const [participantIndex, setParticipantIndex] = useState(0);
-  const [groupId, setGroupId] = useState("");
-  const [coachId, setCoachId] = useState("");
-  const [trialDate, setTrialDate] = useState(getToday());
+  const [groupId, setGroupId] = useState(lead.trial?.groupId ?? "");
+  const [coachId, setCoachId] = useState(lead.trial?.coachId ?? "");
+  const [trialDate, setTrialDate] = useState(lead.trial?.trialDate ?? getToday());
   const [slots, setSlots] = useState<AvailableSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsError, setSlotsError] = useState<string | null>(null);
@@ -195,10 +196,10 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-700">
-                Назначение пробного
+                {isReschedule ? "Перенос пробного" : "Назначение пробного"}
               </div>
               <h3 className="heading-font text-xl font-semibold text-slate-900">
-                Назначить пробное занятие
+                {isReschedule ? "Перенести пробное занятие" : "Назначить пробное занятие"}
               </h3>
               <p className="mt-1 text-sm leading-6 text-slate-500">
                 {lead.primaryContact.fullName}. Выберите участника, исполнителя и свободный слот.
@@ -558,7 +559,11 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
               disabled={!isValid || optionsLoading || submitting || Boolean(optionsError)}
               className={buttonStyles("primary", "md", "rounded-2xl px-5")}
             >
-              {submitting ? "Сохранение..." : "Назначить пробное"}
+              {submitting
+                ? "Сохранение..."
+                : isReschedule
+                  ? "Перенести пробное"
+                  : "Назначить пробное"}
             </button>
           </div>
           </div>

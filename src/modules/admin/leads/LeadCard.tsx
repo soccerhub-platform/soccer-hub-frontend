@@ -8,6 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Lead, LeadAction } from "./types";
 import LeadActions from "./LeadActions";
+import { buildLeadUiActions } from "./lead.ui-actions";
 import {
   formatLeadCardDate,
   formatTrialPreview,
@@ -28,7 +29,7 @@ const LeadCard: React.FC<LeadCardProps> = ({
   onAction,
   loadingActionType = null,
 }) => {
-  const actions = lead.actions ?? [];
+  const actions = buildLeadUiActions(lead, lead.actions ?? []);
   const primaryParticipant = lead.participants[0];
   const extraParticipants = Math.max(0, lead.participants.length - 1);
   const trialPreview = formatTrialPreview(

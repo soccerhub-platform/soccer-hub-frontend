@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowPathRoundedSquareIcon,
   IdentificationIcon,
@@ -20,6 +21,15 @@ import LeadActions from "./LeadActions";
 import LeadTimeline from "./LeadTimeline";
 import LeadLossModal from "./LeadLossModal";
 import ConvertLeadModal from "./ConvertLeadModal";
+import {
+  buildLeadUiActions,
+  getLeadActionEvent,
+  getLeadLossStage,
+  isConvertAction,
+  isLossAction,
+  isQualifyAction,
+  isScheduleTrialAction,
+} from "./lead.ui-actions";
 import { Button, ErrorState, LoadingState, SectionCard } from "../../../shared/ui";
 import {
   experienceLabel,
@@ -37,8 +47,10 @@ interface LeadDrawerProps {
   isOpen: boolean;
   branchId: string;
   token: string;
+  initialAction?: LeadAction | null;
   onClose: () => void;
   onUpdated: () => Promise<void> | void;
+  onInitialActionHandled?: () => void;
 }
 
 const statusBadgeClassName = (status?: string) => {
@@ -78,9 +90,12 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   isOpen,
   branchId,
   token,
+  initialAction = null,
   onClose,
   onUpdated,
+  onInitialActionHandled,
 }) => {
+  const navigate = useNavigate();
   const [lead, setLead] = useState<LeadDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,9 +107,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
-  const [rejectingEvent, setRejectingEvent] = useState<
-    "REJECT" | "LOST" | "NO_SHOW" | "POST_TRIAL_REJECT" | null
-  >(null);
+  const [rejectingAction, setRejectingAction] = useState<LeadAction | null>(null);
   const [lossReasons, setLossReasons] = useState<LeadLossReason[]>([]);
   const [lossReasonsLoading, setLossReasonsLoading] = useState(false);
   const [lossReasonsError, setLossReasonsError] = useState<string | null>(null);
@@ -145,6 +158,19 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
       isMounted = false;
     };
   }, [leadId, token]);
+
+  useEffect(() => {
+    if (!isOpen || loading || !lead || !initialAction) return;
+
+    if (isConvertAction(initialAction)) {
+      if (lead.status === "WON" || lead.clientId || lead.playerId || lead.contractId || lead.contract?.contractId) {
+        toast("Договор уже оформлен");
+      } else {
+        setShowConvertModal(true);
+      }
+      onInitialActionHandled?.();
+    }
+  }, [initialAction, isOpen, lead, loading, onInitialActionHandled]);
 
   useEffect(() => {
     let isMounted = true;
@@ -265,23 +291,20 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
       lead?.clientId ||
       lead?.playerId ||
       lead?.contractId ||
+      lead?.contract?.contractId ||
       conversionResult?.clientId
   );
-  const actions = isAlreadyConverted
-    ? rawActions.filter(
-        (action) => action.type !== "CONVERT" && action.type !== "CONFIRM_PAYMENT"
-      )
-    : rawActions;
-  const hasConvertAction = rawActions.some((action) => action.type === "CONVERT");
+  const conversionContractId =
+    lead?.contractId || lead?.contract?.contractId || conversionResult?.contractId || "";
+  const conversionPlayerId = lead?.playerId || conversionResult?.playerId || "";
+  const actions = lead ? buildLeadUiActions(lead, rawActions, isAlreadyConverted) : [];
+  const hasConvertAction = actions.some((action) => isConvertAction(action));
   const canUseConvertRole = userHasRole(token, [
     "ADMIN",
     "SUPER_ADMIN",
     "DISPATCHER",
   ]);
-  const canConvertByStatus = Boolean(
-    lead &&
-      ["TRIAL_DONE", "QUALIFIED", "TRIAL_SCHEDULED", "WON"].includes(lead.status)
-  );
+  const canConvertByStatus = Boolean(lead && lead.status === "TRIAL_DONE");
   const canShowConvertButton =
     canUseConvertRole && canConvertByStatus && !hasConvertAction && !isAlreadyConverted;
   const assignedAdminInitials = assignedAdminDisplayName
@@ -303,50 +326,62 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     setActivitiesError(null);
   };
 
+  const refreshActivities = async () => {
+    const activitiesData = await LeadApi.getActivities(leadId, token);
+    setActivities(activitiesData);
+    setActivitiesError(null);
+  };
+
   const handleAction = async (action: LeadAction) => {
     if (!lead) return;
 
-    if (action.type === "QUALIFY") {
+    if (isQualifyAction(action)) {
       setShowQualifyModal(true);
       return;
     }
 
-    if (action.type === "SCHEDULE_TRIAL") {
+    if (isScheduleTrialAction(action)) {
       setShowTrialModal(true);
       return;
     }
 
-    if (action.type === "CONVERT") {
+    if (isConvertAction(action)) {
       if (isAlreadyConverted) {
-        toast("Лид уже конвертирован в клиента");
+        toast("Договор уже оформлен");
         return;
       }
       setShowConvertModal(true);
       return;
     }
 
-    if (action.type === "CONFIRM_PAYMENT") {
-      if (isAlreadyConverted) {
-        toast("Лид уже конвертирован в клиента");
-        return;
+    if (action.type === "OPEN_CONTRACT") {
+      const contractId = lead.contractId || lead.contract?.contractId;
+      if (contractId) {
+        navigate(`/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view`);
       }
-      setShowConvertModal(true);
-      toast("Сначала выполните конвертацию лида в клиента");
       return;
     }
 
-    if (
-      action.type === "REJECT" ||
-      action.type === "LOST" ||
-      action.type === "NO_SHOW" ||
-      action.type === "POST_TRIAL_REJECT"
-    ) {
-      setRejectingEvent(action.type);
-      if (!lossReasons.length && !lossReasonsLoading) {
+    if (action.type === "ADD_PAYMENT") {
+      const contractId = lead.contractId || lead.contract?.contractId;
+      if (contractId) {
+        navigate(
+          `/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view&payment=create`
+        );
+      }
+      return;
+    }
+
+    if (isLossAction(action)) {
+      setRejectingAction(action);
+      if (!lossReasonsLoading) {
         setLossReasonsLoading(true);
         setLossReasonsError(null);
         try {
-          const reasons = await LeadApi.getLeadLossReasons(token);
+          const reasons = await LeadApi.getLeadLossReasons(
+            token,
+            getLeadLossStage(action, lead.status)
+          );
           setLossReasons(reasons);
         } catch (err) {
           console.error(err);
@@ -362,9 +397,18 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     setError(null);
 
     try {
-      await LeadApi.sendLeadEvent(lead.id, { event: action.type }, token);
+      const response = await LeadApi.sendLeadEvent(
+        lead.id,
+        { event: getLeadActionEvent(action) },
+        token
+      );
+      if (response?.lead) {
+        setLead(response.lead);
+        await refreshActivities();
+      } else {
+        await refreshLead();
+      }
       await onUpdated();
-      await refreshLead();
       toast.success("Статус лида обновлён");
     } catch (err) {
       console.error(err);
@@ -471,38 +515,72 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                 <section className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
                     <ArrowPathRoundedSquareIcon className="h-4 w-4" />
-                    Конвертация
+                    Договор
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     {isAlreadyConverted ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         <div className="font-medium text-emerald-700">
-                          Лид уже конвертирован
+                          Договор оформлен
                         </div>
-                        {lead.clientId || conversionResult?.clientId ? (
-                          <div>Client ID: {lead.clientId || conversionResult?.clientId}</div>
-                        ) : null}
-                        {lead.playerId || conversionResult?.playerId ? (
-                          <div>Player ID: {lead.playerId || conversionResult?.playerId}</div>
-                        ) : null}
-                        {lead.contractId || conversionResult?.contractId ? (
-                          <div>
-                            Contract ID: {lead.contractId || conversionResult?.contractId}
-                          </div>
-                        ) : null}
+                        <div className="text-slate-500">
+                          Дальше можно открыть договор, карточку ученика или сразу принять оплату.
+                        </div>
+                        <div className="grid gap-2 pt-2 sm:grid-cols-2">
+                          {conversionContractId ? (
+                            <>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() =>
+                                  navigate(
+                                    `/admin/contracts?contractId=${encodeURIComponent(conversionContractId)}&mode=view`
+                                  )
+                                }
+                              >
+                                Открыть договор
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={() =>
+                                  navigate(
+                                    `/admin/contracts?contractId=${encodeURIComponent(conversionContractId)}&mode=view&payment=create`
+                                  )
+                                }
+                              >
+                                Добавить оплату
+                              </Button>
+                            </>
+                          ) : null}
+                          {conversionPlayerId ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() =>
+                                navigate(
+                                  `/admin/students?playerId=${encodeURIComponent(conversionPlayerId)}`
+                                )
+                              }
+                            >
+                              Открыть ученика
+                            </Button>
+                          ) : null}
+                        </div>
                         {!lead.clientId && !conversionResult?.clientId ? (
                           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                             Backend вернул статус клиента, но не передал ID клиента.
                           </div>
                         ) : null}
-                        <div>Статус: {lead.status || conversionResult?.status || "WON"}</div>
+                        <div className="text-xs text-slate-400">
+                          Статус лида: {LEAD_STATUS_LABELS[lead.status] ?? conversionResult?.status ?? "Клиент"}
+                        </div>
                       </div>
                     ) : (
                       <Button
                         type="button"
                         onClick={() => setShowConvertModal(true)}
                       >
-                        Конвертировать в клиента
+                        Оформить договор
                       </Button>
                     )}
                   </div>
@@ -658,7 +736,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                           Тренер
                         </div>
                         <div className="mt-1 break-all">
-                          {coachName || lead.trial.coachId || "Не указано"}
+                          {lead.trial.coachName || lead.coachName || coachName || lead.trial.coachId || "Не указано"}
                         </div>
                       </div>
                       <div>
@@ -666,7 +744,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                           Группа
                         </div>
                         <div className="mt-1 break-all">
-                          {groupName || lead.trial.groupId || "Не указано"}
+                          {lead.trial.groupName || lead.groupName || groupName || lead.trial.groupId || "Не указано"}
                         </div>
                       </div>
                       <div>
@@ -749,32 +827,42 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
         />
       ) : null}
 
-      {lead && rejectingEvent ? (
+      {lead && rejectingAction ? (
         <LeadLossModal
-          isOpen={Boolean(lead && rejectingEvent)}
+          isOpen={Boolean(lead && rejectingAction)}
           lead={lead}
-          event={rejectingEvent}
+          event={getLeadActionEvent(rejectingAction)}
           reasons={lossReasons}
           loadingReasons={lossReasonsLoading}
           reasonsError={lossReasonsError}
           submitting={rejectSubmitLoading}
           onClose={() => {
             if (rejectSubmitLoading) return;
-            setRejectingEvent(null);
+            setRejectingAction(null);
           }}
           onConfirm={async ({ lostReasonCode, lostComment }) => {
+            if (!rejectingAction) return;
             setRejectSubmitLoading(true);
             setError(null);
             try {
-              await LeadApi.sendLeadEvent(
+              const response = await LeadApi.sendLeadEvent(
                 lead.id,
-                { event: rejectingEvent, lostReasonCode, lostComment },
+                {
+                  event: getLeadActionEvent(rejectingAction),
+                  lostReasonCode,
+                  lostComment,
+                },
                 token
               );
               toast.success("Причина потери сохранена");
-              setRejectingEvent(null);
+              setRejectingAction(null);
               await onUpdated();
-              await refreshLead();
+              if (response?.lead) {
+                setLead(response.lead);
+                await refreshActivities();
+              } else {
+                await refreshLead();
+              }
             } catch (err) {
               console.error(err);
               setError(
@@ -808,14 +896,14 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
             try {
               const result = await LeadApi.convertLeadToClient(lead.id, payload, token);
               setConversionResult(result);
-              toast.success("Лид успешно конвертирован в клиента");
+              toast.success("Договор оформлен");
               setShowConvertModal(false);
               await onUpdated();
               await refreshLead();
             } catch (err) {
               console.error(err);
               setError(
-                err instanceof Error ? err.message : "Не удалось конвертировать лид"
+                err instanceof Error ? err.message : "Не удалось оформить договор"
               );
             } finally {
               setConvertSubmitting(false);

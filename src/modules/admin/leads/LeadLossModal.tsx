@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Button, ModalShell } from "../../../shared/ui";
-import { Lead, LeadActionType, LeadLossReason } from "./types";
+import { Lead, LeadLossReason } from "./types";
 
 interface LeadLossModalProps {
   isOpen: boolean;
   lead: Pick<Lead, "primaryContact"> | null;
-  event: LeadActionType | "LOST" | "REJECT" | "NO_SHOW";
+  event: string;
   reasons: LeadLossReason[];
   loadingReasons: boolean;
   reasonsError: string | null;

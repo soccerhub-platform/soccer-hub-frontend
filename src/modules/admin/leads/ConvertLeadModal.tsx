@@ -86,9 +86,9 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
   );
 
   const fieldErrors = useMemo(() => {
-    const participantError = participantId ? "" : "Выберите участника";
+    const participantError = participantId ? "" : "Выберите ученика";
     const groupError = groupId ? "" : "Выберите группу";
-    const birthDateError = participantBirthDate ? "" : "Укажите дату рождения участника";
+    const birthDateError = participantBirthDate ? "" : "Укажите дату рождения ученика";
     const startDateError = contractStartDate ? "" : "Укажите дату начала договора";
     const endDateError =
       contractEndDate && contractStartDate && contractEndDate < contractStartDate
@@ -124,9 +124,9 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
   return (
     <ModalShell
-      title="Конвертация лида в клиента"
-      description={`Создание клиента, игрока и договора из лида ${leadName}.`}
-      eyebrow="Конвертация"
+      title="Оформить договор"
+      description={`Выберите ученика, группу и условия договора для ${leadName}.`}
+      eyebrow="Договор"
       onClose={onClose}
       closeDisabled={submitting}
       maxWidthClassName="max-w-2xl"
@@ -152,7 +152,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
               });
             }}
           >
-            Конвертировать в клиента
+            Создать договор
           </Button>
         </div>
       }
@@ -160,7 +160,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <label className="space-y-1 text-sm text-slate-600">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Участник <span className="text-rose-500">*</span>
+            Ученик / игрок <span className="text-rose-500">*</span>
           </span>
           <select
             value={participantId}
@@ -175,7 +175,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
             disabled={submitting}
           >
-            <option value="">Выберите участника</option>
+            <option value="">Выберите ученика</option>
             {participants.map((participant) => (
               <option key={participant.id} value={participant.id}>
                 {participantDisplayLabel(participant)}
@@ -189,7 +189,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
         <label className="space-y-1 text-sm text-slate-600">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Группа <span className="text-rose-500">*</span>
+            Группа для занятий <span className="text-rose-500">*</span>
           </span>
           <select
             value={groupId}
@@ -225,7 +225,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
         <label className="space-y-1 text-sm text-slate-600">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Дата рождения <span className="text-rose-500">*</span>
+            Дата рождения ученика <span className="text-rose-500">*</span>
           </span>
           <input
             type="date"
@@ -257,7 +257,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
         <label className="space-y-1 text-sm text-slate-600">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Дата окончания
+            Дата окончания договора
           </span>
           <input
             type="date"
@@ -273,16 +273,20 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
         <label className="space-y-1 text-sm text-slate-600">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Сумма
+            Сумма договора
           </span>
           <input
             type="number"
             min={0}
+            placeholder="Например, 50000"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
             disabled={submitting}
           />
+          <p className="text-xs text-slate-400">
+            Можно оставить пустым, если сумма будет указана позже.
+          </p>
           {submitAttempted && fieldErrors.amountError ? (
             <p className="text-xs text-rose-600">{fieldErrors.amountError}</p>
           ) : null}
@@ -291,11 +295,13 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
         {selectedParticipant ? (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:col-span-2">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Выбранный участник
+              После сохранения
             </div>
-            <div className="mt-1 font-medium text-slate-900">{selectedParticipant.fullName}</div>
+            <div className="mt-1 font-medium text-slate-900">
+              {selectedParticipant.fullName}
+            </div>
             <div className="mt-1 text-slate-500">
-              Дата рождения: {formatBirthDate(selectedParticipant.birthDate)}
+              Ученик будет добавлен в выбранную группу, а договор появится в разделе договоров.
             </div>
           </div>
         ) : null}

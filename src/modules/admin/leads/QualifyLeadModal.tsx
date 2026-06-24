@@ -141,11 +141,12 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
 
   const leadType = initialLead?.leadType ?? "CHILDREN";
   const participantLabel = leadType === "ADULT" ? "Игрок" : "Ребенок";
+  const participantNameLabel = leadType === "ADULT" ? "игрока" : "ребенка";
   const participantsTitle = leadType === "ADULT" ? "Участники" : "Дети";
 
   const validation = useMemo(() => {
     const participantErrors = participants.map((participant) => ({
-      fullName: participant.fullName.trim() ? "" : `Укажите имя ${participantLabel.toLowerCase()}`,
+      fullName: participant.fullName.trim() ? "" : `Укажите имя ${participantNameLabel}`,
       birthDate: participant.birthDate ? "" : "Укажите дату рождения",
     }));
 
@@ -158,7 +159,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
       isValid: hasValidParticipants && selectedDays.length > 0 && Boolean(timePreference),
       hasParticipants: participants.length > 0,
     };
-  }, [participantLabel, participants, selectedDays, timePreference]);
+  }, [participantNameLabel, participants, selectedDays, timePreference]);
 
   const updateParticipant = (
     index: number,
@@ -276,7 +277,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                   className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-900 transition hover:bg-cyan-100"
                 >
                   <PlusIcon className="h-3.5 w-3.5" />
-                  Добавить {participantLabel.toLowerCase()}
+                  Добавить {participantNameLabel}
                 </button>
               </div>
 
@@ -307,7 +308,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <label className="space-y-1.5 text-sm text-slate-600">
                         <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Имя {participantLabel.toLowerCase()}
+                          Имя {participantNameLabel}
                         </span>
                         <input
                           type="text"
