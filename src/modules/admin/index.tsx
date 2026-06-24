@@ -7,6 +7,7 @@ import UsersPage from './Users';
 import AdminLayout from './AdminLayout';
 import ProtectedRoute from '../../shared/ProtectedRoute';
 import CoachesPage from './сoaches/CoachesPage';
+import StudentsPage from './students/StudentsPage';
 import ChangePasswordPage from '../../shared/components/ChangePassword';
 import GroupsPage from './groups/GroupsPage';
 import GroupDetailsPage from './groups/GroupDetailsPage';
@@ -41,6 +42,7 @@ const AdminRoutes: React.FC = () => {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="contracts" element={<ContractsPage />} />
               <Route path="payments" element={<PaymentsPage />} />
+              <Route path="students" element={<StudentsPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="coaches" element={<CoachesPage />} />
               <Route path="leads" element={<LeadKanbanPage />} />

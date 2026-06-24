@@ -6,6 +6,9 @@ export type ContractStatus =
   | "CANCELLED";
 
 export type LeadType = "CHILDREN" | "ADULT";
+export type ContractPaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
+export type PaymentStatus = "PAID" | "CANCELLED";
+export type PaymentMethod = "CASH" | "CARD" | "BANK_TRANSFER" | "KASPI" | "OTHER";
 export type CancelReasonCode =
   | "CLIENT_REQUEST"
   | "PAYMENT_ISSUE"
@@ -44,6 +47,11 @@ export interface ContractListItem {
     id: string;
     fullName: string;
   } | null;
+  paymentStatus?: ContractPaymentStatus;
+  paidAmount?: number;
+  outstandingAmount?: number;
+  overpaidAmount?: number;
+  lastPaidAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,6 +70,79 @@ export interface ContractDetails extends ContractListItem {
 
 export interface ContractsPageResponse {
   content: ContractListItem[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export interface ContractPaymentSummary {
+  contractId: string;
+  contractAmount: number;
+  paidAmount: number;
+  outstandingAmount: number;
+  paymentStatus: ContractPaymentStatus;
+  lastPaidAt?: string | null;
+  paymentsCount: number;
+  overpaidAmount: number;
+}
+
+export interface ContractPaymentItem {
+  id: string;
+  contractId: string;
+  contractNumber?: string | null;
+  clientId?: string;
+  clientName?: string | null;
+  playerId?: string;
+  playerName?: string | null;
+  branchId?: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  method: PaymentMethod;
+  paidAt: string;
+  recordedAt?: string;
+  recordedBy?: string;
+  recordedByName?: string;
+  comment?: string;
+  externalReference?: string;
+  cancelReason?: string;
+  cancelComment?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateContractPaymentRequest {
+  contractId: string;
+  amount: number;
+  currency: string;
+  method: PaymentMethod;
+  paidAt: string;
+  comment?: string;
+  externalReference?: string;
+}
+
+export interface CancelPaymentRequest {
+  reason: string;
+  comment?: string;
+}
+
+export interface AdminPaymentsListQuery {
+  branchId?: string;
+  search?: string;
+  contractId?: string;
+  clientId?: string;
+  status?: PaymentStatus | "all";
+  method?: PaymentMethod | "all";
+  paidFrom?: string;
+  paidTo?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+export interface AdminPaymentsPageResponse {
+  content: ContractPaymentItem[];
   totalElements: number;
   totalPages: number;
   number: number;

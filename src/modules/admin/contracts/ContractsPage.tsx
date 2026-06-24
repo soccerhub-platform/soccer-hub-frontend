@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowPathIcon,
   CalendarDaysIcon,
@@ -9,8 +9,10 @@ import {
   NoSymbolIcon,
   PencilSquareIcon,
   PlusIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../shared/AuthContext";
 import { getApiErrorMessage } from "../../../shared/api";
 import { formatPhoneInput } from "../../../shared/phone";
@@ -30,18 +32,24 @@ import type {
   CancelContractRequest,
   CancelReasonCode,
   ContractDetails,
+  ContractListItem,
+  ContractPaymentItem,
+  ContractPaymentStatus,
   ContractGroupOption,
   ContractParticipantOption,
   ContractStatus,
   ContractsListQuery,
+  CreateContractPaymentRequest,
   CreateContractRequest,
   ExtendContractRequest,
   LeadType,
+  PaymentMethod,
   UpdateContractRequest,
 } from "./contracts.types";
 
 type FilterStatus = ContractStatus | "all" | "ENDING_SOON";
 type DrawerMode = "view" | "edit" | "extend" | "cancel" | "create";
+type PaymentModalMode = "create" | "cancel";
 
 const CONTRACT_STATUS_OPTIONS: Array<{ value: FilterStatus; label: string }> = [
   { value: "all", label: "Все" },
@@ -97,8 +105,22 @@ const formatDate = (value?: string | null) => {
   return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" }).format(date);
 };
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(date);
+};
+
 const formatAmount = (value: number, currency = "KZT") =>
   `${new Intl.NumberFormat("ru-RU").format(value)} ${currency}`;
+
+const toDateTimeLocalValue = (value: Date) => {
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(
+    value.getHours()
+  )}:${pad(value.getMinutes())}`;
+};
 
 const sanitizeNumberInput = (value: string) => value.replace(/\D/g, "");
 
@@ -117,6 +139,52 @@ const isEndingSoon = (contract: { status: ContractStatus; endDate: string }) => 
   const days = daysUntil(contract.endDate);
   return days !== null && days >= 0 && days <= 14;
 };
+
+const paymentStatusLabel = (status?: ContractPaymentStatus) => {
+  switch (status) {
+    case "PAID":
+      return "Оплачен";
+    case "PARTIALLY_PAID":
+      return "Частично оплачен";
+    case "UNPAID":
+      return "Ожидает оплату";
+    default:
+      return "Нет данных";
+  }
+};
+
+const paymentStatusBadgeClassName = (status?: ContractPaymentStatus) => {
+  switch (status) {
+    case "PAID":
+      return "border-emerald-100 bg-emerald-50 text-emerald-800";
+    case "PARTIALLY_PAID":
+      return "border-amber-100 bg-amber-50 text-amber-800";
+    case "UNPAID":
+      return "border-cyan-100 bg-cyan-50 text-cyan-800";
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-700";
+  }
+};
+
+const paymentMethodLabel = (method: PaymentMethod) => {
+  switch (method) {
+    case "CASH":
+      return "Наличные";
+    case "CARD":
+      return "Карта";
+    case "BANK_TRANSFER":
+      return "Перевод";
+    case "KASPI":
+      return "Kaspi";
+    case "OTHER":
+      return "Другое";
+    default:
+      return method;
+  }
+};
+
+const paymentRecordStatusLabel = (status: ContractPaymentItem["status"]) =>
+  status === "CANCELLED" ? "Отменен" : "Зафиксирован";
 
 const defaultFormState = {
   createMode: "existing" as "existing" | "new",
@@ -142,8 +210,12 @@ const ContractsPage: React.FC = () => {
   const { user } = useAuth();
   const token = user?.accessToken;
   const { branchId, branchName } = useAdminBranch();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const autoOpenedContractIdRef = useRef<string | null>(null);
+  const autoOpenedPaymentRef = useRef<string | null>(null);
 
-  const [contracts, setContracts] = useState<ContractDetails[]>([]);
+  const [contracts, setContracts] = useState<ContractListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -164,6 +236,21 @@ const ContractsPage: React.FC = () => {
   const [extendEndDate, setExtendEndDate] = useState("");
   const [extendAmount, setExtendAmount] = useState("");
   const [extendNotes, setExtendNotes] = useState("");
+  const [contractPayments, setContractPayments] = useState<ContractPaymentItem[]>([]);
+  const [contractPaymentsLoading, setContractPaymentsLoading] = useState(false);
+  const [paymentModalMode, setPaymentModalMode] = useState<PaymentModalMode | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<ContractPaymentItem | null>(null);
+  const [paymentModalError, setPaymentModalError] = useState<string | null>(null);
+  const [paymentSubmitLoading, setPaymentSubmitLoading] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    amount: "",
+    method: "KASPI" as PaymentMethod,
+    paidAt: toDateTimeLocalValue(new Date()),
+    comment: "",
+    externalReference: "",
+  });
+  const [cancelPaymentReason, setCancelPaymentReason] = useState("");
+  const [cancelPaymentComment, setCancelPaymentComment] = useState("");
 
   const loadContracts = async (mode: "initial" | "refresh" = "initial") => {
     if (!token) return;
@@ -177,10 +264,7 @@ const ContractsPage: React.FC = () => {
     try {
       const query: ContractsListQuery = { branchId: branchId ?? undefined };
       const response = await ContractsApi.list(query, token);
-      const detailList = await Promise.all(
-        response.content.map((item) => ContractsApi.getById(item.id, token))
-      );
-      setContracts(detailList);
+      setContracts(response.content);
     } catch (err) {
       console.error(err);
       setError(getApiErrorMessage(err, "Не удалось загрузить контракты"));
@@ -189,6 +273,32 @@ const ContractsPage: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const loadContractPayments = async (contractId: string) => {
+    if (!token) return;
+    setContractPaymentsLoading(true);
+    try {
+      const payments = await ContractsApi.listPayments(contractId, token);
+      setContractPayments(payments);
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, "Не удалось загрузить платежи"));
+      setContractPayments([]);
+    } finally {
+      setContractPaymentsLoading(false);
+    }
+  };
+
+  const refreshSelectedContract = async (contractId: string) => {
+    if (!token) return;
+    const [details, payments] = await Promise.all([
+      ContractsApi.getById(contractId, token),
+      ContractsApi.listPayments(contractId, token),
+    ]);
+    setSelectedContract(details);
+    setContractPayments(payments);
+    setContracts((prev) => prev.map((item) => (item.id === details.id ? { ...item, ...details } : item)));
   };
 
   const loadParticipants = async () => {
@@ -222,6 +332,34 @@ const ContractsPage: React.FC = () => {
   useEffect(() => {
     void loadContracts();
   }, [branchId, token]);
+
+  useEffect(() => {
+    const contractIdFromQuery = searchParams.get("contractId");
+    const modeFromQuery = searchParams.get("mode");
+    if (!token || !branchId || !contractIdFromQuery) return;
+    if (!contracts.some((contract) => contract.id === contractIdFromQuery)) return;
+    if (autoOpenedContractIdRef.current === `${contractIdFromQuery}:${modeFromQuery ?? "view"}`) return;
+
+    autoOpenedContractIdRef.current = `${contractIdFromQuery}:${modeFromQuery ?? "view"}`;
+    void openView(
+      contractIdFromQuery,
+      modeFromQuery === "edit" || modeFromQuery === "extend" || modeFromQuery === "cancel"
+        ? modeFromQuery
+        : "view"
+    );
+  }, [branchId, contracts, searchParams, token]);
+
+  useEffect(() => {
+    const contractIdFromQuery = searchParams.get("contractId");
+    const paymentAction = searchParams.get("payment");
+    if (!selectedContract || drawerMode !== "view") return;
+    if (paymentAction !== "create") return;
+    if (contractIdFromQuery !== selectedContract.id) return;
+    if (autoOpenedPaymentRef.current === selectedContract.id) return;
+
+    autoOpenedPaymentRef.current = selectedContract.id;
+    openCreatePayment();
+  }, [drawerMode, searchParams, selectedContract]);
 
   const filteredContracts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -291,10 +429,17 @@ const ContractsPage: React.FC = () => {
   const openView = async (contractId: string, mode: Exclude<DrawerMode, "create"> = "view") => {
     if (!token) return;
     try {
-      const details = await ContractsApi.getById(contractId, token);
+      const [details, payments] = await Promise.all([
+        ContractsApi.getById(contractId, token),
+        ContractsApi.listPayments(contractId, token),
+      ]);
       setSelectedContract(details);
+      setContractPayments(payments);
       setDrawerMode(mode);
       setModalError(null);
+      setPaymentModalError(null);
+      setPaymentModalMode(null);
+      setSelectedPayment(null);
       if (mode === "edit") {
         setForm({
           createMode: "existing",
@@ -510,6 +655,109 @@ const ContractsPage: React.FC = () => {
     }
   };
 
+  const openCreatePayment = () => {
+    if (!selectedContract) return;
+    setPaymentForm({
+      amount: String(
+        Math.max(
+          0,
+          selectedContract.outstandingAmount ?? selectedContract.amount - (selectedContract.paidAmount ?? 0)
+        )
+      ),
+      method: "KASPI",
+      paidAt: toDateTimeLocalValue(new Date()),
+      comment: "",
+      externalReference: "",
+    });
+    setPaymentModalError(null);
+    setPaymentModalMode("create");
+  };
+
+  const closeDrawer = () => {
+    autoOpenedContractIdRef.current = null;
+    autoOpenedPaymentRef.current = null;
+    setDrawerMode(null);
+    setSelectedContract(null);
+    setContractPayments([]);
+    setPaymentModalMode(null);
+    setSelectedPayment(null);
+    setPaymentModalError(null);
+    if (searchParams.get("contractId")) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("contractId");
+      nextParams.delete("mode");
+      nextParams.delete("payment");
+      setSearchParams(nextParams, { replace: true });
+    }
+  };
+
+  const openCancelPayment = (payment: ContractPaymentItem) => {
+    setSelectedPayment(payment);
+    setCancelPaymentReason("");
+    setCancelPaymentComment("");
+    setPaymentModalError(null);
+    setPaymentModalMode("cancel");
+  };
+
+  const handleCreatePayment = async () => {
+    if (!token || !selectedContract) return;
+    if (!paymentForm.amount.trim() || Number(paymentForm.amount) <= 0) {
+      setPaymentModalError("Сумма должна быть больше 0");
+      return;
+    }
+    if (!paymentForm.paidAt) {
+      setPaymentModalError("Укажите дату и время оплаты");
+      return;
+    }
+    setPaymentSubmitLoading(true);
+    setPaymentModalError(null);
+    try {
+      const payload: CreateContractPaymentRequest = {
+        contractId: selectedContract.id,
+        amount: Number(paymentForm.amount),
+        currency: selectedContract.currency,
+        method: paymentForm.method,
+        paidAt: new Date(paymentForm.paidAt).toISOString(),
+        comment: paymentForm.comment.trim() || undefined,
+        externalReference: paymentForm.externalReference.trim() || undefined,
+      };
+      await ContractsApi.createPayment(payload, token);
+      toast.success("Платеж добавлен");
+      setPaymentModalMode(null);
+      await Promise.all([loadContracts("refresh"), refreshSelectedContract(selectedContract.id)]);
+    } catch (err) {
+      console.error(err);
+      setPaymentModalError(getApiErrorMessage(err, "Не удалось добавить платеж"));
+    } finally {
+      setPaymentSubmitLoading(false);
+    }
+  };
+
+  const handleCancelPayment = async () => {
+    if (!token || !selectedContract || !selectedPayment) return;
+    if (!cancelPaymentReason.trim()) {
+      setPaymentModalError("Укажите причину отмены");
+      return;
+    }
+    setPaymentSubmitLoading(true);
+    setPaymentModalError(null);
+    try {
+      await ContractsApi.cancelPayment(selectedPayment.id, {
+        reason: cancelPaymentReason.trim(),
+        comment: cancelPaymentComment.trim() || undefined,
+      }, token);
+      toast.success("Платеж отменен");
+      setPaymentModalMode(null);
+      setSelectedPayment(null);
+      await Promise.all([loadContracts("refresh"), refreshSelectedContract(selectedContract.id)]);
+    } catch (err) {
+      console.error(err);
+      setPaymentModalError(getApiErrorMessage(err, "Не удалось отменить платеж"));
+    } finally {
+      setPaymentSubmitLoading(false);
+    }
+  };
+
   if (!token) {
     return <ErrorState message="Нет авторизации" />;
   }
@@ -581,7 +829,7 @@ const ContractsPage: React.FC = () => {
 
       <SectionCard
         title="Журнал договоров"
-        description="Полный список с быстрыми действиями: просмотр, редактирование, продление и отмена."
+        description="Полный список с быстрыми переходами в договор и карточку ученика."
         icon={<DocumentTextIcon className="h-4 w-4" />}
       >
         {error ? (
@@ -609,7 +857,8 @@ const ContractsPage: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Группа</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Период</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Сумма</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Статус</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Статус договора</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Оплата</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Действия</th>
                 </tr>
               </thead>
@@ -643,7 +892,13 @@ const ContractsPage: React.FC = () => {
                       ) : null}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700">
-                      {formatAmount(contract.amount, contract.currency)}
+                      <div className="font-medium text-slate-900">{formatAmount(contract.amount, contract.currency)}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Оплачено: {formatAmount(contract.paidAmount ?? 0, contract.currency)}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Остаток: {formatAmount(contract.outstandingAmount ?? contract.amount, contract.currency)}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700">
                       <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusBadgeClassName(contract.status)}`}>
@@ -651,13 +906,22 @@ const ContractsPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700">
+                      <span
+                        className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${paymentStatusBadgeClassName(
+                          contract.paymentStatus
+                        )}`}
+                      >
+                        {paymentStatusLabel(contract.paymentStatus)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
                       <div className="flex flex-wrap gap-2">
                         <ActionButton icon={<EyeIcon className="h-4 w-4" />} label="Открыть" onClick={() => void openView(contract.id, "view")} />
-                        <ActionButton icon={<PencilSquareIcon className="h-4 w-4" />} label="Изменить" onClick={() => void openView(contract.id, "edit")} />
-                        <ActionButton icon={<DocumentDuplicateIcon className="h-4 w-4" />} label="Продлить" onClick={() => void openView(contract.id, "extend")} />
-                        {contract.status !== "CANCELLED" ? (
-                          <ActionButton icon={<NoSymbolIcon className="h-4 w-4" />} label="Отменить" onClick={() => void openView(contract.id, "cancel")} danger />
-                        ) : null}
+                        <ActionButton
+                          icon={<UserCircleIcon className="h-4 w-4" />}
+                          label="Ученик"
+                          onClick={() => navigate(`/admin/students?playerId=${encodeURIComponent(contract.participant.id)}`)}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -682,13 +946,27 @@ const ContractsPage: React.FC = () => {
           errors={formErrors}
           submitLoading={submitLoading}
           modalError={modalError}
-          onClose={() => setDrawerMode(null)}
+          onClose={closeDrawer}
           onSubmit={() => void saveContract()}
         />
       ) : null}
 
       {drawerMode === "view" && selectedContract ? (
-        <ContractDetailsModal contract={selectedContract} onClose={() => setDrawerMode(null)} />
+        <ContractDetailsModal
+          contract={selectedContract}
+          payments={contractPayments}
+          paymentsLoading={contractPaymentsLoading}
+          onRefresh={() => void refreshSelectedContract(selectedContract.id)}
+          onCreatePayment={openCreatePayment}
+          onCancelPayment={openCancelPayment}
+          onEditContract={() => void openView(selectedContract.id, "edit")}
+          onExtendContract={() => void openView(selectedContract.id, "extend")}
+          onCancelContract={() => void openView(selectedContract.id, "cancel")}
+          onOpenStudent={() =>
+            navigate(`/admin/students?playerId=${encodeURIComponent(selectedContract.participant.id)}`)
+          }
+          onClose={closeDrawer}
+        />
       ) : null}
 
       {drawerMode === "extend" && selectedContract ? (
@@ -702,7 +980,7 @@ const ContractsPage: React.FC = () => {
           setNotes={setExtendNotes}
           submitLoading={submitLoading}
           modalError={modalError}
-          onClose={() => setDrawerMode(null)}
+          onClose={closeDrawer}
           onSubmit={() => void handleExtend()}
         />
       ) : null}
@@ -716,8 +994,38 @@ const ContractsPage: React.FC = () => {
           setComment={setCancelComment}
           submitLoading={submitLoading}
           modalError={modalError}
-          onClose={() => setDrawerMode(null)}
+          onClose={closeDrawer}
           onSubmit={() => void handleCancel()}
+        />
+      ) : null}
+
+      {paymentModalMode === "create" && selectedContract ? (
+        <CreatePaymentModal
+          contract={selectedContract}
+          form={paymentForm}
+          setForm={setPaymentForm}
+          submitLoading={paymentSubmitLoading}
+          modalError={paymentModalError}
+          onClose={() => setPaymentModalMode(null)}
+          onSubmit={() => void handleCreatePayment()}
+        />
+      ) : null}
+
+      {paymentModalMode === "cancel" && selectedContract && selectedPayment ? (
+        <CancelPaymentModal
+          contract={selectedContract}
+          payment={selectedPayment}
+          reason={cancelPaymentReason}
+          comment={cancelPaymentComment}
+          setReason={setCancelPaymentReason}
+          setComment={setCancelPaymentComment}
+          submitLoading={paymentSubmitLoading}
+          modalError={paymentModalError}
+          onClose={() => {
+            setPaymentModalMode(null);
+            setSelectedPayment(null);
+          }}
+          onSubmit={() => void handleCancelPayment()}
         />
       ) : null}
     </PageShell>
@@ -1199,14 +1507,58 @@ const ContractFormModal: React.FC<{
 
 const ContractDetailsModal: React.FC<{
   contract: ContractDetails;
+  payments: ContractPaymentItem[];
+  paymentsLoading: boolean;
+  onRefresh: () => void;
+  onCreatePayment: () => void;
+  onCancelPayment: (payment: ContractPaymentItem) => void;
+  onEditContract: () => void;
+  onExtendContract: () => void;
+  onCancelContract: () => void;
+  onOpenStudent: () => void;
   onClose: () => void;
-}> = ({ contract, onClose }) => (
+}> = ({
+  contract,
+  payments,
+  paymentsLoading,
+  onRefresh,
+  onCreatePayment,
+  onCancelPayment,
+  onEditContract,
+  onExtendContract,
+  onCancelContract,
+  onOpenStudent,
+  onClose,
+}) => (
   <ModalShell
     title={contract.contractNumber}
-    description="Полная карточка договора"
+    description="Полная карточка договора и состояние оплаты."
     eyebrow="Контракт"
     onClose={onClose}
     maxWidthClassName="max-w-3xl"
+    footer={
+      <div className="flex items-center justify-between gap-3">
+        <Button type="button" variant="secondary" size="sm" onClick={onRefresh}>
+          <ArrowPathIcon className="h-4 w-4" />
+          Обновить
+        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onOpenStudent}>
+            <UserCircleIcon className="h-4 w-4" />
+            Открыть ученика
+          </Button>
+          {contract.status !== "CANCELLED" && (contract.outstandingAmount ?? contract.amount) > 0 ? (
+            <Button type="button" onClick={onCreatePayment}>
+              <PlusIcon className="h-4 w-4" />
+              Добавить платеж
+            </Button>
+          ) : null}
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Закрыть
+          </Button>
+        </div>
+      </div>
+    }
   >
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <DetailBlock label="Участник" value={contract.participant.fullName} />
@@ -1215,6 +1567,123 @@ const ContractDetailsModal: React.FC<{
       <DetailBlock label="Тренер" value={contract.coach?.fullName || "Не указан"} />
       <DetailBlock label="Период" value={`${formatDate(contract.startDate)} - ${formatDate(contract.endDate)}`} />
       <DetailBlock label="Сумма" value={formatAmount(contract.amount, contract.currency)} />
+    </div>
+
+    <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-sm font-semibold text-slate-900">Управление договором</div>
+          <div className="mt-1 text-xs text-slate-500">Редактирование, продление и отмена доступны из карточки.</div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ActionButton icon={<PencilSquareIcon className="h-4 w-4" />} label="Изменить" onClick={onEditContract} />
+          <ActionButton icon={<DocumentDuplicateIcon className="h-4 w-4" />} label="Продлить" onClick={onExtendContract} />
+          {contract.status !== "CANCELLED" ? (
+            <ActionButton icon={<NoSymbolIcon className="h-4 w-4" />} label="Отменить" onClick={onCancelContract} danger />
+          ) : null}
+        </div>
+      </div>
+    </div>
+
+    <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-slate-900">Оплата договора</div>
+          <div className="mt-1 text-xs text-slate-500">Сводка по покрытию и история ручных платежей.</div>
+        </div>
+        <span
+          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${paymentStatusBadgeClassName(
+            contract.paymentStatus
+          )}`}
+        >
+          {paymentStatusLabel(contract.paymentStatus)}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <DetailBlock label="Оплачено" value={formatAmount(contract.paidAmount ?? 0, contract.currency)} />
+        <DetailBlock
+          label="Осталось"
+          value={formatAmount(contract.outstandingAmount ?? contract.amount, contract.currency)}
+        />
+        <DetailBlock label="Переплата" value={formatAmount(contract.overpaidAmount ?? 0, contract.currency)} />
+        <DetailBlock label="Последний платеж" value={formatDateTime(contract.lastPaidAt)} />
+      </div>
+
+      <div className="mt-4">
+        {paymentsLoading ? (
+          <LoadingState label="Загрузка платежей..." />
+        ) : payments.length === 0 ? (
+          <EmptyState
+            title="Платежей пока нет"
+            description="Добавьте первый платеж, чтобы зафиксировать оплату по договору."
+          />
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Дата</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Сумма</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Метод</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Статус</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Комментарий</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Действия</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {payments.map((payment) => (
+                  <tr key={payment.id} className="align-top">
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      <div className="font-medium text-slate-900">{formatDateTime(payment.paidAt)}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {payment.recordedByName || payment.recordedBy || "Система"}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{formatAmount(payment.amount, payment.currency)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{paymentMethodLabel(payment.method)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      <span
+                        className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                          payment.status === "CANCELLED"
+                            ? "border-rose-100 bg-rose-50 text-rose-700"
+                            : "border-emerald-100 bg-emerald-50 text-emerald-800"
+                        }`}
+                      >
+                        {paymentRecordStatusLabel(payment.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      <div>{payment.comment || "—"}</div>
+                      {payment.externalReference ? (
+                        <div className="mt-1 text-xs text-slate-500">
+                          Номер чека / перевода: {payment.externalReference}
+                        </div>
+                      ) : null}
+                      {payment.status === "CANCELLED" && payment.cancelReason ? (
+                        <div className="mt-1 text-xs text-rose-600">
+                          Отменен: {payment.cancelReason}
+                          {payment.cancelComment ? ` · ${payment.cancelComment}` : ""}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {payment.status !== "CANCELLED" ? (
+                        <ActionButton
+                          icon={<NoSymbolIcon className="h-4 w-4" />}
+                          label="Отменить"
+                          onClick={() => onCancelPayment(payment)}
+                          danger
+                        />
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
 
     <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -1230,6 +1699,191 @@ const ContractDetailsModal: React.FC<{
           </div>
         ))}
       </div>
+    </div>
+  </ModalShell>
+);
+
+const CreatePaymentModal: React.FC<{
+  contract: ContractDetails;
+  form: {
+    amount: string;
+    method: PaymentMethod;
+    paidAt: string;
+    comment: string;
+    externalReference: string;
+  };
+  setForm: React.Dispatch<
+    React.SetStateAction<{
+      amount: string;
+      method: PaymentMethod;
+      paidAt: string;
+      comment: string;
+      externalReference: string;
+    }>
+  >;
+  submitLoading: boolean;
+  modalError: string | null;
+  onClose: () => void;
+  onSubmit: () => void;
+}> = ({ contract, form, setForm, submitLoading, modalError, onClose, onSubmit }) => (
+  <ModalShell
+    title={`Новый платеж для ${contract.contractNumber}`}
+    description="Фиксация ручной оплаты по текущему договору."
+    eyebrow="Оплата"
+    onClose={onClose}
+    maxWidthClassName="max-w-xl"
+    footer={
+      <div className="flex items-center justify-end gap-3">
+        <Button type="button" variant="secondary" onClick={onClose}>
+          Отмена
+        </Button>
+        <Button type="button" onClick={onSubmit} isLoading={submitLoading}>
+          Добавить платеж
+        </Button>
+      </div>
+    }
+  >
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <DetailBlock label="Сумма договора" value={formatAmount(contract.amount, contract.currency)} />
+        <DetailBlock label="Оплачено" value={formatAmount(contract.paidAmount ?? 0, contract.currency)} />
+        <DetailBlock
+          label="Осталось"
+          value={formatAmount(contract.outstandingAmount ?? contract.amount, contract.currency)}
+        />
+      </div>
+
+      <label className="block space-y-1 text-sm text-slate-600">
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Сумма</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={form.amount}
+          onChange={(event) => setForm((prev) => ({ ...prev, amount: sanitizeNumberInput(event.target.value) }))}
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+          placeholder="50000"
+        />
+      </label>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="block space-y-1 text-sm text-slate-600">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Метод</span>
+          <select
+            value={form.method}
+            onChange={(event) => setForm((prev) => ({ ...prev, method: event.target.value as PaymentMethod }))}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+          >
+            <option value="KASPI">Kaspi</option>
+            <option value="CARD">Карта</option>
+            <option value="BANK_TRANSFER">Перевод</option>
+            <option value="CASH">Наличные</option>
+            <option value="OTHER">Другое</option>
+          </select>
+        </label>
+
+        <label className="block space-y-1 text-sm text-slate-600">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Дата и время оплаты</span>
+          <input
+            type="datetime-local"
+            value={form.paidAt}
+            onChange={(event) => setForm((prev) => ({ ...prev, paidAt: event.target.value }))}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+          />
+        </label>
+      </div>
+
+      <label className="block space-y-1 text-sm text-slate-600">
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Номер чека / перевода</span>
+        <input
+          type="text"
+          value={form.externalReference}
+          onChange={(event) => setForm((prev) => ({ ...prev, externalReference: event.target.value }))}
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+          placeholder="Например, номер Kaspi-чека"
+        />
+      </label>
+
+      <label className="block space-y-1 text-sm text-slate-600">
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Комментарий</span>
+        <textarea
+          value={form.comment}
+          onChange={(event) => setForm((prev) => ({ ...prev, comment: event.target.value }))}
+          rows={4}
+          className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+        />
+      </label>
+
+      {modalError ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {modalError}
+        </div>
+      ) : null}
+    </div>
+  </ModalShell>
+);
+
+const CancelPaymentModal: React.FC<{
+  contract: ContractDetails;
+  payment: ContractPaymentItem;
+  reason: string;
+  comment: string;
+  setReason: (value: string) => void;
+  setComment: (value: string) => void;
+  submitLoading: boolean;
+  modalError: string | null;
+  onClose: () => void;
+  onSubmit: () => void;
+}> = ({ contract, payment, reason, comment, setReason, setComment, submitLoading, modalError, onClose, onSubmit }) => (
+  <ModalShell
+    title={`Отменить платеж по ${contract.contractNumber}`}
+    description="Платеж останется в истории, но будет исключен из расчета покрытия."
+    eyebrow="Отмена платежа"
+    onClose={onClose}
+    maxWidthClassName="max-w-xl"
+    footer={
+      <div className="flex items-center justify-end gap-3">
+        <Button type="button" variant="secondary" onClick={onClose}>
+          Назад
+        </Button>
+        <Button type="button" variant="danger" onClick={onSubmit} isLoading={submitLoading}>
+          Отменить платеж
+        </Button>
+      </div>
+    }
+  >
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <DetailBlock label="Сумма" value={formatAmount(payment.amount, payment.currency)} />
+        <DetailBlock label="Метод" value={paymentMethodLabel(payment.method)} />
+        <DetailBlock label="Дата оплаты" value={formatDateTime(payment.paidAt)} />
+      </div>
+
+      <label className="block space-y-1 text-sm text-slate-600">
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Причина</span>
+        <input
+          type="text"
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+          placeholder="duplicate payment"
+        />
+      </label>
+
+      <label className="block space-y-1 text-sm text-slate-600">
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Комментарий</span>
+        <textarea
+          value={comment}
+          onChange={(event) => setComment(event.target.value)}
+          rows={4}
+          className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+        />
+      </label>
+
+      {modalError ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {modalError}
+        </div>
+      ) : null}
     </div>
   </ModalShell>
 );
