@@ -9,6 +9,7 @@ import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   DocumentTextIcon,
+  CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../shared/AuthContext";
 import { useAdminBranch } from "./BranchContext";
@@ -19,6 +20,7 @@ const AdminLayout: React.FC = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const { branchName, canSwitchBranch } = useAdminBranch();
+  const branchLabel = branchName === "Main Branch" ? "Главный филиал" : branchName;
 
   const handleLogout = () => {
     logout();
@@ -44,7 +46,7 @@ const AdminLayout: React.FC = () => {
                 Club Hub
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                Admin Control
+                Админ-панель
               </div>
             </div>
           </div>
@@ -65,6 +67,10 @@ const AdminLayout: React.FC = () => {
           <NavLink to="/admin/groups" className={linkClasses}>
             <UserGroupIcon className="h-5 w-5 mr-3" />
             <span>Группы</span>
+          </NavLink>
+          <NavLink to="/admin/schedule" className={linkClasses}>
+            <CalendarDaysIcon className="h-5 w-5 mr-3" />
+            <span>Расписание</span>
           </NavLink>
           <NavLink to="/admin/students" className={linkClasses}>
             <UserCircleIcon className="h-5 w-5 mr-3" />
@@ -115,7 +121,7 @@ const AdminLayout: React.FC = () => {
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-200 text-sm text-admin-700 shadow-sm">
                 <BuildingOffice2Icon className="h-4 w-4 text-admin-500" />
                 <span className="font-medium">
-                  {branchName ?? "Филиал не выбран"}
+                  {branchLabel ?? "Филиал не выбран"}
                 </span>
               </div>
 

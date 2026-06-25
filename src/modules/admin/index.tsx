@@ -16,6 +16,7 @@ import BranchSelectPage from './branches/BranchSelectPage';
 import BranchGuard from './branches/BranchGuard';
 import LeadKanbanPage from './leads/LeadKanbanPage';
 import AdminProfilePage from './ProfilePage';
+import SchedulePage from './SchedulePage';
 
 /**
  * Defines routes for the admin module.  Admins have access to
@@ -40,6 +41,7 @@ const AdminRoutes: React.FC = () => {
             <Route element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="schedule" element={<SchedulePage />} />
               <Route path="contracts" element={<ContractsPage />} />
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="students" element={<StudentsPage />} />
