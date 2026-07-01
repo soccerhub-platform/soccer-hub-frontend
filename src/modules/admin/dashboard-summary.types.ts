@@ -1,6 +1,14 @@
-export type DashboardAttentionTone = "danger" | "warning" | "info" | "success";
-
-export type DashboardRiskTone = "danger" | "warning" | "success";
+export type DashboardTone = "danger" | "warning" | "info" | "success";
+export type DashboardDeltaTone = "success" | "warning" | "info";
+export type DashboardSeriesCode = "leads" | "trainings" | "payments";
+export type DashboardSeriesUnit = "count" | "amount";
+export type DashboardFunnelStatus =
+  | "NEW"
+  | "CONTACTED"
+  | "QUALIFIED"
+  | "TRIAL_SCHEDULED"
+  | "WAITING_PAYMENT"
+  | "WON";
 
 export type DashboardMeta = {
   branchId: string;
@@ -10,55 +18,95 @@ export type DashboardMeta = {
   generatedAt: string;
 };
 
-export type DashboardHero = {
-  title: string;
-  subtitle: string;
-  urgentCount: number;
-};
-
 export type DashboardAction = {
   label: string;
   target: string;
 };
 
+export type DashboardTopCard = {
+  id: string;
+  tone: DashboardTone | string;
+  icon: string;
+  title: string;
+  description: string;
+  action: DashboardAction;
+  details: Array<{ label: string; value: string }>;
+};
+
 export type DashboardAttentionItem = {
   id: string;
-  tone: DashboardAttentionTone;
+  tone: DashboardTone | string;
   area: string;
   title: string;
   description: string;
   action: DashboardAction;
 };
 
+export type DashboardAlerts = {
+  topCards: DashboardTopCard[];
+  attention: DashboardAttentionItem[];
+};
+
 export type DashboardKpiItem = {
-  value: number;
+  code: string;
   label: string;
-  hint: string;
+  value: number;
+  displayValue: string;
+  delta: {
+    value: number;
+    unit: string;
+    tone: DashboardDeltaTone | string;
+    label: string;
+  };
+  hint: string | null;
+  target: string | null;
+  count: number | null;
+  amount: number | null;
 };
 
 export type DashboardKpis = {
-  newLeads: DashboardKpiItem;
-  activeGroups: DashboardKpiItem;
-  trainingsToday: DashboardKpiItem;
-  paymentsToday: DashboardKpiItem;
+  items: DashboardKpiItem[];
 };
 
-export type DashboardBranchToday = {
-  trainersOnDuty: number;
-  groupsWithoutCoach: number;
-  groupsWithoutSchedule: number;
-  avgFirstResponseMinutes: number;
+export type DashboardBranchSummary = {
+  studentsTotal: number | null;
+  studentsDelta: number | null;
+  trainingsVisited: number | null;
+  trainingsTotal: number | null;
+  attendancePercent: number | null;
+  newStudents: number | null;
+  newStudentsDelta: number | null;
+  trainersOnDuty: number | null;
+  groupsWithoutCoach: number | null;
+  groupsWithoutSchedule: number | null;
+  avgFirstResponseMinutes: number | null;
+  unavailableReasons: Record<string, string>;
 };
 
 export type DashboardRiskItem = {
   code: string;
   label: string;
+  description: string;
   value: number;
-  tone: DashboardRiskTone | "info";
+  unit: string;
+  tone: DashboardTone | string;
+  target: string;
 };
 
-export type DashboardLeadFunnel = {
-  totals: Record<string, number>;
+export type DashboardRisks = {
+  items: DashboardRiskItem[];
+};
+
+export type DashboardFunnelRow = {
+  status: DashboardFunnelStatus;
+  label: string;
+  count: number;
+  percent: number;
+};
+
+export type DashboardFunnel = {
+  rows: DashboardFunnelRow[];
+  conversionToClientPercent: number;
 };
 
 export type DashboardSession = {
@@ -85,25 +133,35 @@ export type DashboardTodaySchedule = {
   items: DashboardSession[];
 };
 
-export type DashboardWeeklyTrendItem = {
-  bucket: string;
-  newLeads: number;
-  wonLeads: number;
-  lostLeads: number;
+export type DashboardWeeklyDynamicsPoint = {
+  date: string;
+  value: number;
 };
 
-export type DashboardWeeklyTrend = {
-  items: DashboardWeeklyTrendItem[];
+export type DashboardWeeklyDynamicsSeries = {
+  code: DashboardSeriesCode;
+  label: string;
+  unit: DashboardSeriesUnit;
+  points: DashboardWeeklyDynamicsPoint[];
+};
+
+export type DashboardWeeklyDynamics = {
+  period: {
+    from: string;
+    to: string;
+  };
+  series: DashboardWeeklyDynamicsSeries[];
+  isEmpty: boolean;
+  emptyReason: string | null;
 };
 
 export type AdminDashboardSummaryResponse = {
   meta: DashboardMeta;
-  hero: DashboardHero;
-  attention: DashboardAttentionItem[];
+  alerts: DashboardAlerts;
   kpis: DashboardKpis;
-  branchToday: DashboardBranchToday;
-  risks: DashboardRiskItem[];
-  leadFunnel: DashboardLeadFunnel;
+  branchSummary: DashboardBranchSummary;
+  risks: DashboardRisks;
+  funnel: DashboardFunnel;
   todaySchedule: DashboardTodaySchedule;
-  weeklyTrend: DashboardWeeklyTrend;
+  weeklyDynamics: DashboardWeeklyDynamics;
 };

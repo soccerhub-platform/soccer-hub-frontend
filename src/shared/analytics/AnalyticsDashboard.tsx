@@ -127,17 +127,17 @@ const AnalyticsDashboard: React.FC<Props> = ({ scope, branchId, title = "Опе�
 
   const totals = analytics.funnel?.totals ?? analytics.kpi?.totals ?? {};
   const totalLeads =
-    analytics.kpi?.summary.totalLeads ??
+    analytics.kpi?.summary?.totalLeads ??
     Object.values(totals).reduce((acc, value) => acc + Number(value ?? 0), 0);
-  const wonLeads = analytics.kpi?.summary.wonLeads ?? totals.WON ?? 0;
-  const lostLeads = analytics.kpi?.summary.lostLeads ?? totals.LOST ?? 0;
+  const wonLeads = analytics.kpi?.summary?.wonLeads ?? totals.WON ?? 0;
+  const lostLeads = analytics.kpi?.summary?.lostLeads ?? totals.LOST ?? 0;
   const winRate =
-    analytics.kpi?.summary.winRateOnClosed ??
-    analytics.funnel?.summary.winRateOnClosed ??
+    analytics.kpi?.summary?.winRateOnClosed ??
+    analytics.funnel?.summary?.winRateOnClosed ??
     0;
   const trialConversion =
-    analytics.kpi?.summary.trialScheduledToWon ??
-    analytics.funnel?.summary.trialScheduledToWon ??
+    analytics.kpi?.summary?.trialScheduledToWon ??
+    analytics.funnel?.summary?.trialScheduledToWon ??
     0;
 
   const hasAnyData =
@@ -202,7 +202,7 @@ const AnalyticsDashboard: React.FC<Props> = ({ scope, branchId, title = "Опе�
       ) : loading ? (
         <AnalyticsSkeleton />
       ) : !hasAnyData ? (
-        <EmptyState reason={analytics.kpi?.empty.reason ?? "За выбранный период данных пока нет"} />
+        <EmptyState reason={analytics.kpi?.empty?.reason ?? "За выбранный период данных пока нет"} />
       ) : (
         <div className="mt-5 space-y-5">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -228,7 +228,7 @@ const AnalyticsDashboard: React.FC<Props> = ({ scope, branchId, title = "Опе�
             </Panel>
 
             <Panel title="Причины потерь" description="Почему лиды не дошли до оплаты. Нужен для работы с ценой, расписанием и коммуникацией.">
-              <LossReasons rows={analytics.lossReasons?.series ?? []} totalLost={analytics.lossReasons?.totals.totalLost ?? Number(lostLeads)} />
+              <LossReasons rows={analytics.lossReasons?.series ?? []} totalLost={analytics.lossReasons?.totals?.totalLost ?? Number(lostLeads)} />
             </Panel>
           </div>
 

@@ -3,12 +3,17 @@ import { Button, EmptyState } from "../../shared/ui";
 import type {
   DashboardAttentionItem,
   DashboardSession,
-  DashboardWeeklyTrendItem,
 } from "./dashboard-summary.types";
 import type { DayOfWeek, GroupScheduleDto } from "./groups/schedule/schedule.types";
 
 type GroupMeta = Record<string, { name: string; bg: string; border: string; text: string }>;
 type CoachDirectory = Record<string, { fullName: string; todaySessions: number; overdueReports: number }>;
+type LegacyWeeklyTrendItem = {
+  bucket: string;
+  newLeads: number;
+  wonLeads: number;
+  lostLeads: number;
+};
 
 const STATUS_LABELS: Record<string, string> = {
   NEW: "Новые",
@@ -209,6 +214,11 @@ export const TodayScheduleList = ({
       <EmptyState
         title="На сегодня тренировок нет"
         description="Если занятия появятся, они сразу окажутся здесь с тренером и статусом."
+        action={
+          <Button variant="secondary" onClick={onOpenWeeklySchedule}>
+            Открыть недельное расписание
+          </Button>
+        }
       />
     );
   }
@@ -328,7 +338,7 @@ export const QuickActionButton = ({ label, onClick }: { label: string; onClick: 
   </button>
 );
 
-export const WeeklyTrendCompact = ({ rows }: { rows: DashboardWeeklyTrendItem[] }) => {
+export const WeeklyTrendCompact = ({ rows }: { rows: LegacyWeeklyTrendItem[] }) => {
   if (rows.length === 0) {
     return (
       <EmptyState

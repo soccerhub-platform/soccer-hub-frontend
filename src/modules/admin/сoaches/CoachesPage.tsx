@@ -4,7 +4,6 @@ import {
   ClockIcon,
   EnvelopeIcon,
   ExclamationTriangleIcon,
-  KeyIcon,
   PhoneIcon,
   PlusIcon,
   UserCircleIcon,
@@ -20,6 +19,8 @@ import {
   CoachOverviewItem,
   CoachOverviewResponse,
   CoachProfile,
+  CoachGroupNextSession,
+  CoachGroupRiskFlag,
   CoachStatus,
 } from "./coach.api";
 import CreateCoachModal from "./CreateCoachModal";
@@ -60,15 +61,15 @@ const statusFilters: Array<{ value: StatusFilter; label: string }> = [
   { value: "today", label: "Сегодня" },
 ];
 
-const dayLabels: Record<string, string> = {
-  MONDAY: "Пн",
-  TUESDAY: "Вт",
-  WEDNESDAY: "Ср",
-  THURSDAY: "Чт",
-  FRIDAY: "Пт",
-  SATURDAY: "Сб",
-  SUNDAY: "Вс",
-};
+const weekDays = [
+  { key: "MONDAY", label: "Пн" },
+  { key: "TUESDAY", label: "Вт" },
+  { key: "WEDNESDAY", label: "Ср" },
+  { key: "THURSDAY", label: "Чт" },
+  { key: "FRIDAY", label: "Пт" },
+  { key: "SATURDAY", label: "Сб" },
+  { key: "SUNDAY", label: "Вс" },
+];
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "Нет данных";
@@ -93,12 +94,38 @@ const formatDate = (value: string) => {
 
 const timeShort = (value: string) => value.slice(0, 5);
 
-type CoachGroupAssignment = {
+const sessionStatusLabels: Record<string, string> = {
+  PLANNED: "Запланировано",
+  COMPLETED: "Проведено",
+  CANCELLED: "Отменено",
+};
+
+const coachStatusHistoryLabels: Record<string, string> = {
+  ACTIVE: "Активен",
+  INACTIVE: "Отключен",
+};
+
+const formatSessionStatus = (status: string) => sessionStatusLabels[status] ?? status;
+
+const formatCoachStatusHistory = (status: string) => coachStatusHistoryLabels[status] ?? status;
+
+const riskToneClassName = (severity: string) => {
+  if (severity === "CRITICAL") return "border-rose-100 bg-rose-50 text-rose-700";
+  if (severity === "WARNING") return "border-amber-100 bg-amber-50 text-amber-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+};
+
+export type CoachGroupAssignment = {
   groupId: string;
   groupName: string;
   branchId: string;
   groupCoachId: string | null;
   role: "MAIN" | "ASSISTANT" | null;
+  studentsCount?: number;
+  activeStudentsCount?: number;
+  weeklySlotsCount?: number;
+  nextSession?: CoachGroupNextSession | null;
+  riskFlags?: CoachGroupRiskFlag[];
 };
 
 const isOverloaded = (coach: CoachOverviewItem) =>
@@ -110,6 +137,7 @@ const CoachesPage: React.FC = () => {
   const { user } = useAuth();
   const token = user?.accessToken;
   const { branchId } = useAdminBranch();
+  const navigate = useNavigate();
 
   const [overview, setOverview] = useState<CoachOverviewResponse>(emptyOverview);
   const [loading, setLoading] = useState(false);
@@ -118,7 +146,6 @@ const CoachesPage: React.FC = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null);
 
   const loadOverview = async () => {
     if (!branchId || !token) return;
@@ -271,28 +298,18 @@ const CoachesPage: React.FC = () => {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {filteredCoaches.map((coach) => (
             <CoachCard
               key={coach.coachId}
               coach={coach}
               isUpdating={updatingId === coach.coachId}
-              onOpen={() => setSelectedCoachId(coach.coachId)}
+              onOpen={() => navigate(`/admin/coaches/${coach.coachId}`)}
               onToggleStatus={() => toggleStatus(coach)}
             />
           ))}
         </div>
       )}
-
-      {selectedCoachId ? (
-        <CoachProfileDrawer
-          coachId={selectedCoachId}
-          branchId={branchId}
-          token={token}
-          onClose={() => setSelectedCoachId(null)}
-          onChanged={loadOverview}
-        />
-      ) : null}
 
       {showCreate ? (
         <CreateCoachModal
@@ -338,12 +355,12 @@ const CoachCard: React.FC<{
       : 0;
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-cyan-200">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-50">
-              <UserCircleIcon className="h-7 w-7 text-cyan-800" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50">
+              <UserCircleIcon className="h-6 w-6 text-cyan-800" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -357,13 +374,13 @@ const CoachCard: React.FC<{
                   </span>
                 ) : null}
               </div>
-              {coach.specialization ? (
-                <div className="mt-1 text-xs font-medium text-cyan-800">{coach.specialization}</div>
-              ) : null}
-              <div className="mt-1 space-y-1 text-xs text-slate-500">
-                <div className="flex items-center gap-1.5">
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                {coach.specialization ? (
+                  <div className="font-medium text-cyan-800">{coach.specialization}</div>
+                ) : null}
+                <div className="flex min-w-0 items-center gap-1.5">
                   <EnvelopeIcon className="h-4 w-4 text-slate-400" />
-                  {coach.email}
+                  <span className="truncate">{coach.email}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <PhoneIcon className="h-4 w-4 text-slate-400" />
@@ -385,13 +402,13 @@ const CoachCard: React.FC<{
         </Button>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-3 gap-2">
         <SmallStat icon={<UserGroupIcon className="h-4 w-4" />} label="Группы" value={coach.groups.length} />
         <SmallStat icon={<CalendarDaysIcon className="h-4 w-4" />} label="В неделю" value={coach.weeklySessionsCount} />
         <SmallStat icon={<ClockIcon className="h-4 w-4" />} label="Сегодня" value={coach.todaySessionsCount} />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-3">
         <div className="mb-1 flex items-center justify-between text-xs">
           <span className="font-medium text-slate-600">Нагрузка</span>
           <span className="text-slate-500">
@@ -406,7 +423,7 @@ const CoachCard: React.FC<{
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         {coach.groups.length === 0 ? (
           <span className="rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs text-amber-700">
             Без групп
@@ -430,19 +447,14 @@ const CoachCard: React.FC<{
         )}
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-        <div className="text-xs text-slate-500">
-          Последний отчет: {formatDateTime(coach.reports.lastReportAt)}
-        </div>
-        <Button type="button" size="sm" variant="secondary" onClick={onOpen}>
-          Открыть
-        </Button>
+      <div className="mt-3 border-t border-slate-100 pt-2 text-xs text-slate-500">
+        Последний отчет: {formatDateTime(coach.reports.lastReportAt)}
       </div>
     </section>
   );
 };
 
-const SmallStat: React.FC<{ icon: React.ReactNode; label: string; value: number }> = ({ icon, label, value }) => (
+export const SmallStat: React.FC<{ icon: React.ReactNode; label: string; value: number }> = ({ icon, label, value }) => (
   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
     <div className="flex items-center gap-1.5 text-xs text-slate-500">
       {icon}
@@ -452,7 +464,7 @@ const SmallStat: React.FC<{ icon: React.ReactNode; label: string; value: number 
   </div>
 );
 
-const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
+export const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
   <span
     className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
       active
@@ -464,209 +476,14 @@ const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
   </span>
 );
 
-const CoachProfileDrawer: React.FC<{
-  coachId: string;
-  branchId: string;
-  token: string;
-  onClose: () => void;
-  onChanged: () => void | Promise<void>;
-}> = ({ coachId, branchId, token, onClose, onChanged }) => {
-  const navigate = useNavigate();
-  const [profile, setProfile] = useState<CoachProfile | null>(null);
-  const [assignments, setAssignments] = useState<CoachGroupAssignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [updating, setUpdating] = useState(false);
-  const [showAssignGroup, setShowAssignGroup] = useState(false);
-  const [showEdit, setShowEdit] = useState(false);
-  const [showResetPassword, setShowResetPassword] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
-  const [resetPasswordValue, setResetPasswordValue] = useState<string | null>(null);
-
-  const loadProfile = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await CoachApi.profile(coachId, token);
-      setProfile(data);
-      setAssignments(
-        data.groups.map((group) => ({
-          groupId: group.groupId,
-          groupName: group.groupName,
-          branchId: group.branchId,
-          groupCoachId: group.groupCoachId ?? null,
-          role: group.role ?? null,
-        }))
-      );
-    } catch (e) {
-      console.error("Failed to load coach profile", e);
-      setError("Не удалось загрузить профиль тренера");
-      setAssignments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadProfile();
-  }, [coachId, token]);
-
-  const toggleStatus = async () => {
-    if (!profile) return;
-    const nextStatus: CoachStatus = profile.active ? "INACTIVE" : "ACTIVE";
-    setUpdating(true);
-    try {
-      await CoachApi.updateStatus(profile.coachId, nextStatus, token);
-      toast.success(profile.active ? "Тренер отключен" : "Тренер включен");
-      await loadProfile();
-      await onChanged();
-    } catch (e) {
-      console.error(e);
-      toast.error("Не удалось изменить статус");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const unassignFromGroup = async (assignment: CoachGroupAssignment) => {
-    if (!assignment.groupCoachId) {
-      toast.error("Нельзя снять тренера: отсутствует идентификатор назначения");
-      return;
-    }
-    if (!confirm(`Снять тренера с группы "${assignment.groupName}"?`)) return;
-
-    setUpdating(true);
-    try {
-      await GroupApi.unassignCoach(assignment.groupCoachId, token);
-      toast.success("Тренер снят с группы");
-      await loadProfile();
-      await onChanged();
-    } catch (e) {
-      console.error(e);
-      toast.error("Не удалось снять тренера с группы");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const resetPassword = async () => {
-    if (!profile) return;
-    setResetLoading(true);
-    try {
-      const output = await CoachApi.resetPassword(profile.coachId, token);
-      const password = output.tempPassword ?? output.temporaryPassword ?? null;
-      if (!password) {
-        toast.error("Сброс выполнен, но пароль не вернулся в ответе");
-        setShowResetPassword(false);
-        return;
-      }
-      setResetPasswordValue(password);
-    } catch (e) {
-      console.error(e);
-      toast.error("Не удалось сбросить пароль тренера");
-      setShowResetPassword(false);
-    } finally {
-      setResetLoading(false);
-    }
-  };
-
-  return (
-    <ModalShell
-      title={profile ? `${profile.firstName} ${profile.lastName}` : "Профиль тренера"}
-      description="Группы, расписание, ближайшие занятия и отчеты"
-      onClose={onClose}
-      maxWidthClassName="max-w-4xl"
-      heightClassName="max-h-[92vh]"
-      footer={
-        profile ? (
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={onClose}>
-              Закрыть
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => setShowEdit(true)}>
-              Редактировать
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => setShowResetPassword(true)}>
-              <KeyIcon className="h-4 w-4" />
-              Сбросить пароль
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => setShowAssignGroup(true)}>
-              <PlusIcon className="h-4 w-4" />
-              Назначить в группу
-            </Button>
-            <Button
-              type="button"
-              variant={profile.active ? "softDanger" : "soft"}
-              isLoading={updating}
-              onClick={toggleStatus}
-            >
-              {profile.active ? "Отключить тренера" : "Включить тренера"}
-            </Button>
-          </div>
-        ) : null
-      }
-    >
-      {error ? (
-        <ErrorState message={error} onRetry={loadProfile} />
-      ) : loading ? (
-        <LoadingState label="Загрузка профиля..." />
-      ) : profile ? (
-        <CoachProfileContent
-          profile={profile}
-          assignments={assignments}
-          onOpenGroup={(groupId) => navigate(`/admin/groups/${groupId}`)}
-          onUnassignGroup={unassignFromGroup}
-        />
-      ) : null}
-
-      {showAssignGroup && profile ? (
-        <AssignCoachToGroupModal
-          coachId={profile.coachId}
-          branchId={branchId}
-          assignedGroupIds={assignments.map((item) => item.groupId)}
-          token={token}
-          onClose={() => setShowAssignGroup(false)}
-          onAssigned={async () => {
-            setShowAssignGroup(false);
-            await loadProfile();
-            await onChanged();
-          }}
-        />
-      ) : null}
-      {showEdit && profile ? (
-        <EditCoachModal
-          profile={profile}
-          token={token}
-          onClose={() => setShowEdit(false)}
-          onSaved={async () => {
-            setShowEdit(false);
-            await loadProfile();
-            await onChanged();
-          }}
-        />
-      ) : null}
-      {showResetPassword && profile ? (
-        <ResetCoachPasswordModal
-          coachName={`${profile.firstName} ${profile.lastName}`}
-          password={resetPasswordValue}
-          loading={resetLoading}
-          onReset={resetPassword}
-          onClose={() => {
-            setShowResetPassword(false);
-            setResetPasswordValue(null);
-          }}
-        />
-      ) : null}
-    </ModalShell>
-  );
-};
-
-const CoachProfileContent: React.FC<{
+export const CoachProfileContent: React.FC<{
   profile: CoachProfile;
   assignments: CoachGroupAssignment[];
   onOpenGroup: (groupId: string) => void;
   onUnassignGroup: (assignment: CoachGroupAssignment) => void | Promise<void>;
-}> = ({ profile, assignments, onOpenGroup, onUnassignGroup }) => {
+  showIdentity?: boolean;
+  sectionPrefix?: string;
+}> = ({ profile, assignments, onOpenGroup, onUnassignGroup, showIdentity = true, sectionPrefix = "coach-profile" }) => {
   const usedSlots = profile.load?.usedSlots ?? profile.weeklySchedule.length;
   const maxSlots = profile.load?.maxSlots ?? Math.max(usedSlots, 12);
   const loadPercent = maxSlots > 0 ? Math.min(100, Math.round((usedSlots / maxSlots) * 100)) : 0;
@@ -678,9 +495,84 @@ const CoachProfileContent: React.FC<{
     profile.upcomingSessions.length === 0 && profile.active ? "нет ближайших занятий" : null,
     loadPercent >= 90 ? "нагрузка близка к пределу" : null,
   ].filter(Boolean) as string[];
+  const weeklyScheduleByDay = weekDays.map((day) => ({
+    ...day,
+    items: profile.weeklySchedule
+      .filter((item) => item.dayOfWeek === day.key)
+      .slice()
+      .sort((a, b) => a.startTime.localeCompare(b.startTime)),
+  }));
+  const upcomingWithoutReports = profile.upcomingSessions.filter((session) => !session.reportDone);
+  const groupInsights = assignments.map((group) => {
+    const weeklySlots = profile.weeklySchedule.filter((item) => item.groupId === group.groupId);
+    const fallbackNextSession = profile.upcomingSessions
+      .filter((session) => session.groupId === group.groupId)
+      .slice()
+      .sort((a, b) => `${a.sessionDate} ${a.startTime}`.localeCompare(`${b.sessionDate} ${b.startTime}`))[0];
+
+    return {
+      ...group,
+      weeklySlots,
+      weeklySlotsCount: group.weeklySlotsCount ?? weeklySlots.length,
+      nextSession: group.nextSession ?? fallbackNextSession ?? null,
+      studentsCount: group.studentsCount,
+      activeStudentsCount: group.activeStudentsCount,
+      riskFlags: group.riskFlags ?? [],
+    };
+  });
+
+  const loadCard = (
+    <SectionCard id={`${sectionPrefix}-load`} className="scroll-mt-20">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-semibold text-slate-900">Нагрузка</span>
+        <span className="text-slate-500">
+          {usedSlots}/{maxSlots}
+        </span>
+      </div>
+      <div className="mt-3 h-2 rounded-full bg-slate-100">
+        <div className="h-2 rounded-full bg-cyan-700" style={{ width: `${loadPercent}%` }} />
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <SmallStat icon={<UserGroupIcon className="h-4 w-4" />} label="Группы" value={profile.groups.length} />
+        <SmallStat
+          icon={<ExclamationTriangleIcon className="h-4 w-4" />}
+          label="Просрочено"
+          value={profile.reports.overdueCount}
+        />
+      </div>
+    </SectionCard>
+  );
+
+  const attentionCard = (
+    <SectionCard
+      id={`${sectionPrefix}-attention`}
+      title="Требует внимания"
+      description="Сигналы, на которые администратору стоит отреагировать"
+      className="scroll-mt-20"
+    >
+      {attentionItems.length === 0 ? (
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          Критичных проблем по тренеру сейчас нет.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {attentionItems.map((item) => (
+            <div
+              key={item}
+              className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+            >
+              <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              {item}
+            </div>
+          ))}
+        </div>
+      )}
+    </SectionCard>
+  );
 
   return (
     <div className="space-y-5">
+      {showIdentity ? (
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.2fr_1fr]">
         <SectionCard>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -715,69 +607,129 @@ const CoachProfileContent: React.FC<{
           </div>
         </SectionCard>
 
-        <SectionCard>
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-slate-900">Нагрузка</span>
-            <span className="text-slate-500">
-              {usedSlots}/{maxSlots}
-            </span>
-          </div>
-          <div className="mt-3 h-2 rounded-full bg-slate-100">
-            <div className="h-2 rounded-full bg-cyan-700" style={{ width: `${loadPercent}%` }} />
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <SmallStat icon={<UserGroupIcon className="h-4 w-4" />} label="Группы" value={profile.groups.length} />
-            <SmallStat
-              icon={<ExclamationTriangleIcon className="h-4 w-4" />}
-              label="Просрочено"
-              value={profile.reports.overdueCount}
-            />
-          </div>
-        </SectionCard>
+        {loadCard}
       </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+          {loadCard}
+          {attentionCard}
+        </div>
+      )}
 
-      <SectionCard title="Требует внимания" description="Сигналы, на которые администратору стоит отреагировать">
-        {attentionItems.length === 0 ? (
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            Критичных проблем по тренеру сейчас нет.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {attentionItems.map((item) => (
-              <div
-                key={item}
-                className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800"
-              >
-                <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                {item}
-              </div>
-            ))}
-          </div>
-        )}
-      </SectionCard>
+      {showIdentity ? attentionCard : null}
 
-      <SectionCard title="Группы" description="Группы, где тренер назначен">
+      <SectionCard
+        id={`${sectionPrefix}-groups`}
+        title="Группы"
+        description="Группы, где тренер назначен"
+        className="scroll-mt-20"
+      >
         {assignments.length === 0 ? (
           <EmptyState title="Группы не назначены" description="Тренер пока не привязан к группам." />
         ) : (
-          <div className="space-y-2">
-            {assignments.map((group) => (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {groupInsights.map((group) => (
               <div
                 key={group.groupId}
-                className="flex flex-col gap-3 rounded-xl border border-slate-200 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
               >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="font-medium text-slate-900">{group.groupName}</div>
-                    {group.role ? (
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600">
-                        {group.role === "MAIN" ? "Главный тренер" : "Ассистент"}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="truncate text-base font-semibold text-slate-950">{group.groupName}</div>
+                      {group.role ? (
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600">
+                          {group.role === "MAIN" ? "Главный тренер" : "Ассистент"}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {group.weeklySlotsCount > 0
+                        ? `${group.weeklySlotsCount} слотов в недельном расписании`
+                        : "Расписание для этой группы не задано"}
+                    </div>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+                      group.weeklySlotsCount > 0
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    {group.weeklySlotsCount > 0 ? "Есть расписание" : "Нет расписания"}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <UserGroupIcon className="h-4 w-4" />
+                      Ученики
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-950">
+                      {group.activeStudentsCount ?? "?"}
+                      {group.studentsCount !== null ? (
+                        <span className="ml-1 text-xs font-medium text-slate-400">из {group.studentsCount}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <CalendarDaysIcon className="h-4 w-4" />
+                      Слотов
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-950">{group.weeklySlotsCount}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <ClockIcon className="h-4 w-4" />
+                      Ближайшее
+                    </div>
+                    <div className="mt-1 truncate text-sm font-semibold text-slate-950">
+                      {group.nextSession
+                        ? `${formatDate(group.nextSession.sessionDate)} ${timeShort(group.nextSession.startTime)}`
+                        : "Нет"}
+                    </div>
+                  </div>
+                </div>
+
+                {group.riskFlags.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {group.riskFlags.map((risk) => (
+                      <span
+                        key={`${risk.code}-${risk.label}`}
+                        className={`rounded-full border px-2.5 py-1 text-xs font-medium ${riskToneClassName(risk.severity)}`}
+                      >
+                        {risk.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                {group.weeklySlots.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {group.weeklySlots.slice(0, 4).map((slot) => (
+                      <span
+                        key={slot.scheduleId}
+                        className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-medium text-cyan-800"
+                      >
+                        {weekDays.find((day) => day.key === slot.dayOfWeek)?.label ?? slot.dayOfWeek}{" "}
+                        {timeShort(slot.startTime)}
+                      </span>
+                    ))}
+                    {group.weeklySlots.length > 4 ? (
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-500">
+                        +{group.weeklySlots.length - 4}
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">Группа доступна для управления из профиля тренера.</div>
-                </div>
-                <div className="flex flex-wrap gap-2">
+                ) : group.weeklySlotsCount === 0 ? (
+                  <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    Проверьте расписание группы, чтобы тренер видел занятия в своем календаре.
+                  </div>
+                ) : null}
+
+                <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-3">
                   <Button type="button" size="sm" variant="secondary" onClick={() => onOpenGroup(group.groupId)}>
                     Открыть группу
                   </Button>
@@ -792,36 +744,68 @@ const CoachProfileContent: React.FC<{
       </SectionCard>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <SectionCard title="Недельное расписание" description="Постоянные слоты тренера">
+        <SectionCard
+          id={`${sectionPrefix}-schedule`}
+          title="Недельное расписание"
+          description="Постоянные слоты тренера по дням недели"
+          className="scroll-mt-20 xl:col-span-2"
+        >
           {profile.weeklySchedule.length === 0 ? (
             <EmptyState title="Расписание не задано" description="У тренера пока нет постоянных слотов." />
           ) : (
-            <div className="space-y-2">
-              {profile.weeklySchedule.map((item) => (
-                <div key={item.scheduleId} className="rounded-xl border border-slate-200 px-3 py-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium text-slate-900">
-                      {dayLabels[item.dayOfWeek] ?? item.dayOfWeek} · {timeShort(item.startTime)}-
-                      {timeShort(item.endTime)}
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+              {weeklyScheduleByDay.map((day) => (
+                <div
+                  key={day.key}
+                  className={`min-h-[132px] rounded-2xl border px-2.5 py-2.5 ${
+                    day.items.length > 0
+                      ? "border-cyan-100 bg-cyan-50/45"
+                      : "border-slate-200 bg-slate-50/70"
+                  }`}
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="text-sm font-semibold text-slate-900">{day.label}</div>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
+                      {day.items.length}
+                    </span>
+                  </div>
+
+                  {day.items.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 px-2 py-5 text-center text-xs text-slate-400">
+                      Свободно
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => onOpenGroup(item.groupId)}
-                      className="text-xs font-medium text-cyan-800 hover:text-cyan-900"
-                    >
-                      {item.groupName}
-                    </button>
-                  </div>
-                  <div className="mt-1 text-xs text-slate-400">
-                    {item.startDate} - {item.endDate || "без даты окончания"}
-                  </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {day.items.map((item) => (
+                        <button
+                          key={item.scheduleId}
+                          type="button"
+                          onClick={() => onOpenGroup(item.groupId)}
+                          className="w-full rounded-xl border border-white/80 bg-white px-2.5 py-2 text-left shadow-sm transition hover:border-cyan-200 hover:bg-white"
+                        >
+                          <div className="text-xs font-semibold text-slate-950">
+                            {timeShort(item.startTime)}-{timeShort(item.endTime)}
+                          </div>
+                          <div className="mt-1 truncate text-xs font-medium text-cyan-800">{item.groupName}</div>
+                          <div className="mt-1 truncate text-[11px] text-slate-400">
+                            до {item.endDate ? formatDate(item.endDate) : "без даты окончания"}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </SectionCard>
 
-        <SectionCard title="Ближайшие занятия" description="Что тренер ведет в ближайшее время">
+        <SectionCard
+          id={`${sectionPrefix}-sessions`}
+          title="Ближайшие занятия"
+          description="Что тренер ведет в ближайшее время"
+          className="scroll-mt-20"
+        >
           {profile.upcomingSessions.length === 0 ? (
             <EmptyState title="Ближайших занятий нет" description="В расписании нет будущих тренировок." />
           ) : (
@@ -849,7 +833,7 @@ const CoachProfileContent: React.FC<{
                     >
                       {session.groupName}
                     </button>{" "}
-                    · {session.status}
+                    · {formatSessionStatus(session.status)}
                   </div>
                 </div>
               ))}
@@ -858,36 +842,121 @@ const CoachProfileContent: React.FC<{
         </SectionCard>
       </div>
 
-      <SectionCard title="Отчеты" description="Последние заполненные отчеты тренера">
-        <div className="mb-3 text-sm text-slate-500">
-          Последний отчет: {formatDateTime(profile.reports.lastReportAt)}
+      <SectionCard
+        id={`${sectionPrefix}-reports`}
+        title="Контроль отчетов"
+        description="Просрочка, ближайшие занятия без отчета и последние заполненные отчеты"
+        className="scroll-mt-20"
+      >
+        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div
+            className={`rounded-2xl border px-4 py-3 ${
+              profile.reports.overdueCount > 0
+                ? "border-rose-100 bg-rose-50 text-rose-800"
+                : "border-emerald-100 bg-emerald-50 text-emerald-800"
+            }`}
+          >
+            <div className="text-xs font-medium uppercase tracking-wide opacity-75">Просрочено</div>
+            <div className="mt-1 text-2xl font-semibold">{profile.reports.overdueCount}</div>
+          </div>
+          <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-amber-800">
+            <div className="text-xs font-medium uppercase tracking-wide opacity-75">Ближайшие без отчета</div>
+            <div className="mt-1 text-2xl font-semibold">{upcomingWithoutReports.length}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Последний отчет</div>
+            <div className="mt-1 text-sm font-semibold">{formatDateTime(profile.reports.lastReportAt)}</div>
+          </div>
         </div>
+
+        {profile.reports.overdueCount > 0 ? (
+          <div className="mb-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Сейчас доступно только общее количество просроченных отчетов. Список конкретных занятий появится после
+            расширения данных по отчетам.
+          </div>
+        ) : null}
+
+        {upcomingWithoutReports.length > 0 ? (
+          <div className="mb-5">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Ближайшие занятия без отчета
+            </div>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              {upcomingWithoutReports.map((session) => (
+                <div key={session.sessionId} className="rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-semibold text-slate-950">
+                      {formatDate(session.sessionDate)} · {timeShort(session.startTime)}-{timeShort(session.endTime)}
+                    </div>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-100">
+                      Без отчета
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onOpenGroup(session.groupId)}
+                    className="mt-1 text-xs font-medium text-cyan-800 hover:text-cyan-900"
+                  >
+                    {session.groupName}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {profile.reports.recent.length === 0 ? (
           <EmptyState title="Отчетов пока нет" description="Последние отчеты появятся после проведенных занятий." />
         ) : (
-          <div className="space-y-2">
-            {profile.reports.recent.map((report) => (
-              <div key={report.sessionId} className="rounded-xl border border-slate-200 px-3 py-2">
-                <div className="font-medium text-slate-900">
-                  {report.groupName} · {formatDate(report.sessionDate)} {timeShort(report.startTime)}
+          <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <div className="grid grid-cols-[1fr_1fr_1fr_1fr] bg-slate-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <div>Дата</div>
+              <div>Группа</div>
+              <div>Статус</div>
+              <div>Заполнен</div>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {profile.reports.recent.map((report) => (
+                <div
+                  key={report.sessionId}
+                  className="grid grid-cols-1 gap-2 px-4 py-3 text-sm md:grid-cols-[1fr_1fr_1fr_1fr]"
+                >
+                  <div className="font-medium text-slate-950">
+                    {formatDate(report.sessionDate)} · {timeShort(report.startTime)}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onOpenGroup(report.groupId)}
+                    className="text-left font-medium text-cyan-800 hover:text-cyan-900"
+                  >
+                    {report.groupName}
+                  </button>
+                  <div>
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                      Заполнен
+                    </span>
+                  </div>
+                  <div className="text-slate-500">{formatDateTime(report.reportedAt)}</div>
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
-                  Заполнен: {formatDateTime(report.reportedAt)}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </SectionCard>
 
-      <SectionCard title="История статусов" description="Когда менялся статус тренера">
+      <SectionCard
+        id={`${sectionPrefix}-history`}
+        title="История статусов"
+        description="Когда менялся статус тренера"
+        className="scroll-mt-20"
+      >
         {profile.statusHistory.length === 0 ? (
           <EmptyState title="История пока пуста" description="Изменения статуса появятся после первых действий." />
         ) : (
           <div className="space-y-2">
             {profile.statusHistory.map((item) => (
               <div key={`${item.status}-${item.changedAt}`} className="rounded-xl border border-slate-200 px-3 py-2">
-                <div className="font-medium text-slate-900">{item.status}</div>
+                <div className="font-medium text-slate-900">{formatCoachStatusHistory(item.status)}</div>
                 <div className="mt-1 text-xs text-slate-500">Изменен: {formatDateTime(item.changedAt)}</div>
               </div>
             ))}
@@ -898,7 +967,7 @@ const CoachProfileContent: React.FC<{
   );
 };
 
-const AssignCoachToGroupModal: React.FC<{
+export const AssignCoachToGroupModal: React.FC<{
   coachId: string;
   branchId: string;
   assignedGroupIds: string[];
@@ -1022,7 +1091,7 @@ const AssignCoachToGroupModal: React.FC<{
   );
 };
 
-const EditCoachModal: React.FC<{
+export const EditCoachModal: React.FC<{
   profile: CoachProfile;
   token: string;
   onClose: () => void;
@@ -1138,7 +1207,7 @@ const EditCoachModal: React.FC<{
   );
 };
 
-const ResetCoachPasswordModal: React.FC<{
+export const ResetCoachPasswordModal: React.FC<{
   coachName: string;
   password: string | null;
   loading: boolean;

@@ -10,7 +10,7 @@ interface Props {
 
 const GroupFilters: React.FC<Props> = ({ value, onChange }) => {
   return (
-    <div className="bg-white rounded-2xl border shadow-sm p-4 flex gap-3">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(260px,1fr)_180px]">
       <input
         type="text"
         placeholder="Поиск по названию группы"
@@ -18,7 +18,7 @@ const GroupFilters: React.FC<Props> = ({ value, onChange }) => {
         onChange={(e) =>
           onChange({ ...value, search: e.target.value })
         }
-        className="flex-1 border rounded-xl px-3 py-2 text-sm"
+        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100"
       />
 
       <select
@@ -26,7 +26,7 @@ const GroupFilters: React.FC<Props> = ({ value, onChange }) => {
         onChange={(e) =>
           onChange({ ...value, status: e.target.value })
         }
-        className="border rounded-xl px-3 py-2 text-sm"
+        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100"
       >
         <option value="">Все статусы</option>
         <option value="ACTIVE">Активные</option>

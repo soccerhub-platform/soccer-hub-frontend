@@ -18,6 +18,26 @@ export interface CoachGroupRef {
   branchId: string;
   groupCoachId?: string | null;
   role?: "MAIN" | "ASSISTANT" | null;
+  studentsCount?: number;
+  activeStudentsCount?: number;
+  weeklySlotsCount?: number;
+  nextSession?: CoachGroupNextSession | null;
+  riskFlags?: CoachGroupRiskFlag[];
+}
+
+export interface CoachGroupNextSession {
+  sessionId: string;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  reportDone: boolean;
+}
+
+export interface CoachGroupRiskFlag {
+  code: "NO_STUDENTS" | "NO_SCHEDULE" | "NO_UPCOMING_SESSIONS" | "OVERDUE_REPORTS" | string;
+  label: string;
+  severity: "INFO" | "WARNING" | "CRITICAL" | string;
 }
 
 export interface CoachLoad {

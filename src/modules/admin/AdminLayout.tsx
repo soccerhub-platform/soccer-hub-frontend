@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   CreditCardIcon,
   HomeIcon,
@@ -19,8 +19,10 @@ import BrandMark from "../../shared/ui/BrandMark";
 const AdminLayout: React.FC = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { branchName, canSwitchBranch } = useAdminBranch();
   const branchLabel = branchName === "Main Branch" ? "Главный филиал" : branchName;
+  const isDashboard = location.pathname === "/admin/dashboard" || location.pathname === "/admin";
 
   const handleLogout = () => {
     logout();
@@ -103,46 +105,48 @@ const AdminLayout: React.FC = () => {
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="px-6 pt-5">
-          <div className="flex items-center justify-between">
-            {/* LEFT: greeting */}
-            <div className="glass-card rounded-2xl px-4 py-2.5">
-              <div className="heading-font text-admin-700 font-semibold">
-                Здравствуйте{user?.email ? `, ${user.email}` : ""}
+        {!isDashboard ? (
+          <header className="px-6 pt-5">
+            <div className="flex items-center justify-between">
+              {/* LEFT: greeting */}
+              <div className="glass-card rounded-2xl px-4 py-2.5">
+                <div className="heading-font text-admin-700 font-semibold">
+                  Здравствуйте{user?.email ? `, ${user.email}` : ""}
+                </div>
+                <div className="text-xs text-slate-500">
+                  Панель администратора
+                </div>
               </div>
-              <div className="text-xs text-slate-500">
-                Панель администратора
+
+              {/* RIGHT: branch + actions */}
+              <div className="flex items-center gap-3">
+                {/* Branch badge */}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-200 text-sm text-admin-700 shadow-sm">
+                  <BuildingOffice2Icon className="h-4 w-4 text-admin-500" />
+                  <span className="font-medium">
+                    {branchLabel ?? "Филиал не выбран"}
+                  </span>
+                </div>
+
+                {/* Switch branch */}
+                {canSwitchBranch && (
+                  <button
+                    onClick={() => navigate("/admin/branch-select")}
+                    className="text-sm px-3 py-2 border border-slate-200 rounded-xl hover:bg-white shadow-sm"
+                  >
+                    Сменить
+                  </button>
+                )}
+
+                {/* Logout */}
+                <Button variant="secondary" size="sm" onClick={() => navigate("/admin/profile")}>
+                  <UserCircleIcon className="h-4 w-4" />
+                  Профиль
+                </Button>
               </div>
             </div>
-
-            {/* RIGHT: branch + actions */}
-            <div className="flex items-center gap-3">
-              {/* Branch badge */}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-200 text-sm text-admin-700 shadow-sm">
-                <BuildingOffice2Icon className="h-4 w-4 text-admin-500" />
-                <span className="font-medium">
-                  {branchLabel ?? "Филиал не выбран"}
-                </span>
-              </div>
-
-              {/* Switch branch */}
-              {canSwitchBranch && (
-                <button
-                  onClick={() => navigate("/admin/branch-select")}
-                  className="text-sm px-3 py-2 border border-slate-200 rounded-xl hover:bg-white shadow-sm"
-                >
-                  Сменить
-                </button>
-              )}
-
-              {/* Logout */}
-              <Button variant="secondary" size="sm" onClick={() => navigate("/admin/profile")}>
-                <UserCircleIcon className="h-4 w-4" />
-                Профиль
-              </Button>
-            </div>
-          </div>
-        </header>
+          </header>
+        ) : null}
 
         <main className="min-w-0 flex-1 overflow-y-auto p-6">
           <Outlet />
