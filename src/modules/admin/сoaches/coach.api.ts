@@ -159,7 +159,7 @@ export interface CoachOverviewParams {
   hasSessionToday?: boolean;
 }
 
-export type AccountStatus = "ACTIVE" | "DISABLED";
+export type AccountStatus = "ACTIVE" | "INACTIVE";
 export type WorkStatus = "AVAILABLE" | "BUSY" | "VACATION";
 export type GroupFilter = "WITHOUT_GROUP" | "ONE_GROUP" | "TWO_OR_THREE_GROUPS" | "FOUR_OR_MORE_GROUPS";
 export type WorkloadStatus = "LOW" | "MEDIUM" | "HIGH" | "FULL" | "OVERLOADED";
@@ -413,7 +413,7 @@ export interface CoachResetPasswordOutput {
 export const CoachApi = {
   async overview(branchId: string, _token: string, params: CoachOverviewParams = {}): Promise<CoachOverviewResponse> {
     const quick: Partial<CoachOverviewParams> = params.status === "ACTIVE" ? { accountStatuses: ["ACTIVE"] }
-      : params.status === "INACTIVE" ? { accountStatuses: ["DISABLED"] }
+      : params.status === "INACTIVE" ? { accountStatuses: ["INACTIVE"] }
       : params.status === "WITHOUT_GROUPS" ? { groupFilter: "WITHOUT_GROUP" }
       : params.status === "OVERLOADED" ? { workloadStatus: "OVERLOADED" }
       : params.status === "TODAY" ? { hasSessionToday: true } : {};

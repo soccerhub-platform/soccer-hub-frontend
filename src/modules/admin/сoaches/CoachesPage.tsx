@@ -79,7 +79,7 @@ type AdvancedFilters = {
 
 const emptyAdvancedFilters: AdvancedFilters = { accountStatuses: [], workStatuses: [], groupFilter: "", workloadStatus: "", reportStatus: "", hasSessionToday: "" };
 const filterLabels: Record<string, string> = {
-  ACTIVE: "Активные", DISABLED: "Отключенные", AVAILABLE: "Доступен", BUSY: "Занят", VACATION: "В отпуске",
+  ACTIVE: "Активные", INACTIVE: "Отключенные", AVAILABLE: "Доступен", BUSY: "Занят", VACATION: "В отпуске",
   WITHOUT_GROUP: "Без групп", ONE_GROUP: "1 группа", TWO_OR_THREE_GROUPS: "2–3 группы", FOUR_OR_MORE_GROUPS: "4 и более групп",
   LOW: "Низкая нагрузка", MEDIUM: "Средняя нагрузка", HIGH: "Высокая нагрузка", FULL: "Нагрузка 100%", OVERLOADED: "Перегружен",
   NO_REPORTS: "Без отчетов", PENDING: "Ожидают отчета", OVERDUE: "Есть просроченные", SUBMITTED: "Отчет сдан",
@@ -337,7 +337,7 @@ const CoachesPage: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get("search") ?? "");
   const [filter, setFilter] = useState<StatusFilter>(() => isStatusFilter(searchParams.get("status")) ? searchParams.get("status") as StatusFilter : "ALL");
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(() => ({
-    accountStatuses: searchParams.getAll("accountStatus").filter((value): value is AccountStatus => value === "ACTIVE" || value === "DISABLED"),
+    accountStatuses: searchParams.getAll("accountStatus").filter((value): value is AccountStatus => value === "ACTIVE" || value === "INACTIVE"),
     workStatuses: searchParams.getAll("workStatus").filter((value): value is WorkStatus => ["AVAILABLE", "BUSY", "VACATION"].includes(value)),
     groupFilter: (searchParams.get("groupFilter") as GroupFilter | null) ?? "",
     workloadStatus: (searchParams.get("workload") as WorkloadStatus | null) ?? "",
@@ -640,7 +640,7 @@ const CoachesPage: React.FC = () => {
             </button>
             {showFilters ? <div role="dialog" aria-label="Расширенные фильтры" className="absolute right-0 top-12 z-30 w-[min(760px,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/10">
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                <FilterCheckGroup title="Статус аккаунта" options={[["ACTIVE", "Активные"], ["DISABLED", "Отключенные"]]} values={draftFilters.accountStatuses} onChange={(values) => setDraftFilters((current) => ({ ...current, accountStatuses: values as AccountStatus[] }))} />
+                <FilterCheckGroup title="Статус аккаунта" options={[["ACTIVE", "Активные"], ["INACTIVE", "Отключенные"]]} values={draftFilters.accountStatuses} onChange={(values) => setDraftFilters((current) => ({ ...current, accountStatuses: values as AccountStatus[] }))} />
                 <FilterCheckGroup title="Рабочий статус" options={[["AVAILABLE", "Доступен"], ["BUSY", "Занят"], ["VACATION", "В отпуске"]]} values={draftFilters.workStatuses} onChange={(values) => setDraftFilters((current) => ({ ...current, workStatuses: values as WorkStatus[] }))} />
                 <FilterRadioGroup title="Группы" options={[["WITHOUT_GROUP", "Без групп"], ["ONE_GROUP", "1 группа"], ["TWO_OR_THREE_GROUPS", "2–3 группы"], ["FOUR_OR_MORE_GROUPS", "4 и более"]]} value={draftFilters.groupFilter} onChange={(value) => setDraftFilters((current) => ({ ...current, groupFilter: value as AdvancedFilters["groupFilter"] }))} />
                 <FilterRadioGroup title="Нагрузка" options={[["LOW", "Низкая"], ["MEDIUM", "Средняя"], ["HIGH", "Высокая"], ["FULL", "100%"], ["OVERLOADED", "Перегружен"]]} value={draftFilters.workloadStatus} onChange={(value) => setDraftFilters((current) => ({ ...current, workloadStatus: value as AdvancedFilters["workloadStatus"] }))} />
