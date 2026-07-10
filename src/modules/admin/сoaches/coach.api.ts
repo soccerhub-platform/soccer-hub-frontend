@@ -10,6 +10,7 @@ export interface Coach {
   phone: string;
   active: boolean;
   specialization?: string | null;
+  bio?: string | null;
 }
 
 export interface CoachGroupRef {
@@ -244,6 +245,8 @@ export interface CoachProfile {
   email: string;
   phone: string;
   specialization?: string | null;
+  birthDate?: string | null;
+  description?: string | null;
   active: boolean;
   accountStatus?: AccountStatus;
   workStatus?: WorkStatus;
@@ -395,6 +398,8 @@ export interface CreateCoachRequest {
   phone: string;
   branchId: string;
   specialization?: string;
+  birthDate?: string;
+  description?: string;
 }
 
 export interface CoachUpdateRequest {
@@ -403,6 +408,8 @@ export interface CoachUpdateRequest {
   email: string;
   phone: string;
   specialization?: string;
+  birthDate?: string;
+  description?: string;
 }
 
 export interface CoachResetPasswordOutput {

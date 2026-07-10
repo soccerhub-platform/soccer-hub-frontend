@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   BriefcaseIcon,
   CalendarDaysIcon,
@@ -116,6 +116,23 @@ const statusFilters: Array<{ value: StatusFilter; label: string }> = [
   { value: "TODAY", label: "Сегодня ведут" },
 ];
 
+const workStatusOptions: Array<[WorkStatus, string]> = [["AVAILABLE", "Доступен"], ["BUSY", "Занят"], ["VACATION", "В отпуске"]];
+const groupFilterOptions: Array<[GroupFilter, string]> = [["WITHOUT_GROUP", "Без групп"], ["ONE_GROUP", "1 группа"], ["TWO_OR_THREE_GROUPS", "2-3 группы"], ["FOUR_OR_MORE_GROUPS", "4 и более"]];
+const workloadStatusOptions: Array<[WorkloadStatus, string]> = [["LOW", "До 50%"], ["MEDIUM", "50-80%"], ["HIGH", "80-100%"], ["FULL", "100%"], ["OVERLOADED", "Более 100%"]];
+const workloadStatusValues: WorkloadStatus[] = ["LOW", "MEDIUM", "HIGH", "FULL", "OVERLOADED"];
+const reportStatusOptions: Array<[ReportStatus, string]> = [["OVERDUE", "Есть просроченные"], ["PENDING", "Ожидают отчета"], ["NO_REPORTS", "Нет отчетов"], ["SUBMITTED", "Отчет сдан"]];
+
+const sortOptions: Array<{ value: string; label: string; key: CoachOverviewSortKey; direction: SortDirection }> = [
+  { value: "lastName:asc", label: "Имя А-Я", key: "lastName", direction: "asc" },
+  { value: "lastName:desc", label: "Имя Я-А", key: "lastName", direction: "desc" },
+  { value: "loadPercent:desc", label: "Нагрузка: высокая сначала", key: "loadPercent", direction: "desc" },
+  { value: "loadPercent:asc", label: "Нагрузка: низкая сначала", key: "loadPercent", direction: "asc" },
+  { value: "groupsCount:desc", label: "Больше групп", key: "groupsCount", direction: "desc" },
+  { value: "groupsCount:asc", label: "Меньше групп", key: "groupsCount", direction: "asc" },
+  { value: "lastReportAt:desc", label: "Последний отчет: новые", key: "lastReportAt", direction: "desc" },
+  { value: "lastReportAt:asc", label: "Последний отчет: старые", key: "lastReportAt", direction: "asc" },
+];
+
 const pageSizeOptions = [20, 50, 100];
 
 const isStatusFilter = (value: string | null): value is StatusFilter =>
@@ -123,6 +140,20 @@ const isStatusFilter = (value: string | null): value is StatusFilter =>
 
 const isSortKey = (value: string | null): value is CoachOverviewSortKey =>
   ["lastName", "groupsCount", "todaySessionsCount", "loadPercent", "lastReportAt"].includes(value ?? "");
+
+const readAdvancedFiltersFromParams = (params: URLSearchParams): AdvancedFilters => ({
+  accountStatuses: params.getAll("accountStatuses").filter((value): value is AccountStatus => value === "ACTIVE" || value === "INACTIVE"),
+  workStatuses: params.getAll("workStatuses").filter((value): value is WorkStatus => workStatusOptions.some(([option]) => option === value)),
+  groupFilter: groupFilterOptions.some(([value]) => value === params.get("groupFilter")) ? params.get("groupFilter") as GroupFilter : "",
+  workloadStatus: workloadStatusValues.includes(params.get("workloadStatus") as WorkloadStatus) ? params.get("workloadStatus") as WorkloadStatus : "",
+  reportStatus: reportStatusOptions.some(([value]) => value === params.get("reportStatus")) ? params.get("reportStatus") as ReportStatus : "",
+  hasSessionToday: params.get("hasSessionToday") === "true" ? "true" : "",
+});
+
+const readSortFromParams = (params: URLSearchParams): SortState => ({
+  key: isSortKey(params.get("sort")) ? params.get("sort") as CoachOverviewSortKey : "lastName",
+  direction: params.get("direction") === "desc" ? "desc" : "asc",
+});
 
 const weekDays = [
   { key: "MONDAY", label: "Пн" },
@@ -327,7 +358,6 @@ const CoachesPage: React.FC = () => {
   const { branchId } = useAdminBranch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const filtersRef = useRef<HTMLDivElement>(null);
 
   const [overview, setOverview] = useState<CoachOverviewResponse>(emptyOverview);
   const [loading, setLoading] = useState(false);
@@ -336,22 +366,12 @@ const CoachesPage: React.FC = () => {
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get("search") ?? "");
   const [filter, setFilter] = useState<StatusFilter>(() => isStatusFilter(searchParams.get("status")) ? searchParams.get("status") as StatusFilter : "ALL");
-  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(() => ({
-    accountStatuses: searchParams.getAll("accountStatus").filter((value): value is AccountStatus => value === "ACTIVE" || value === "INACTIVE"),
-    workStatuses: searchParams.getAll("workStatus").filter((value): value is WorkStatus => ["AVAILABLE", "BUSY", "VACATION"].includes(value)),
-    groupFilter: (searchParams.get("groupFilter") as GroupFilter | null) ?? "",
-    workloadStatus: (searchParams.get("workload") as WorkloadStatus | null) ?? "",
-    reportStatus: (searchParams.get("reportStatus") as ReportStatus | null) ?? "",
-    hasSessionToday: (searchParams.get("today") as AdvancedFilters["hasSessionToday"] | null) ?? "",
-  }));
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(() => readAdvancedFiltersFromParams(searchParams));
   const [draftFilters, setDraftFilters] = useState<AdvancedFilters>(advancedFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(() => Math.max(0, Number(searchParams.get("page") ?? 1) - 1));
   const [pageSize, setPageSize] = useState(() => pageSizeOptions.includes(Number(searchParams.get("size"))) ? Number(searchParams.get("size")) : 20);
-  const [sort, setSort] = useState<SortState>(() => ({
-    key: isSortKey(searchParams.get("sort")) ? searchParams.get("sort") as CoachOverviewSortKey : "lastName",
-    direction: searchParams.get("direction") === "desc" ? "desc" : "asc",
-  }));
+  const [sort, setSort] = useState<SortState>(() => readSortFromParams(searchParams));
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [editProfile, setEditProfile] = useState<CoachProfile | null>(null);
@@ -409,28 +429,47 @@ const CoachesPage: React.FC = () => {
   }, [search]);
 
   useEffect(() => {
+    const nextSearch = searchParams.get("search") ?? "";
+    const nextFilter = isStatusFilter(searchParams.get("status")) ? searchParams.get("status") as StatusFilter : "ALL";
+    const nextAdvancedFilters = readAdvancedFiltersFromParams(searchParams);
+    const nextPage = Math.max(0, Number(searchParams.get("page") ?? 1) - 1);
+    const nextPageSize = pageSizeOptions.includes(Number(searchParams.get("size"))) ? Number(searchParams.get("size")) : 20;
+    const nextSort = readSortFromParams(searchParams);
+
+    setSearch(nextSearch);
+    setDebouncedSearch(nextSearch);
+    setFilter(nextFilter);
+    setAdvancedFilters(nextAdvancedFilters);
+    setDraftFilters(nextAdvancedFilters);
+    setPage(nextPage);
+    setPageSize(nextPageSize);
+    setSort(nextSort);
+  }, [searchParams]);
+
+  useEffect(() => {
     const next = new URLSearchParams();
     if (debouncedSearch) next.set("search", debouncedSearch);
     if (filter !== "ALL") next.set("status", filter);
-    advancedFilters.accountStatuses.forEach((value) => next.append("accountStatus", value));
-    advancedFilters.workStatuses.forEach((value) => next.append("workStatus", value));
+    advancedFilters.accountStatuses.forEach((value) => next.append("accountStatuses", value));
+    advancedFilters.workStatuses.forEach((value) => next.append("workStatuses", value));
     if (advancedFilters.groupFilter) next.set("groupFilter", advancedFilters.groupFilter);
-    if (advancedFilters.workloadStatus) next.set("workload", advancedFilters.workloadStatus);
+    if (advancedFilters.workloadStatus) next.set("workloadStatus", advancedFilters.workloadStatus);
     if (advancedFilters.reportStatus) next.set("reportStatus", advancedFilters.reportStatus);
-    if (advancedFilters.hasSessionToday) next.set("today", advancedFilters.hasSessionToday);
+    if (advancedFilters.hasSessionToday) next.set("hasSessionToday", advancedFilters.hasSessionToday);
     if (sort.key) {
       next.set("sort", sort.key);
       next.set("direction", sort.direction);
     }
     next.set("page", String(page + 1));
     next.set("size", String(pageSize));
-    setSearchParams(next, { replace: true });
-  }, [debouncedSearch, filter, advancedFilters, page, pageSize, sort, setSearchParams]);
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next);
+    }
+  }, [debouncedSearch, filter, advancedFilters, page, pageSize, sort, searchParams, setSearchParams]);
 
   useEffect(() => {
-    if (!showFilters && !activeMenuId) return;
+    if (!activeMenuId) return;
     const close = (event: MouseEvent) => {
-      if (showFilters && !filtersRef.current?.contains(event.target as Node)) setShowFilters(false);
       if (activeMenuId && !(event.target as Element).closest("[data-coach-menu]")) setActiveMenuId(null);
     };
     const escape = (event: KeyboardEvent) => {
@@ -441,6 +480,15 @@ const CoachesPage: React.FC = () => {
     return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", escape); };
   }, [showFilters, activeMenuId]);
 
+  useEffect(() => {
+    if (!showFilters) return;
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowFilters(false);
+    };
+    document.addEventListener("keydown", escape);
+    return () => document.removeEventListener("keydown", escape);
+  }, [showFilters]);
+
   const coaches = overview.coaches.content ?? [];
   const totalElements = overview.coaches.totalElements ?? 0;
   const totalPages = overview.coaches.totalPages ?? 0;
@@ -450,6 +498,15 @@ const CoachesPage: React.FC = () => {
   const pageEnd = Math.min(totalElements, currentPage * currentPageSize + coaches.length);
   const advancedFilterCount = advancedFilters.accountStatuses.length + advancedFilters.workStatuses.length + Number(Boolean(advancedFilters.groupFilter)) + Number(Boolean(advancedFilters.workloadStatus)) + Number(Boolean(advancedFilters.reportStatus)) + Number(Boolean(advancedFilters.hasSessionToday));
   const hasActiveFilters = filter !== "ALL" || advancedFilterCount > 0 || search.trim().length > 0;
+  const sortValue = sort.key ? `${sort.key}:${sort.direction}` : "lastName:asc";
+  const quickFilterCounts: Record<StatusFilter, number> = {
+    ALL: overview.summary.total,
+    ACTIVE: overview.summary.active,
+    INACTIVE: overview.summary.inactive,
+    WITHOUT_GROUPS: overview.summary.withoutGroups,
+    OVERLOADED: overview.summary.overloaded,
+    TODAY: overview.summary.withSessionsToday,
+  };
 
   const resetFilters = () => {
     setSearch("");
@@ -470,6 +527,13 @@ const CoachesPage: React.FC = () => {
     setPage(0);
   };
 
+  const changeSortOption = (value: string) => {
+    const option = sortOptions.find((item) => item.value === value);
+    if (!option) return;
+    setSort({ key: option.key, direction: option.direction });
+    setPage(0);
+  };
+
   const changeSort = (key: CoachOverviewSortKey) => {
     setSort((current) => current.key !== key
       ? { key, direction: "asc" }
@@ -479,14 +543,20 @@ const CoachesPage: React.FC = () => {
     setPage(0);
   };
 
-  const activeAdvancedChips = [
+  const activeFilterChips = [
     ...advancedFilters.accountStatuses.map((value) => ({ key: `account:${value}`, value, clear: () => setAdvancedFilters((current) => ({ ...current, accountStatuses: current.accountStatuses.filter((item) => item !== value) })) })),
     ...advancedFilters.workStatuses.map((value) => ({ key: `work:${value}`, value, clear: () => setAdvancedFilters((current) => ({ ...current, workStatuses: current.workStatuses.filter((item) => item !== value) })) })),
     ...(advancedFilters.groupFilter ? [{ key: "group", value: advancedFilters.groupFilter, clear: () => setAdvancedFilters((current) => ({ ...current, groupFilter: "" })) }] : []),
     ...(advancedFilters.workloadStatus ? [{ key: "workload", value: advancedFilters.workloadStatus, clear: () => setAdvancedFilters((current) => ({ ...current, workloadStatus: "" })) }] : []),
     ...(advancedFilters.reportStatus ? [{ key: "report", value: advancedFilters.reportStatus, clear: () => setAdvancedFilters((current) => ({ ...current, reportStatus: "" })) }] : []),
     ...(advancedFilters.hasSessionToday ? [{ key: "today", value: advancedFilters.hasSessionToday, clear: () => setAdvancedFilters((current) => ({ ...current, hasSessionToday: "" })) }] : []),
+    ...(search.trim() ? [{ key: "search", value: `Поиск: ${search.trim()}`, clear: () => { setSearch(""); setDebouncedSearch(""); } }] : []),
   ];
+
+  const openFilters = () => {
+    setDraftFilters(advancedFilters);
+    setShowFilters(true);
+  };
 
   const toggleStatus = async (coach: CoachOverviewItem) => {
     if (!token) return;
@@ -548,52 +618,30 @@ const CoachesPage: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:grid-cols-5">
-        <MetricCard
-          icon={<UserGroupIcon className="h-5 w-5" />}
-          label="Всего тренеров"
-          value={overview.summary.total}
-          tone="info"
-          active={filter === "ALL"}
-          onClick={() => changeFilter("ALL")}
-        />
-        <MetricCard
-          icon={<CheckCircleIcon className="h-5 w-5" />}
-          label="Активны"
-          value={overview.summary.active}
-          tone="success"
-          active={filter === "ACTIVE"}
-          onClick={() => changeFilter("ACTIVE")}
-        />
-        <MetricCard
-          icon={<BriefcaseIcon className="h-5 w-5" />}
-          label="Без групп"
-          value={overview.summary.withoutGroups}
-          tone="warning"
-          active={filter === "WITHOUT_GROUPS"}
-          onClick={() => changeFilter("WITHOUT_GROUPS")}
-        />
-        <MetricCard
-          icon={<ExclamationTriangleIcon className="h-5 w-5" />}
-          label="Перегружены"
-          value={overview.summary.overloaded}
-          tone="danger"
-          active={filter === "OVERLOADED"}
-          onClick={() => changeFilter("OVERLOADED")}
-        />
-        <MetricCard
-          icon={<CalendarDaysIcon className="h-5 w-5" />}
-          label="Сегодня ведут"
-          value={overview.summary.withSessionsToday}
-          tone="purple"
-          active={filter === "TODAY"}
-          onClick={() => changeFilter("TODAY")}
-        />
-      </div>
-
       <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="relative w-full xl:max-w-[420px]">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {statusFilters.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => changeFilter(item.value)}
+              aria-pressed={filter === item.value}
+              className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600 ${
+                filter === item.value
+                  ? "border-cyan-700 bg-cyan-50 text-cyan-800"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+              }`}
+            >
+              <span>{item.label}</span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[11px] ${filter === item.value ? "bg-cyan-100 text-cyan-900" : "bg-slate-100 text-slate-500"}`}>
+                {quickFilterCounts[item.value]}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-3 flex flex-col gap-2 xl:flex-row xl:items-center">
+          <div className="relative min-w-0 xl:flex-1">
             <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -608,53 +656,44 @@ const CoachesPage: React.FC = () => {
             {search ? <button type="button" aria-label="Очистить поиск" onClick={() => { setSearch(""); setDebouncedSearch(""); setPage(0); }} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600"><XMarkIcon className="h-4 w-4" /></button> : null}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {statusFilters.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => changeFilter(item.value)}
-                  aria-pressed={filter === item.value}
-                  className={`h-9 rounded-lg border px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600 ${
-                    filter === item.value
-                      ? "border-cyan-700 bg-cyan-50 text-cyan-800"
-                      : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800"
-                  }`}
-                >
-                  {item.label} <span className="ml-1 text-xs opacity-70">{item.value === "ALL" ? overview.summary.total : item.value === "ACTIVE" ? overview.summary.active : item.value === "INACTIVE" ? overview.summary.inactive : item.value === "WITHOUT_GROUPS" ? overview.summary.withoutGroups : item.value === "OVERLOADED" ? overview.summary.overloaded : overview.summary.withSessionsToday}</span>
-                </button>
-              ))}
-            <div className="relative" ref={filtersRef}><button
-              type="button"
-              onClick={() => setShowFilters((value) => !value)}
-              className={`inline-flex h-10 items-center gap-2 rounded-lg border px-3.5 text-sm font-semibold transition ${
-                showFilters || hasActiveFilters
-                  ? "border-cyan-700 bg-cyan-50 text-cyan-800"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
-              }`}
-              aria-expanded={showFilters}
-              aria-haspopup="dialog"
+          <button
+            type="button"
+            onClick={openFilters}
+            className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-3.5 text-sm font-semibold transition ${
+              advancedFilterCount > 0
+                ? "border-cyan-700 bg-cyan-50 text-cyan-800"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+            }`}
+            aria-expanded={showFilters}
+            aria-haspopup="dialog"
+          >
+            <FunnelIcon className="h-4 w-4" />
+            Фильтры{advancedFilterCount > 0 ? ` ${advancedFilterCount}` : ""}
+          </button>
+
+          <label className="relative inline-flex h-10 w-full items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-slate-300 xl:w-[320px]">
+            <ChevronUpDownIcon className="mr-2 h-4 w-4" />
+            <span className="mr-1 text-slate-400">Сортировка:</span>
+            <select
+              aria-label="Сортировка тренеров"
+              value={sortValue}
+              onChange={(event) => changeSortOption(event.target.value)}
+              className="w-full appearance-none bg-transparent pr-5 outline-none"
             >
-              <FunnelIcon className="h-4 w-4" />
-              Фильтры{advancedFilterCount > 0 ? ` · ${advancedFilterCount}` : ""}
-            </button>
-            {showFilters ? <div role="dialog" aria-label="Расширенные фильтры" className="absolute right-0 top-12 z-30 w-[min(760px,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/10">
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                <FilterCheckGroup title="Статус аккаунта" options={[["ACTIVE", "Активные"], ["INACTIVE", "Отключенные"]]} values={draftFilters.accountStatuses} onChange={(values) => setDraftFilters((current) => ({ ...current, accountStatuses: values as AccountStatus[] }))} />
-                <FilterCheckGroup title="Рабочий статус" options={[["AVAILABLE", "Доступен"], ["BUSY", "Занят"], ["VACATION", "В отпуске"]]} values={draftFilters.workStatuses} onChange={(values) => setDraftFilters((current) => ({ ...current, workStatuses: values as WorkStatus[] }))} />
-                <FilterRadioGroup title="Группы" options={[["WITHOUT_GROUP", "Без групп"], ["ONE_GROUP", "1 группа"], ["TWO_OR_THREE_GROUPS", "2–3 группы"], ["FOUR_OR_MORE_GROUPS", "4 и более"]]} value={draftFilters.groupFilter} onChange={(value) => setDraftFilters((current) => ({ ...current, groupFilter: value as AdvancedFilters["groupFilter"] }))} />
-                <FilterRadioGroup title="Нагрузка" options={[["LOW", "Низкая"], ["MEDIUM", "Средняя"], ["HIGH", "Высокая"], ["FULL", "100%"], ["OVERLOADED", "Перегружен"]]} value={draftFilters.workloadStatus} onChange={(value) => setDraftFilters((current) => ({ ...current, workloadStatus: value as AdvancedFilters["workloadStatus"] }))} />
-                <FilterRadioGroup title="Отчетность" options={[["NO_REPORTS", "Без отчетов"], ["PENDING", "Ожидают отчета"], ["OVERDUE", "Есть просроченные"], ["SUBMITTED", "Отчет сдан"]]} value={draftFilters.reportStatus} onChange={(value) => setDraftFilters((current) => ({ ...current, reportStatus: value as AdvancedFilters["reportStatus"] }))} />
-                <FilterRadioGroup title="Занятия" options={[["true", "Ведет сегодня"], ["false", "Не ведет сегодня"]]} value={draftFilters.hasSessionToday} onChange={(value) => setDraftFilters((current) => ({ ...current, hasSessionToday: value as AdvancedFilters["hasSessionToday"] }))} />
-              </div>
-              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3"><button type="button" onClick={() => setDraftFilters(emptyAdvancedFilters)} className="text-sm font-semibold text-slate-500 hover:text-slate-900">Сбросить</button><Button type="button" size="sm" onClick={() => { setAdvancedFilters(draftFilters); setFilter("ALL"); setPage(0); setShowFilters(false); }}>Применить</Button></div>
-            </div> : null}</div>
-            <label className="relative inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-slate-300"><ChevronUpDownIcon className="mr-2 h-4 w-4" /><span className="sr-only">Сортировка</span><select aria-label="Сортировка тренеров" value={sort.key ? `${sort.key}:${sort.direction}` : ""} onChange={(event) => { const [key, direction] = event.target.value.split(":") as [CoachOverviewSortKey, SortDirection]; setSort(event.target.value ? { key, direction } : { key: null, direction: "asc" }); setPage(0); }} className="max-w-[240px] appearance-none bg-transparent pr-5 outline-none"><option value="">Сортировка</option><option value="lastName:asc">Имя: А–Я</option><option value="lastName:desc">Имя: Я–А</option><option value="loadPercent:desc">Нагрузка: высокая сначала</option><option value="loadPercent:asc">Нагрузка: низкая сначала</option><option value="groupsCount:desc">Больше групп</option><option value="groupsCount:asc">Меньше групп</option><option value="lastReportAt:desc">Последний отчет: новые сначала</option><option value="lastReportAt:asc">Последний отчет: старые сначала</option></select><ChevronDownIcon className="pointer-events-none absolute right-2 h-4 w-4" /></label>
-          </div>
+              {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+            <ChevronDownIcon className="pointer-events-none absolute right-2 h-4 w-4" />
+          </label>
         </div>
       </div>
 
-      {hasActiveFilters ? <div className="flex flex-wrap items-center gap-2 px-1">{filter !== "ALL" ? <FilterChip label={statusFilters.find((item) => item.value === filter)?.label ?? filter} onClear={() => changeFilter("ALL")} /> : null}{activeAdvancedChips.map((chip) => <FilterChip key={chip.key} label={filterLabels[chip.value] ?? chip.value} onClear={() => { chip.clear(); setPage(0); }} />)}{search.trim() ? <FilterChip label={`Поиск: ${search}`} onClear={() => { setSearch(""); setDebouncedSearch(""); }} /> : null}<button type="button" onClick={resetFilters} className="ml-auto text-xs font-semibold text-slate-500 hover:text-slate-900">Сбросить все</button></div> : null}
+      {activeFilterChips.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 px-1 text-sm">
+          <span className="font-semibold text-slate-500">Активные:</span>
+          {activeFilterChips.map((chip) => <FilterChip key={chip.key} label={filterLabels[chip.value] ?? chip.value} onClear={() => { chip.clear(); setPage(0); }} />)}
+          <button type="button" onClick={resetFilters} className="ml-auto text-xs font-semibold text-slate-500 hover:text-slate-900">Сбросить все</button>
+        </div>
+      ) : null}
 
       {error ? (
         <ErrorState message={error} onRetry={loadOverview} />
@@ -662,8 +701,8 @@ const CoachesPage: React.FC = () => {
         <CoachTableSkeleton />
       ) : coaches.length === 0 ? (
         <EmptyState
-          title={overview.summary.total === 0 && !hasActiveFilters ? "Тренеры пока не добавлены" : search.trim() ? "Тренеры не найдены" : "По выбранным условиям тренеры не найдены"}
-          description={overview.summary.total === 0 && !hasActiveFilters ? "Добавьте первого тренера, чтобы назначать группы и отслеживать нагрузку." : "Попробуйте изменить поисковый запрос или сбросить фильтры."}
+          title={overview.summary.total === 0 && !hasActiveFilters ? "Тренеры пока не добавлены" : "Нет результатов фильтрации"}
+          description={overview.summary.total === 0 && !hasActiveFilters ? "Добавьте первого тренера, чтобы назначать группы и отслеживать нагрузку." : "Тренеры не найдены. Попробуйте изменить фильтры."}
           action={
             <Button
               type="button"
@@ -772,6 +811,21 @@ const CoachesPage: React.FC = () => {
           }}
         />
       ) : null}
+
+      {showFilters ? (
+        <CoachFiltersDrawer
+          draftFilters={draftFilters}
+          activeCount={advancedFilterCount}
+          onChange={setDraftFilters}
+          onClose={() => setShowFilters(false)}
+          onReset={() => setDraftFilters(emptyAdvancedFilters)}
+          onApply={() => {
+            setAdvancedFilters(draftFilters);
+            setPage(0);
+            setShowFilters(false);
+          }}
+        />
+      ) : null}
     </PageShell>
   );
 };
@@ -780,12 +834,99 @@ const FilterChip: React.FC<{ label: string; onClear: () => void }> = ({ label, o
   <button type="button" onClick={onClear} title={`Снять фильтр: ${label}`} className="inline-flex max-w-xs items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800 transition hover:border-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600"><span className="truncate">{label}</span><XMarkIcon className="h-3.5 w-3.5 shrink-0" /></button>
 );
 
-const FilterCheckGroup: React.FC<{ title: string; options: string[][]; values: string[]; onChange: (values: string[]) => void }> = ({ title, options, values, onChange }) => (
-  <fieldset><legend className="text-sm font-semibold text-slate-900">{title}</legend><div className="mt-2 space-y-1">{options.map(([value, label]) => <label key={value} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><input type="checkbox" checked={values.includes(value)} onChange={() => onChange(values.includes(value) ? values.filter((item) => item !== value) : [...values, value])} className="h-4 w-4 rounded accent-cyan-700" />{label}</label>)}</div></fieldset>
+const CoachFiltersDrawer: React.FC<{
+  draftFilters: AdvancedFilters;
+  activeCount: number;
+  onChange: React.Dispatch<React.SetStateAction<AdvancedFilters>>;
+  onClose: () => void;
+  onReset: () => void;
+  onApply: () => void;
+}> = ({ draftFilters, activeCount, onChange, onClose, onReset, onApply }) => (
+  <div className="fixed inset-0 z-50">
+    <button type="button" aria-label="Закрыть фильтры" className="absolute inset-0 bg-slate-950/30" onClick={onClose} />
+    <aside
+      role="dialog"
+      aria-modal="true"
+      aria-label="Фильтры тренеров"
+      className="absolute inset-x-0 bottom-0 flex max-h-[92vh] flex-col rounded-t-2xl bg-white shadow-2xl shadow-slate-950/20 lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:w-[min(400px,100vw)] lg:rounded-none"
+    >
+      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
+        <div>
+          <div className="text-lg font-semibold text-slate-950">Фильтры</div>
+          <div className="mt-0.5 text-xs text-slate-500">Активных: {activeCount}</div>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Закрыть" className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600">
+          <XMarkIcon className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+        <DrawerSection title="Рабочий статус">
+          <FilterCheckGroup options={workStatusOptions} values={draftFilters.workStatuses} onChange={(values) => onChange((current) => ({ ...current, workStatuses: values as WorkStatus[] }))} />
+        </DrawerSection>
+
+        <DrawerSection title="Группы">
+          <FilterSelect
+            value={draftFilters.groupFilter}
+            options={groupFilterOptions}
+            emptyLabel="Любое количество"
+            onChange={(value) => onChange((current) => ({ ...current, groupFilter: value as AdvancedFilters["groupFilter"] }))}
+          />
+        </DrawerSection>
+
+        <DrawerSection title="Нагрузка">
+          <FilterRadioGroup
+            options={workloadStatusOptions}
+            value={draftFilters.workloadStatus}
+            emptyLabel="Любая"
+            onChange={(value) => onChange((current) => ({ ...current, workloadStatus: value as AdvancedFilters["workloadStatus"] }))}
+          />
+        </DrawerSection>
+
+        <DrawerSection title="Отчетность">
+          <FilterCheckGroup options={reportStatusOptions} values={draftFilters.reportStatus ? [draftFilters.reportStatus] : []} onChange={(values) => onChange((current) => ({ ...current, reportStatus: (values.at(-1) ?? "") as AdvancedFilters["reportStatus"] }))} />
+        </DrawerSection>
+
+        <DrawerSection title="Занятия">
+          <FilterCheckGroup options={[["true", "Ведет сегодня"]]} values={draftFilters.hasSessionToday ? [draftFilters.hasSessionToday] : []} onChange={(values) => onChange((current) => ({ ...current, hasSessionToday: values.includes("true") ? "true" : "" }))} />
+        </DrawerSection>
+      </div>
+
+      <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-5 py-4">
+        <button type="button" onClick={onReset} className="text-sm font-semibold text-slate-500 transition hover:text-slate-900">Сбросить</button>
+        <Button type="button" size="sm" onClick={onApply}>Применить</Button>
+      </div>
+    </aside>
+  </div>
 );
 
-const FilterRadioGroup: React.FC<{ title: string; options: string[][]; value: string; onChange: (value: string) => void }> = ({ title, options, value, onChange }) => (
-  <fieldset><legend className="text-sm font-semibold text-slate-900">{title}</legend><div className="mt-2 space-y-1">{options.map(([optionValue, label]) => <label key={optionValue} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><input type="radio" checked={value === optionValue} onChange={() => onChange(value === optionValue ? "" : optionValue)} className="h-4 w-4 accent-cyan-700" />{label}</label>)}</div></fieldset>
+const DrawerSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <section className="border-b border-slate-100 pb-5 last:border-b-0">
+    <div className="text-sm font-semibold text-slate-950">{title}</div>
+    <div className="mt-3">{children}</div>
+  </section>
+);
+
+const FilterSelect: React.FC<{ value: string; options: Array<[string, string]>; emptyLabel: string; onChange: (value: string) => void }> = ({ value, options, emptyLabel, onChange }) => (
+  <label className="relative block">
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm text-slate-700 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+    >
+      <option value="">{emptyLabel}</option>
+      {options.map(([optionValue, label]) => <option key={optionValue} value={optionValue}>{label}</option>)}
+    </select>
+    <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+  </label>
+);
+
+const FilterCheckGroup: React.FC<{ title?: string; options: Array<[string, string]>; values: string[]; onChange: (values: string[]) => void }> = ({ title, options, values, onChange }) => (
+  <fieldset>{title ? <legend className="text-sm font-semibold text-slate-900">{title}</legend> : null}<div className={title ? "mt-2 space-y-1" : "space-y-1"}>{options.map(([value, label]) => <label key={value} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><input type="checkbox" checked={values.includes(value)} onChange={() => onChange(values.includes(value) ? values.filter((item) => item !== value) : [...values, value])} className="h-4 w-4 rounded accent-cyan-700" />{label}</label>)}</div></fieldset>
+);
+
+const FilterRadioGroup: React.FC<{ options: Array<[string, string]>; value: string; emptyLabel: string; onChange: (value: string) => void }> = ({ options, value, emptyLabel, onChange }) => (
+  <fieldset><div className="space-y-1"><label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><input type="radio" checked={!value} onChange={() => onChange("")} className="h-4 w-4 accent-cyan-700" />{emptyLabel}</label>{options.map(([optionValue, label]) => <label key={optionValue} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><input type="radio" checked={value === optionValue} onChange={() => onChange(optionValue)} className="h-4 w-4 accent-cyan-700" />{label}</label>)}</div></fieldset>
 );
 
 const SortableHeader: React.FC<{
@@ -1259,7 +1400,18 @@ export const CoachProfileContent: React.FC<{
                     <PhoneIcon className="h-4 w-4" />
                     {profile.phone}
                   </div>
+                  {profile.birthDate ? (
+                    <div className="flex items-center gap-1.5">
+                      <CalendarDaysIcon className="h-4 w-4" />
+                      {formatDate(profile.birthDate)}
+                    </div>
+                  ) : null}
                 </div>
+                {profile.description ? (
+                  <div className="mt-3 max-w-xl rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-600">
+                    {profile.description}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1957,6 +2109,8 @@ export const EditCoachModal: React.FC<{
     email: profile.email,
     phone: profile.phone,
     specialization: profile.specialization ?? "",
+    birthDate: profile.birthDate ?? "",
+    description: profile.description ?? "",
   };
   const [form, setForm] = useState({
     firstName: profile.firstName,
@@ -1964,6 +2118,8 @@ export const EditCoachModal: React.FC<{
     email: profile.email,
     phone: profile.phone,
     specialization: profile.specialization ?? "",
+    birthDate: profile.birthDate ?? "",
+    description: profile.description ?? "",
   });
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -2001,6 +2157,8 @@ export const EditCoachModal: React.FC<{
           email: form.email.trim(),
           phone: form.phone.trim(),
           specialization: form.specialization.trim() || undefined,
+          birthDate: form.birthDate || undefined,
+          description: form.description.trim() || undefined,
         },
         token
       );
@@ -2081,9 +2239,23 @@ export const EditCoachModal: React.FC<{
             onChange={(event) => setForm({ ...form, specialization: event.target.value })}
           />
         </FormField>
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">
-          Поле «О тренере» пока не редактируется в admin API. Добавим textarea после появления `bio` в `AdminCoachUpdateInput`.
-        </div>
+        <FormField label="Дата рождения">
+          <input
+            type="date"
+            className={formControlClassName}
+            value={form.birthDate}
+            onChange={(event) => setForm({ ...form, birthDate: event.target.value })}
+          />
+        </FormField>
+        <FormField label="Описание">
+          <textarea
+            className={formControlClassName}
+            value={form.description}
+            rows={4}
+            onChange={(event) => setForm({ ...form, description: event.target.value })}
+            placeholder="Опыт, лицензии, сильные стороны тренера"
+          />
+        </FormField>
       </div>
     </ModalShell>
   );

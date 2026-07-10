@@ -32,6 +32,8 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
     email: '',
     phone: '',
     specialization: '',
+    birthDate: '',
+    description: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -80,6 +82,9 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
           email: form.email.trim(),
           phone: normalizePhoneForSubmit(form.phone),
           branchId,
+          specialization: form.specialization.trim() || undefined,
+          birthDate: form.birthDate || undefined,
+          description: form.description.trim() || undefined,
         },
         token
       );
@@ -168,8 +173,22 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
             <span className="text-xs text-slate-400">{showExtra ? 'Свернуть' : 'Раскрыть'}</span>
           </button>
           {showExtra ? (
-            <div className="border-t border-slate-100 px-3 py-3 text-xs leading-5 text-slate-500">
-              Дата рождения и описание тренера пока не сохраняются admin API. Эти поля появятся здесь после расширения backend DTO.
+            <div className="grid gap-3 border-t border-slate-100 px-3 py-3">
+              <Input
+                label="Дата рождения"
+                type="date"
+                value={form.birthDate}
+                onChange={(v) => setForm({ ...form, birthDate: v })}
+              />
+              <FormField label="Описание">
+                <textarea
+                  value={form.description}
+                  onChange={(event) => setForm({ ...form, description: event.target.value })}
+                  rows={4}
+                  className={formControlClassName}
+                  placeholder="Опыт, лицензии, сильные стороны тренера"
+                />
+              </FormField>
             </div>
           ) : null}
         </div>
