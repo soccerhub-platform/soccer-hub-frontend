@@ -4,6 +4,7 @@ import type {
   AdminStudentsPageResponse,
   AdminStudentsQuery,
 } from "./student.types";
+import type { MediaAsset } from "../../../shared/media.types";
 
 const buildStudentsQuery = (query: AdminStudentsQuery) => {
   const qs = new URLSearchParams();
@@ -26,5 +27,19 @@ export const StudentApi = {
 
   get(playerId: string): Promise<AdminStudentDetails> {
     return apiClient.get<AdminStudentDetails>(`/admin/students/${playerId}`);
+  },
+
+  uploadAvatar(playerId: string, file: File): Promise<MediaAsset> {
+    const formData = new FormData();
+    formData.set("file", file);
+    return apiClient.postForm<MediaAsset>(`/admin/students/${playerId}/avatar`, formData);
+  },
+
+  deleteAvatar(playerId: string): Promise<void> {
+    return apiClient.delete<void>(`/admin/students/${playerId}/avatar`);
+  },
+
+  getAvatarDownloadUrl(playerId: string): Promise<{ url: string }> {
+    return apiClient.get<{ url: string }>(`/admin/students/${playerId}/avatar/download-url`);
   },
 };

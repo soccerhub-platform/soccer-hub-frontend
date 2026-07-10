@@ -46,7 +46,7 @@ const SchedulePage: React.FC = () => {
     let active = true;
     setLoadingMeta(true);
 
-    Promise.all([GroupApi.listByBranch(branchId, token), CoachApi.overview(branchId, token)])
+    Promise.all([GroupApi.listByBranch(branchId, token), CoachApi.overview(branchId, token, { size: 100 })])
       .then(([groupsData, coachesData]) => {
         if (!active) return;
         setGroups(groupsData);
@@ -124,7 +124,7 @@ const SchedulePage: React.FC = () => {
 
   const coachDirectory = useMemo<CoachDirectory>(() => {
     return Object.fromEntries(
-      (coachesOverview?.coaches ?? []).map((coach) => [
+      (coachesOverview?.coaches.content ?? []).map((coach) => [
         coach.coachId,
         {
           fullName: `${coach.firstName} ${coach.lastName}`.trim(),

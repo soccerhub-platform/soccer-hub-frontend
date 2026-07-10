@@ -1,13 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  BuildingOffice2Icon,
   CalendarDaysIcon,
-  ChevronDownIcon,
   ChevronRightIcon,
   CreditCardIcon,
   EllipsisVerticalIcon,
   ExclamationCircleIcon,
-  UserCircleIcon,
   UserGroupIcon,
   UserIcon,
   UserPlusIcon,
@@ -53,12 +50,6 @@ const formatDelta = (value: number | null | undefined) => {
   if (value == null) return undefined;
   if (value === 0) return undefined;
   return value > 0 ? `+ ${formatNumber(value)}` : formatNumber(value);
-};
-
-const normalizeBranchName = (value: string | null | undefined) => {
-  if (!value) return "Текущий филиал";
-  if (value === "Main Branch") return "Главный филиал";
-  return value;
 };
 
 const normalizeTone = (tone: string | undefined): DashboardTone => {
@@ -117,7 +108,7 @@ const getRiskTone = (tone: DashboardRiskItem["tone"]) => {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { branchId, branchName, canSwitchBranch } = useAdminBranch();
+  const { branchId } = useAdminBranch();
 
   const [summary, setSummary] = useState<AdminDashboardSummaryResponse | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
@@ -126,11 +117,6 @@ const Dashboard: React.FC = () => {
   const today = useMemo(() => new Date(), []);
   const todayIso = useMemo(() => toDateInput(today), [today]);
   const timezone = useMemo(() => localTimezone(), []);
-  const branchLabel = useMemo(
-    () => normalizeBranchName(summary?.meta.branchName ?? branchName),
-    [branchName, summary?.meta.branchName]
-  );
-
   useEffect(() => {
     if (!branchId) {
       setSummary(null);
@@ -222,33 +208,10 @@ const Dashboard: React.FC = () => {
 
   return (
     <PageShell className="max-w-none space-y-5 px-0 pb-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div>
         <div>
           <h1 className="text-[28px] font-semibold tracking-tight text-slate-950">Панель администратора</h1>
           <p className="mt-1 text-sm text-slate-500">Главная картина клуба на сегодня</p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              if (canSwitchBranch) navigate("/admin/branch-select");
-            }}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-          >
-            <BuildingOffice2Icon className="h-4 w-4" />
-            {branchLabel}
-            <ChevronDownIcon className="h-4 w-4 text-slate-400" />
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/admin/profile")}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-          >
-            <UserCircleIcon className="h-4 w-4" />
-            Профиль
-            <ChevronDownIcon className="h-4 w-4 text-slate-400" />
-          </button>
         </div>
       </div>
 

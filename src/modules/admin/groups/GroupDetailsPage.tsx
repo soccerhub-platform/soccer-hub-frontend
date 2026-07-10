@@ -100,6 +100,7 @@ const GroupDetailsPage: React.FC = () => {
   const [group, setGroup] = useState<GroupApiModel | null>(null);
   const [summary, setSummary] = useState<GroupSummaryModel | null>(null);
   const [health, setHealth] = useState<GroupHealthResponse | null>(null);
+  const [membersTotal, setMembersTotal] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -114,20 +115,23 @@ const GroupDetailsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [groupData, summaryData, healthData] = await Promise.all([
+      const [groupData, summaryData, healthData, membersData] = await Promise.all([
         GroupApi.getById(groupId, token),
         GroupApi.getSummary(groupId, token),
         GroupApi.getHealth(groupId, token),
+        GroupApi.getMembers(groupId, 0, 1, token).catch(() => null),
       ]);
       setGroup(groupData);
       setSummary(summaryData);
       setHealth(healthData);
+      setMembersTotal(membersData?.totalElements ?? null);
     } catch (e) {
       console.error("Failed to load group details", e);
       setError("Не удалось загрузить данные группы");
       setGroup(null);
       setSummary(null);
       setHealth(null);
+      setMembersTotal(null);
     } finally {
       setLoading(false);
     }
@@ -211,6 +215,7 @@ const GroupDetailsPage: React.FC = () => {
     openTab(tab);
     window.setTimeout(() => scrollToSection("group-details-tabs"), 50);
   };
+  const displayStudentsCount = Math.max(summary?.studentsCount ?? 0, membersTotal ?? 0);
 
   /* ================= UI ================= */
 
@@ -325,7 +330,7 @@ const GroupDetailsPage: React.FC = () => {
 
           {summary ? (
             <div className="mt-5 grid grid-cols-2 gap-2 lg:grid-cols-4">
-              <SummaryPill icon={<UsersIcon className="h-4 w-4" />} label="Участники" value={`${summary.studentsCount}/${summary.capacity}`} />
+              <SummaryPill icon={<UsersIcon className="h-4 w-4" />} label="Участники" value={`${displayStudentsCount}/${summary.capacity}`} />
               <SummaryPill icon={<UserGroupIcon className="h-4 w-4" />} label="Тренеры" value={summary.coachesCount} />
               <SummaryPill
                 icon={<CalendarDaysIcon className="h-4 w-4" />}

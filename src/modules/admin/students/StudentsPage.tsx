@@ -1,24 +1,35 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
+  ArrowDownTrayIcon,
   ArrowPathIcon,
   CalendarDaysIcon,
+  CheckCircleIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   CreditCardIcon,
   DocumentTextIcon,
+  EllipsisVerticalIcon,
   ExclamationTriangleIcon,
+  FunnelIcon,
+  MagnifyingGlassIcon,
+  ArrowsUpDownIcon,
+  PhotoIcon,
+  TrashIcon,
   UserCircleIcon,
   UserGroupIcon,
+  WalletIcon,
 } from "@heroicons/react/24/outline";
-import { getApiErrorMessage } from "../../../shared/api";
+import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import {
   Button,
   EmptyState,
   ErrorState,
   LoadingState,
   ModalShell,
-  PageHeader,
   PageShell,
-  SectionCard,
 } from "../../../shared/ui";
 import { useAuth } from "../../../shared/AuthContext";
 import { useAdminBranch } from "../BranchContext";
@@ -27,15 +38,60 @@ import { StudentApi } from "./student.api";
 import type {
   AdminStudentDetails,
   AdminStudentListItem,
+  AdminStudentsSummary,
   StudentRisk,
   StudentRiskCode,
   StudentRiskSeverity,
 } from "./student.types";
 import type { ContractPaymentStatus, ContractStatus, PaymentMethod, PaymentStatus } from "../contracts/contracts.types";
+import type { MediaAsset } from "../../../shared/media.types";
 
 type PaymentFilter = ContractPaymentStatus | "all";
 type ContractFilter = ContractStatus | "all";
 type RiskFilter = StudentRiskCode | "all";
+type StudentSortKey =
+  | "playerName"
+  | "outstandingAmount"
+  | "paidAmount"
+  | "contractEndDate"
+  | "attendanceRate"
+  | "createdAt";
+type SortDirection = "asc" | "desc";
+
+type StudentSortOption = {
+  key: StudentSortKey;
+  direction: SortDirection;
+  label: string;
+};
+
+const emptyStudentsSummary: AdminStudentsSummary = {
+  total: 0,
+  paid: 0,
+  partiallyPaid: 0,
+  unpaid: 0,
+  withDebt: 0,
+  withRisks: 0,
+  withoutGroup: 0,
+  lowAttendance: 0,
+  expiredContracts: 0,
+  endingSoon: 0,
+};
+
+const STUDENT_SORT_OPTIONS: StudentSortOption[] = [
+  { key: "createdAt", direction: "desc", label: "Новые ученики" },
+  { key: "createdAt", direction: "asc", label: "Старые ученики" },
+  { key: "playerName", direction: "asc", label: "Имя: А-Я" },
+  { key: "playerName", direction: "desc", label: "Имя: Я-А" },
+  { key: "outstandingAmount", direction: "desc", label: "Сначала большой долг" },
+  { key: "outstandingAmount", direction: "asc", label: "Сначала без долга" },
+  { key: "contractEndDate", direction: "asc", label: "Договор скоро истекает" },
+  { key: "contractEndDate", direction: "desc", label: "Договор позже истекает" },
+  { key: "attendanceRate", direction: "asc", label: "Низкая посещаемость" },
+  { key: "attendanceRate", direction: "desc", label: "Высокая посещаемость" },
+  { key: "paidAmount", direction: "desc", label: "Больше оплачено" },
+];
+
+const studentSortValue = (sort: StudentSortOption) => `${sort.key},${sort.direction}`;
 
 const formatAmount = (value?: number | null, currency = "KZT") =>
   `${new Intl.NumberFormat("ru-RU").format(Number(value ?? 0))} ${currency}`;
@@ -53,6 +109,25 @@ const formatDateTime = (value?: string | null) => {
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(date);
 };
+
+const avatarUrl = (avatar?: MediaAsset | null, size: "thumb" | "medium" | "original" = "thumb") => {
+  if (!avatar) return undefined;
+  const url =
+    size === "thumb"
+      ? avatar.thumbUrl || avatar.mediumUrl || avatar.originalUrl
+      : size === "medium"
+      ? avatar.mediumUrl || avatar.originalUrl || avatar.thumbUrl
+      : avatar.originalUrl || avatar.mediumUrl || avatar.thumbUrl;
+  return url ? resolveApiUrl(url) : undefined;
+};
+
+const initialsFromName = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "U";
 
 const paymentStatusLabel = (status?: ContractPaymentStatus | null) => {
   switch (status) {
@@ -183,6 +258,11 @@ const StudentsPage: React.FC = () => {
   const { branchId, branchName } = useAdminBranch();
 
   const [students, setStudents] = useState<AdminStudentListItem[]>([]);
+  const [summary, setSummary] = useState<AdminStudentsSummary>(emptyStudentsSummary);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(4);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -194,6 +274,9 @@ const StudentsPage: React.FC = () => {
   const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [risk, setRisk] = useState<RiskFilter>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [sort, setSort] = useState<StudentSortOption>(STUDENT_SORT_OPTIONS[0]);
   const [selectedStudent, setSelectedStudent] = useState<AdminStudentDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
@@ -217,14 +300,21 @@ const StudentsPage: React.FC = () => {
         contractStatus,
         groupId: groupId !== "all" ? groupId : undefined,
         risk,
-        size: 100,
-        sort: risk !== "all" ? "outstandingAmount,desc" : "playerName,asc",
+        page,
+        size: pageSize,
+        sort: studentSortValue(sort),
       });
       setStudents(response.content ?? []);
+      setSummary(response.summary ?? emptyStudentsSummary);
+      setTotalElements(response.totalElements ?? 0);
+      setTotalPages(Math.max(1, response.totalPages ?? 1));
     } catch (err) {
       console.error(err);
       setError(getApiErrorMessage(err, "Не удалось загрузить учеников"));
       setStudents([]);
+      setSummary(emptyStudentsSummary);
+      setTotalElements(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -233,7 +323,7 @@ const StudentsPage: React.FC = () => {
 
   useEffect(() => {
     void loadStudents();
-  }, [token, branchId, debouncedSearch, paymentStatus, contractStatus, groupId, risk]);
+  }, [token, branchId, debouncedSearch, paymentStatus, contractStatus, groupId, risk, page, pageSize, sort]);
 
   useEffect(() => {
     if (!token || !branchId) {
@@ -272,12 +362,53 @@ const StudentsPage: React.FC = () => {
     void openStudent(playerIdFromQuery);
   }, [branchId, searchParams, students, token]);
 
-  const summary = useMemo(() => {
-    const withDebt = students.filter((student) => Number(student.outstandingAmount ?? 0) > 0).length;
-    const riskCount = students.filter((student) => student.risks.length > 0).length;
-    const paid = students.filter((student) => student.paymentStatus === "PAID").length;
-    return { total: students.length, withDebt, riskCount, paid };
-  }, [students]);
+  const resetFilters = () => {
+    setSearch("");
+    setDebouncedSearch("");
+    setPaymentStatus("all");
+    setContractStatus("all");
+    setGroupId("all");
+    setRisk("all");
+    setSort(STUDENT_SORT_OPTIONS[0]);
+    setPage(0);
+  };
+
+  const activeFilters = useMemo(() => {
+    const items: Array<{ key: string; label: string; onRemove: () => void }> = [];
+    if (paymentStatus !== "all") {
+      items.push({ key: "payment", label: paymentStatusLabel(paymentStatus), onRemove: () => setPaymentStatus("all") });
+    }
+    if (contractStatus !== "all") {
+      items.push({ key: "contract", label: contractStatusLabel(contractStatus), onRemove: () => setContractStatus("all") });
+    }
+    if (groupId !== "all") {
+      const group = groups.find((item) => item.id === groupId);
+      items.push({ key: "group", label: group?.name ?? "Группа", onRemove: () => setGroupId("all") });
+    }
+    if (risk !== "all") {
+      items.push({
+        key: "risk",
+        label: QUICK_RISK_FILTERS.find((item) => item.value === risk)?.label ?? "Риск",
+        onRemove: () => setRisk("all"),
+      });
+    }
+    return items;
+  }, [contractStatus, groupId, groups, paymentStatus, risk]);
+
+  const setQuickRisk = (value: RiskFilter) => {
+    setRisk(value);
+    if (value !== "all" && sort.key === "playerName") {
+      setSort(STUDENT_SORT_OPTIONS.find((item) => item.key === "outstandingAmount" && item.direction === "desc") ?? STUDENT_SORT_OPTIONS[0]);
+    }
+    setPage(0);
+  };
+
+  const changeSort = (value: string) => {
+    const nextSort = STUDENT_SORT_OPTIONS.find((item) => studentSortValue(item) === value) ?? STUDENT_SORT_OPTIONS[0];
+    setSort(nextSort);
+    setSortOpen(false);
+    setPage(0);
+  };
 
   const openStudent = async (playerId: string) => {
     if (!token) return;
@@ -303,86 +434,210 @@ const StudentsPage: React.FC = () => {
     }
   };
 
+  const updateStudentAvatar = (playerId: string, avatar: MediaAsset | null) => {
+    setStudents((items) =>
+      items.map((item) => (item.playerId === playerId ? { ...item, avatar } : item))
+    );
+    setSelectedStudent((current) =>
+      current?.player.id === playerId
+        ? { ...current, player: { ...current.player, avatar } }
+        : current
+    );
+  };
+
+  const refreshStudentAvatar = async (playerId: string) => {
+    try {
+      const details = await StudentApi.get(playerId);
+      updateStudentAvatar(playerId, details.player.avatar ?? null);
+      setSelectedStudent((current) => (current?.player.id === playerId ? details : current));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const uploadStudentAvatar = async (playerId: string, file: File) => {
+    const avatar = await StudentApi.uploadAvatar(playerId, file);
+    updateStudentAvatar(playerId, avatar);
+    toast.success("Фото ученика обновлено");
+  };
+
+  const deleteStudentAvatar = async (playerId: string) => {
+    await StudentApi.deleteAvatar(playerId);
+    updateStudentAvatar(playerId, null);
+    toast.success("Фото ученика удалено");
+  };
+
+  const downloadStudentAvatar = async (playerId: string) => {
+    const response = await StudentApi.getAvatarDownloadUrl(playerId);
+    window.open(resolveApiUrl(response.url), "_blank", "noopener,noreferrer");
+  };
+
   if (!token) {
     return <ErrorState message="Нет авторизации" />;
   }
 
   return (
-    <PageShell>
-      <PageHeader
-        title="Ученики"
-        description={`Операционный список клиентов и учеников${branchName ? ` филиала ${branchName}` : ""}: договоры, оплаты, группы и риски.`}
-        actions={
-          <Button type="button" variant="secondary" onClick={() => void loadStudents("refresh")} isLoading={refreshing}>
-            <ArrowPathIcon className="h-4 w-4" />
-            Обновить
-          </Button>
-        }
-      />
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <MetricCard label="Всего" value={summary.total} />
-        <MetricCard label="Оплачены" value={summary.paid} tone="success" />
-        <MetricCard label="С долгом" value={summary.withDebt} tone="danger" />
-        <MetricCard label="С рисками" value={summary.riskCount} tone="warning" />
+    <PageShell className="max-w-none space-y-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h1 className="heading-font text-[28px] font-semibold leading-tight text-slate-950">Ученики</h1>
+          <p className="mt-1.5 text-sm text-slate-500">
+            {summary.total} учеников
+            <span className="mx-2 text-cyan-700">• {summary.paid} оплачены</span>
+            <span className="mx-2 text-emerald-700">• {summary.withDebt} с долгом</span>
+            <span className="mx-2 text-rose-600">• {summary.withRisks} с рисками</span>
+            {branchName ? <span className="ml-2 text-slate-400">{branchName}</span> : null}
+          </p>
+        </div>
+        <Button type="button" variant="secondary" onClick={() => void loadStudents("refresh")} isLoading={refreshing}>
+          <ArrowPathIcon className="h-4 w-4" />
+          Обновить
+        </Button>
       </div>
 
-      <SectionCard
-        title="Фильтры"
-        description="Поиск по ученику, родителю, телефону или договору. Фильтры применяются сразу."
-        icon={<UserCircleIcon className="h-4 w-4" />}
-      >
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Ученик, родитель, телефон, договор"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100 lg:col-span-1"
-          />
-          <select
-            value={paymentStatus}
-            onChange={(event) => setPaymentStatus(event.target.value as PaymentFilter)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-          >
-            <option value="all">Любая оплата</option>
-            <option value="PAID">Оплачен</option>
-            <option value="PARTIALLY_PAID">Частично оплачен</option>
-            <option value="UNPAID">Не оплачен</option>
-          </select>
-          <select
-            value={contractStatus}
-            onChange={(event) => setContractStatus(event.target.value as ContractFilter)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-          >
-            <option value="all">Любой договор</option>
-            <option value="ACTIVE">Активный</option>
-            <option value="UPCOMING">Скоро начнется</option>
-            <option value="EXPIRED">Истек</option>
-            <option value="CANCELLED">Отменен</option>
-          </select>
-          <select
-            value={groupId}
-            onChange={(event) => setGroupId(event.target.value)}
-            disabled={groupsLoading}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100 disabled:bg-slate-50 disabled:text-slate-400"
-          >
-            <option value="all">{groupsLoading ? "Группы загружаются..." : "Любая группа"}</option>
-            {groups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <QuickRiskFilters value={risk} onChange={setRisk} />
-      </SectionCard>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <MetricCard icon={<UserGroupIcon className="h-5 w-5" />} label="Всего" value={summary.total} tone="info" />
+        <MetricCard icon={<CheckCircleIcon className="h-5 w-5" />} label="Оплачены" value={summary.paid} tone="success" />
+        <MetricCard icon={<WalletIcon className="h-5 w-5" />} label="С долгом" value={summary.withDebt} tone="danger" />
+        <MetricCard icon={<ExclamationTriangleIcon className="h-5 w-5" />} label="С рисками" value={summary.withRisks} tone="warning" />
+      </div>
 
-      <SectionCard
-        title="Список учеников"
-        description="Карточки отсортированы для ежедневной работы: деньги, договор, группа и посещаемость видны сразу."
-        icon={<UserGroupIcon className="h-4 w-4" />}
-      >
+      <div className="relative rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          <div className="relative min-w-0 flex-1">
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(0);
+              }}
+              placeholder="Поиск ученика, родителя, телефона или договора"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSortOpen((value) => !value);
+              setFiltersOpen(false);
+            }}
+            className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition ${
+              sortOpen
+                ? "border-cyan-700 bg-cyan-50 text-cyan-800"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+            }`}
+          >
+            <ArrowsUpDownIcon className="h-4 w-4" />
+            {sort.label}
+            <ChevronDownIcon className={`h-4 w-4 transition ${sortOpen ? "rotate-180" : ""}`} />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFiltersOpen((value) => !value);
+              setSortOpen(false);
+            }}
+            className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition ${
+              filtersOpen || activeFilters.length > 0
+                ? "border-cyan-700 bg-cyan-50 text-cyan-800"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+            }`}
+          >
+            <FunnelIcon className="h-4 w-4" />
+            Фильтры
+            <ChevronDownIcon className={`h-4 w-4 transition ${filtersOpen ? "rotate-180" : ""}`} />
+          </button>
+        </div>
+
+        <QuickRiskFilters value={risk} summary={summary} onChange={setQuickRisk} />
+
+        {activeFilters.length > 0 ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-slate-500">Активные фильтры:</span>
+            {activeFilters.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => {
+                  item.onRemove();
+                  setPage(0);
+                }}
+                className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
+              >
+                {item.label}
+                <span className="text-slate-400">×</span>
+              </button>
+            ))}
+            <button type="button" onClick={resetFilters} className="text-sm font-semibold text-cyan-700 hover:text-cyan-900">
+              Сбросить все
+            </button>
+          </div>
+        ) : null}
+
+        {sortOpen ? (
+          <div className="absolute right-3 top-[64px] z-20 w-[min(340px,calc(100vw-2rem))] rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
+            <div className="px-3 py-2 text-xs font-semibold uppercase text-slate-400">Сортировка</div>
+            {STUDENT_SORT_OPTIONS.map((item) => {
+              const active = studentSortValue(item) === studentSortValue(sort);
+              return (
+                <button
+                  key={studentSortValue(item)}
+                  type="button"
+                  onClick={() => changeSort(studentSortValue(item))}
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${
+                    active ? "bg-cyan-50 text-cyan-800" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  {item.label}
+                  {active ? <span className="h-2 w-2 rounded-full bg-cyan-700" /> : null}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {filtersOpen ? (
+          <div className="absolute right-3 top-[64px] z-20 w-[min(360px,calc(100vw-2rem))] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/10">
+            <FilterSelect label="Оплата" value={paymentStatus} onChange={(value) => { setPaymentStatus(value as PaymentFilter); setPage(0); }}>
+              <option value="all">Любая</option>
+              <option value="PAID">Оплачено</option>
+              <option value="PARTIALLY_PAID">Частично</option>
+              <option value="UNPAID">Долг</option>
+            </FilterSelect>
+            <FilterSelect label="Договор" value={contractStatus} onChange={(value) => { setContractStatus(value as ContractFilter); setPage(0); }}>
+              <option value="all">Любой</option>
+              <option value="ACTIVE">Активный</option>
+              <option value="UPCOMING">Скоро начнется</option>
+              <option value="EXPIRED">Истек</option>
+              <option value="CANCELLED">Отменен</option>
+            </FilterSelect>
+            <FilterSelect label="Группа" value={groupId} onChange={(value) => { setGroupId(value); setPage(0); }} disabled={groupsLoading}>
+              <option value="all">{groupsLoading ? "Группы загружаются..." : "Любая"}</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </FilterSelect>
+            <FilterSelect label="Посещаемость" value={risk === "LOW_ATTENDANCE" ? "LOW_ATTENDANCE" : "all"} onChange={(value) => setQuickRisk(value === "LOW_ATTENDANCE" ? "LOW_ATTENDANCE" : "all")}>
+              <option value="all">Любая</option>
+              <option value="LOW_ATTENDANCE">Низкая</option>
+            </FilterSelect>
+            <div className="mt-4 flex gap-2">
+              <Button type="button" variant="secondary" className="flex-1" onClick={resetFilters}>
+                Сбросить
+              </Button>
+              <Button type="button" className="flex-1" onClick={() => setFiltersOpen(false)}>
+                Применить
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {error ? (
           <ErrorState message={error} onRetry={() => void loadStudents("refresh")} />
         ) : loading ? (
@@ -390,12 +645,23 @@ const StudentsPage: React.FC = () => {
         ) : students.length === 0 ? (
           <EmptyState title="Ученики не найдены" description="Измените фильтры или проверьте выбранный филиал." />
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-slate-200 bg-white">
+            <div className="hidden grid-cols-[minmax(240px,1.25fr)_116px_minmax(130px,0.65fr)_124px_136px_136px_1fr_54px] items-center gap-4 bg-white px-5 py-4 text-sm font-semibold text-slate-500 lg:grid">
+              <span>Ученик</span>
+              <span>Создан</span>
+              <span>Группа</span>
+              <span>Оплата</span>
+              <span>Договор до</span>
+              <span>Посещаемость</span>
+              <span>Риски</span>
+              <span />
+            </div>
             {students.map((student) => (
               <StudentRow
                 key={student.playerId}
                 student={student}
                 onOpen={() => void openStudent(student.playerId)}
+                onAvatarExpired={() => void refreshStudentAvatar(student.playerId)}
                 onOpenContract={() =>
                   student.contractId
                     ? navigate(`/admin/contracts?contractId=${encodeURIComponent(student.contractId)}&mode=view`)
@@ -406,7 +672,43 @@ const StudentsPage: React.FC = () => {
             ))}
           </div>
         )}
-      </SectionCard>
+      </div>
+
+      <div className="flex flex-col gap-3 px-1 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          Показано {totalElements === 0 ? 0 : page * pageSize + 1}-{Math.min(totalElements, page * pageSize + students.length)} из {totalElements} учеников
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={page <= 0}
+            onClick={() => setPage((value) => Math.max(0, value - 1))}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 disabled:text-slate-300"
+          >
+            <ChevronLeftIcon className="h-4 w-4" />
+          </button>
+          {Array.from({ length: Math.min(totalPages, 3) }, (_, index) => index).map((index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => setPage(index)}
+              className={`flex h-9 min-w-9 items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${
+                page === index ? "bg-cyan-700 text-white" : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              }`}
+            >
+              {index + 1}
+            </button>
+          ))}
+          <button
+            type="button"
+            disabled={page + 1 >= totalPages}
+            onClick={() => setPage((value) => value + 1)}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 disabled:text-slate-300"
+          >
+            <ChevronRightIcon className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
       {selectedStudent || detailsLoading ? (
         <StudentDetailsModal
@@ -420,6 +722,10 @@ const StudentsPage: React.FC = () => {
             navigate(`/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view&payment=create`)
           }
           onOpenGroup={(groupId) => navigate(`/admin/groups/${groupId}`)}
+          onUploadAvatar={uploadStudentAvatar}
+          onDeleteAvatar={deleteStudentAvatar}
+          onDownloadAvatar={downloadStudentAvatar}
+          onAvatarExpired={refreshStudentAvatar}
         />
       ) : null}
     </PageShell>
@@ -429,73 +735,107 @@ const StudentsPage: React.FC = () => {
 const StudentRow: React.FC<{
   student: AdminStudentListItem;
   onOpen: () => void;
+  onAvatarExpired: () => void;
   onOpenContract: () => void | undefined;
   onOpenGroup: () => void | undefined;
-}> = ({ student, onOpen, onOpenContract, onOpenGroup }) => (
-  <article className="rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm transition hover:border-slate-300">
-    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
-          <h3 className="heading-font text-base font-semibold text-slate-900">
-            {student.playerName}
-            {student.age ? <span className="text-slate-500">, {student.age} лет</span> : null}
-          </h3>
-          <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold ${paymentBadgeClassName(student.paymentStatus)}`}>
-            {paymentStatusLabel(student.paymentStatus)}
-          </span>
-          <div className="flex flex-wrap gap-2 lg:ml-2">
-            <ActionButton icon={<EyeIconShim />} label="Открыть" onClick={onOpen} />
-            {student.contractId ? <ActionButton icon={<DocumentTextIcon className="h-4 w-4" />} label="Договор" onClick={onOpenContract} /> : null}
-            {student.groupId ? <ActionButton icon={<UserGroupIcon className="h-4 w-4" />} label="Группа" onClick={onOpenGroup} /> : null}
-          </div>
-        </div>
-
-        <div className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-slate-600 md:grid-cols-2">
-          <div>
-            Родитель: <span className="font-medium text-slate-900">{student.parentName}</span>
-          </div>
-          <div>{student.phone}</div>
-          <div>
-            Группа: <span className="font-medium text-slate-900">{student.groupName || "Не назначена"}</span>
-          </div>
-          <div>Тренер: {student.coachName || "Не указан"}</div>
-        </div>
-
-        {student.risks.length > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {student.risks.map((item) => (
-              <RiskBadge key={item.code} risk={item} />
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4 xl:min-w-[520px] xl:text-right">
-        <CompactFact label="Остаток" value={formatAmount(student.outstandingAmount)} tone={Number(student.outstandingAmount ?? 0) > 0 ? "danger" : "success"} />
-        <CompactFact label="Договор до" value={formatDate(student.contractEndDate)} />
-        <CompactFact label="Оплачено" value={formatAmount(student.paidAmount)} />
-        <CompactFact label="Посещаемость" value={student.attendanceRate == null ? "—" : `${student.attendanceRate}%`} />
+}> = ({ student, onOpen, onAvatarExpired, onOpenGroup }) => (
+  <article className="grid gap-3 bg-white px-4 py-4 transition hover:bg-slate-50 lg:grid-cols-[minmax(240px,1.25fr)_116px_minmax(130px,0.65fr)_124px_136px_136px_1fr_54px] lg:items-center lg:gap-4">
+    <div className="flex min-w-0 gap-3">
+      <StudentAvatar name={student.playerName} avatar={student.avatar} size="md" onImageError={onAvatarExpired} />
+      <div className="min-w-0">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="block min-w-0 truncate text-left text-[15px] font-semibold text-slate-950 transition hover:text-cyan-800"
+        >
+          {student.playerName}
+        </button>
+        <div className="mt-1 text-sm text-slate-500">{student.age ? `${student.age} лет` : "Возраст не указан"}</div>
+        <div className="mt-1 text-xs text-slate-500">Родитель: {student.parentName}</div>
+        <div className="mt-1 text-xs text-slate-500">{student.phone || "Телефон не указан"}</div>
       </div>
     </div>
+
+    <div className="text-sm">
+      <div className="font-semibold text-slate-900">{formatDate(student.createdAt)}</div>
+      <div className="mt-1 text-xs text-slate-500 lg:hidden">Создан</div>
+    </div>
+
+    <div className="min-w-0 text-sm">
+      <button
+        type="button"
+        onClick={student.groupId ? onOpenGroup : undefined}
+        className="truncate font-semibold text-slate-900 transition hover:text-cyan-800 disabled:hover:text-slate-900"
+        disabled={!student.groupId}
+      >
+        {student.groupName || "Без группы"}
+      </button>
+      <div className="mt-0.5 truncate text-xs text-slate-500">{student.coachName || "Тренер не указан"}</div>
+    </div>
+
+    <div className="text-sm">
+      <div className={`font-semibold ${Number(student.outstandingAmount ?? 0) > 0 ? "text-rose-600" : "text-emerald-700"}`}>
+        {paymentStatusLabel(student.paymentStatus) === "Нет договора" ? "—" : paymentStatusLabel(student.paymentStatus)}
+      </div>
+      <div className={`mt-1 font-semibold ${Number(student.outstandingAmount ?? 0) > 0 ? "text-rose-600" : "text-emerald-700"}`}>
+        {formatAmount(student.outstandingAmount)}
+      </div>
+    </div>
+
+    <div className="text-sm">
+      <div className="font-semibold text-slate-900">{formatDate(student.contractEndDate)}</div>
+      {student.contractStatus ? (
+        <div className={`mt-1 text-xs ${student.contractStatus === "EXPIRED" ? "text-rose-600" : "text-amber-600"}`}>
+          {contractStatusLabel(student.contractStatus)}
+        </div>
+      ) : null}
+    </div>
+
+    <AttendanceBar value={student.attendanceRate} />
+
+    <div className="flex flex-wrap gap-1.5">
+      {student.risks.length > 0 ? (
+        student.risks.slice(0, 3).map((item) => <RiskBadge key={item.code} risk={item} />)
+      ) : (
+        <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
+          Нет рисков
+        </span>
+      )}
+    </div>
+
+    <button
+      type="button"
+      onClick={onOpen}
+      className="ml-auto flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+      aria-label="Открыть действия ученика"
+    >
+      <EllipsisVerticalIcon className="h-5 w-5" />
+    </button>
   </article>
 );
 
-const QUICK_RISK_FILTERS: Array<{ value: RiskFilter; label: string }> = [
-  { value: "all", label: "Все" },
-  { value: "DEBT", label: "С долгом" },
-  { value: "ENDING_SOON", label: "Истекают" },
-  { value: "EXPIRED_CONTRACT", label: "Истек договор" },
-  { value: "LOW_ATTENDANCE", label: "Низкая посещаемость" },
-  { value: "NO_GROUP", label: "Без группы" },
+const QUICK_RISK_FILTERS: Array<{ value: RiskFilter; label: string; countKey?: keyof AdminStudentsSummary }> = [
+  { value: "all", label: "Все", countKey: "total" },
+  { value: "DEBT", label: "С долгом", countKey: "withDebt" },
+  { value: "ENDING_SOON", label: "Истекают", countKey: "endingSoon" },
+  { value: "EXPIRED_CONTRACT", label: "Истек договор", countKey: "expiredContracts" },
+  { value: "LOW_ATTENDANCE", label: "Низкая посещаемость", countKey: "lowAttendance" },
+  { value: "NO_GROUP", label: "Без группы", countKey: "withoutGroup" },
 ];
 
-const QuickRiskFilters: React.FC<{ value: RiskFilter; onChange: (value: RiskFilter) => void }> = ({
+const QuickRiskFilters: React.FC<{
+  value: RiskFilter;
+  summary: AdminStudentsSummary;
+  onChange: (value: RiskFilter) => void;
+}> = ({
   value,
+  summary,
   onChange,
 }) => (
   <div className="mt-3 flex flex-wrap gap-2">
     {QUICK_RISK_FILTERS.map((item) => {
       const active = item.value === value;
+      const count = item.countKey ? summary[item.countKey] : undefined;
       return (
         <button
           key={item.value}
@@ -508,11 +848,212 @@ const QuickRiskFilters: React.FC<{ value: RiskFilter; onChange: (value: RiskFilt
           }`}
         >
           {item.label}
+          {typeof count === "number" ? <span className="ml-1 text-slate-400">{count}</span> : null}
         </button>
       );
     })}
   </div>
 );
+
+const FilterSelect: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}> = ({ label, value, onChange, disabled = false, children }) => (
+  <label className="mb-3 block text-sm font-semibold text-slate-600">
+    <span className="mb-1.5 block">{label}</span>
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      disabled={disabled}
+      className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100 disabled:bg-slate-50 disabled:text-slate-400"
+    >
+      {children}
+    </select>
+  </label>
+);
+
+const AttendanceBar: React.FC<{ value?: number | null }> = ({ value }) => {
+  const percent = value == null ? 0 : Math.max(0, Math.min(100, value));
+  const tone = percent >= 75 ? "bg-emerald-500" : percent >= 50 ? "bg-amber-500" : "bg-rose-500";
+
+  return (
+    <div className="text-sm">
+      <div className="font-semibold text-slate-900">{value == null ? "—" : `${value}%`}</div>
+      <div className="mt-2 h-2 w-28 rounded-full bg-slate-100">
+        <div className={`h-2 rounded-full ${tone}`} style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  );
+};
+
+const StudentAvatar: React.FC<{
+  name: string;
+  avatar?: MediaAsset | null;
+  size?: "sm" | "md" | "lg";
+  onImageError?: () => void;
+}> = ({ name, avatar, size = "sm", onImageError }) => {
+  const src = avatarUrl(avatar, size === "lg" ? "medium" : "thumb");
+  const sizeClass = size === "lg" ? "h-28 w-28 text-2xl" : size === "md" ? "h-14 w-14 text-base" : "h-10 w-10 text-sm";
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFailedSrc(null);
+  }, [src]);
+
+  if (src && failedSrc !== src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className={`${sizeClass} shrink-0 rounded-full border border-slate-200 object-cover`}
+        onError={() => {
+          setFailedSrc(src);
+          onImageError?.();
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-cyan-100 bg-cyan-50 font-semibold text-cyan-800`}
+      aria-label={name}
+    >
+      {initialsFromName(name)}
+    </div>
+  );
+};
+
+const StudentPhotoPanel: React.FC<{
+  student: AdminStudentDetails;
+  onUploadAvatar: (playerId: string, file: File) => Promise<void>;
+  onDeleteAvatar: (playerId: string) => Promise<void>;
+  onDownloadAvatar: (playerId: string) => Promise<void>;
+  onAvatarExpired: (playerId: string) => Promise<void>;
+}> = ({ student, onUploadAvatar, onDeleteAvatar, onDownloadAvatar, onAvatarExpired }) => {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [busyAction, setBusyAction] = useState<"upload" | "delete" | "download" | null>(null);
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Выберите изображение");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Фото должно быть не больше 5 МБ");
+      return;
+    }
+
+    setBusyAction("upload");
+    try {
+      await onUploadAvatar(student.player.id, file);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Не удалось загрузить фото"));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    setBusyAction("delete");
+    try {
+      await onDeleteAvatar(student.player.id);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Не удалось удалить фото"));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleDownload = async () => {
+    setBusyAction("download");
+    try {
+      await onDownloadAvatar(student.player.id);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Не удалось скачать фото"));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  return (
+    <Panel title="Фото ученика">
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          disabled={!student.player.avatar || busyAction !== null}
+          onClick={handleDownload}
+          className="rounded-full disabled:cursor-default"
+          aria-label="Открыть фото ученика"
+        >
+          <StudentAvatar
+            name={student.player.fullName}
+            avatar={student.player.avatar}
+            size="lg"
+            onImageError={() => void onAvatarExpired(student.player.id)}
+          />
+        </button>
+        <div className="min-w-0 flex-1 space-y-2">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">{student.player.fullName}</div>
+            <div className="mt-0.5 text-xs text-slate-500">
+              {student.player.avatar ? "Фото используется в списках и карточке ученика" : "Фото пока не загружено"}
+            </div>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              isLoading={busyAction === "upload"}
+              onClick={() => inputRef.current?.click()}
+            >
+              <PhotoIcon className="h-4 w-4" />
+              Загрузить
+            </Button>
+            {student.player.avatar ? (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  isLoading={busyAction === "download"}
+                  onClick={handleDownload}
+                >
+                  <ArrowDownTrayIcon className="h-4 w-4" />
+                  Скачать
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="softDanger"
+                  isLoading={busyAction === "delete"}
+                  onClick={handleDelete}
+                >
+                  <TrashIcon className="h-4 w-4" />
+                  Удалить
+                </Button>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+};
 
 const StudentDetailsModal: React.FC<{
   student: AdminStudentDetails | null;
@@ -521,7 +1062,22 @@ const StudentDetailsModal: React.FC<{
   onOpenContract: (contractId: string) => void;
   onAddPayment: (contractId: string) => void;
   onOpenGroup: (groupId: string) => void;
-}> = ({ student, loading, onClose, onOpenContract, onAddPayment, onOpenGroup }) => (
+  onUploadAvatar: (playerId: string, file: File) => Promise<void>;
+  onDeleteAvatar: (playerId: string) => Promise<void>;
+  onDownloadAvatar: (playerId: string) => Promise<void>;
+  onAvatarExpired: (playerId: string) => Promise<void>;
+}> = ({
+  student,
+  loading,
+  onClose,
+  onOpenContract,
+  onAddPayment,
+  onOpenGroup,
+  onUploadAvatar,
+  onDeleteAvatar,
+  onDownloadAvatar,
+  onAvatarExpired,
+}) => (
   <ModalShell
     title={student?.player.fullName ?? "Карточка ученика"}
     description={student ? `${student.client.fullName} · ${student.client.phone}` : "Загрузка карточки ученика"}
@@ -562,11 +1118,20 @@ const StudentDetailsModal: React.FC<{
       <LoadingState label="Загрузка карточки..." />
     ) : (
       <div className="space-y-5">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <SummaryTile label="Остаток" value={formatAmount(student.currentContract?.outstandingAmount, student.currentContract?.currency)} icon={<CreditCardIcon className="h-5 w-5" />} />
-          <SummaryTile label="Оплачено" value={formatAmount(student.currentContract?.paidAmount, student.currentContract?.currency)} />
-          <SummaryTile label="Договор до" value={formatDate(student.currentContract?.endDate)} icon={<DocumentTextIcon className="h-5 w-5" />} />
-          <SummaryTile label="Посещаемость" value={student.attendanceSummary?.attendanceRate == null ? "—" : `${student.attendanceSummary.attendanceRate}%`} icon={<CalendarDaysIcon className="h-5 w-5" />} />
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[280px_1fr]">
+          <StudentPhotoPanel
+            student={student}
+            onUploadAvatar={onUploadAvatar}
+            onDeleteAvatar={onDeleteAvatar}
+            onDownloadAvatar={onDownloadAvatar}
+            onAvatarExpired={onAvatarExpired}
+          />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
+            <SummaryTile label="Остаток" value={formatAmount(student.currentContract?.outstandingAmount, student.currentContract?.currency)} icon={<CreditCardIcon className="h-5 w-5" />} />
+            <SummaryTile label="Оплачено" value={formatAmount(student.currentContract?.paidAmount, student.currentContract?.currency)} />
+            <SummaryTile label="Договор до" value={formatDate(student.currentContract?.endDate)} icon={<DocumentTextIcon className="h-5 w-5" />} />
+            <SummaryTile label="Посещаемость" value={student.attendanceSummary?.attendanceRate == null ? "—" : `${student.attendanceSummary.attendanceRate}%`} icon={<CalendarDaysIcon className="h-5 w-5" />} />
+          </div>
         </div>
 
         {student.risks.length > 0 ? (
@@ -665,40 +1230,38 @@ const StudentDetailsModal: React.FC<{
   </ModalShell>
 );
 
-const MetricCard: React.FC<{ label: string; value: number; tone?: "neutral" | "success" | "warning" | "danger" }> = ({
+const MetricCard: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  tone?: "info" | "success" | "warning" | "danger";
+}> = ({
+  icon,
   label,
   value,
-  tone = "neutral",
+  tone = "info",
 }) => {
-  const valueClass =
+  const toneClass =
     tone === "success"
-      ? "text-emerald-700"
+      ? "bg-emerald-50 text-emerald-700"
       : tone === "warning"
-      ? "text-amber-700"
+      ? "bg-orange-50 text-orange-700"
       : tone === "danger"
-      ? "text-rose-700"
-      : "text-slate-900";
+      ? "bg-rose-50 text-rose-700"
+      : "bg-indigo-50 text-indigo-700";
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <div className="text-xs font-medium uppercase text-slate-500">{label}</div>
-      <div className={`mt-1 text-2xl font-semibold ${valueClass}`}>{value}</div>
+    <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${toneClass}`}>
+        {icon}
+      </div>
+      <div>
+        <div className="text-2xl font-semibold leading-tight text-slate-950">{value}</div>
+        <div className="mt-1 text-sm text-slate-500">{label}</div>
+      </div>
     </div>
   );
 };
-
-const CompactFact: React.FC<{ label: string; value: string; tone?: "neutral" | "success" | "danger" }> = ({
-  label,
-  value,
-  tone = "neutral",
-}) => (
-  <div className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
-    <div className="text-[11px] font-medium uppercase text-slate-400">{label}</div>
-    <div className={`mt-1 text-sm font-semibold ${tone === "danger" ? "text-rose-700" : tone === "success" ? "text-emerald-700" : "text-slate-900"}`}>
-      {value}
-    </div>
-  </div>
-);
 
 const SummaryTile: React.FC<{ label: string; value: string; icon?: React.ReactNode }> = ({ label, value, icon }) => (
   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -725,22 +1288,9 @@ const Panel: React.FC<{ title: string; children: React.ReactNode }> = ({ title, 
 );
 
 const RiskBadge: React.FC<{ risk: StudentRisk }> = ({ risk }) => (
-  <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${riskClassName(risk.severity)}`}>
+  <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${riskClassName(risk.severity)}`}>
     {riskLabel(risk)}
   </span>
 );
-
-const ActionButton: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void }> = ({ icon, label, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-  >
-    {icon}
-    {label}
-  </button>
-);
-
-const EyeIconShim = () => <UserCircleIcon className="h-4 w-4" />;
 
 export default StudentsPage;

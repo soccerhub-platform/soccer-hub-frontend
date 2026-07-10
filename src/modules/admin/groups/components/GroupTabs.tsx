@@ -47,7 +47,7 @@ const GroupTabs: React.FC<{ groupId: string; branchId?: string | null }> = ({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="grid grid-cols-1 gap-2 border-b border-slate-200 bg-slate-50 p-2 sm:grid-cols-3">
+      <div className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-slate-50 p-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = active === tab.key;
@@ -62,16 +62,16 @@ const GroupTabs: React.FC<{ groupId: string; branchId?: string | null }> = ({
                 next.set("tab", tab.key);
                 setSearchParams(next, { replace: true });
               }}
-              className={`flex items-start gap-3 rounded-xl px-4 py-3 text-left transition ${
+              className={`flex min-w-[160px] items-center gap-2 rounded-xl px-3 py-2 text-left transition ${
                 isActive
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-500 hover:bg-white/70 hover:text-slate-800"
               }`}
             >
-              <Icon className={`mt-0.5 h-5 w-5 ${isActive ? "text-cyan-800" : "text-slate-400"}`} />
+              <Icon className={`h-5 w-5 shrink-0 ${isActive ? "text-cyan-800" : "text-slate-400"}`} />
               <span>
                 <span className="block text-sm font-semibold">{tab.label}</span>
-                <span className="mt-0.5 block text-xs text-slate-500">{tab.description}</span>
+                <span className="mt-0.5 block truncate text-xs text-slate-500">{tab.description}</span>
               </span>
             </button>
           );

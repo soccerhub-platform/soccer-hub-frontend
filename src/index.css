@@ -14,10 +14,16 @@ body,
   height: 100%;
 }
 
+html {
+  font-size: 15px;
+}
+
 body {
   font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
   background-color: #eef5f1;
   color: #102321;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }
 
 @layer utilities {

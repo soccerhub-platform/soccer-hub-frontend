@@ -3,6 +3,7 @@ import { useAuth } from '../../../shared/AuthContext';
 import { useAdminBranch } from '../BranchContext';
 import { CoachApi } from './coach.api';
 import toast from 'react-hot-toast';
+import { ApiError } from '../../../shared/api';
 import {
   formatPhoneInput,
   isValidFormattedPhone,
@@ -35,6 +36,8 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
 
   const [loading, setLoading] = useState(false);
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [showExtra, setShowExtra] = useState(false);
 
   const handleSubmit = async () => {
     if (!token) {
@@ -56,8 +59,10 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      toast.error('Неверный формат email');
+    setEmailError(null);
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setEmailError('Неверный формат email');
       return;
     }
 
@@ -70,10 +75,11 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
     try {
       const created = await CoachApi.create(
         {
-          ...form,
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
+          email: form.email.trim(),
           phone: normalizePhoneForSubmit(form.phone),
           branchId,
-          specialization: form.specialization.trim() || undefined,
         },
         token
       );
@@ -88,6 +94,10 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
       onCreated();
     } catch (e) {
       console.error(e);
+      if (e instanceof ApiError && (e.fields?.email || e.message.toLowerCase().includes('email'))) {
+        setEmailError(e.fields?.email ?? 'Email уже используется');
+        return;
+      }
       toast.error('Не удалось создать тренера');
     } finally {
       setLoading(false);
@@ -108,7 +118,7 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
             <Button type="button" variant="secondary" disabled={loading} onClick={onClose}>
               Отмена
             </Button>
-            <Button type="button" isLoading={loading} onClick={handleSubmit}>
+            <Button type="button" isLoading={loading} disabled={loading} onClick={handleSubmit}>
               Создать
             </Button>
           </div>
@@ -129,7 +139,11 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
             label="Email*"
             type="email"
             value={form.email}
-            onChange={(v) => setForm({ ...form, email: v })}
+            error={emailError}
+            onChange={(v) => {
+              setEmailError(null);
+              setForm({ ...form, email: v });
+            }}
           />
           <Input
             label="Телефон*"
@@ -144,6 +158,24 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
             onChange={(v) => setForm({ ...form, specialization: v })}
           />
         </div>
+        <div className="mt-4 rounded-lg border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setShowExtra((value) => !value)}
+            className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold text-slate-700"
+          >
+            Дополнительная информация
+            <span className="text-xs text-slate-400">{showExtra ? 'Свернуть' : 'Раскрыть'}</span>
+          </button>
+          {showExtra ? (
+            <div className="border-t border-slate-100 px-3 py-3 text-xs leading-5 text-slate-500">
+              Дата рождения и описание тренера пока не сохраняются admin API. Эти поля появятся здесь после расширения backend DTO.
+            </div>
+          ) : null}
+        </div>
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          После создания будет показан временный пароль. Тренеру потребуется сменить его при первом входе.
+        </p>
       </ModalShell>
       ) : null}
       {createdPassword ? (
@@ -189,14 +221,16 @@ const Input = ({
   onChange,
   type = 'text',
   placeholder,
+  error,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
   placeholder?: string;
+  error?: string | null;
 }) => (
-  <FormField label={label}>
+  <FormField label={label} error={error ?? undefined}>
     <input
       type={type}
       placeholder={placeholder}

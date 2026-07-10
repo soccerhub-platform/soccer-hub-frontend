@@ -1,4 +1,5 @@
 import type { ContractPaymentStatus, ContractStatus, PaymentMethod, PaymentStatus } from "../contracts/contracts.types";
+import type { MediaAsset } from "../../../shared/media.types";
 
 export type StudentRiskCode =
   | "DEBT"
@@ -18,8 +19,10 @@ export interface StudentRisk {
 export interface AdminStudentListItem {
   playerId: string;
   playerName: string;
+  avatar?: MediaAsset | null;
   birthDate?: string | null;
   age?: number | null;
+  createdAt?: string | null;
   clientId: string;
   parentName: string;
   phone: string;
@@ -40,11 +43,25 @@ export interface AdminStudentListItem {
 }
 
 export interface AdminStudentsPageResponse {
+  summary?: AdminStudentsSummary;
   content: AdminStudentListItem[];
   totalElements: number;
   totalPages: number;
   number: number;
   size: number;
+}
+
+export interface AdminStudentsSummary {
+  total: number;
+  paid: number;
+  partiallyPaid: number;
+  unpaid: number;
+  withDebt: number;
+  withRisks: number;
+  withoutGroup: number;
+  lowAttendance: number;
+  expiredContracts: number;
+  endingSoon: number;
 }
 
 export interface AdminStudentsQuery {
@@ -63,6 +80,7 @@ export interface AdminStudentDetails {
   player: {
     id: string;
     fullName: string;
+    avatar?: MediaAsset | null;
     birthDate?: string | null;
     age?: number | null;
   };

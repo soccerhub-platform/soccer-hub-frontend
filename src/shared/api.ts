@@ -11,10 +11,21 @@ export const getApiUrl = (path: string) => {
   return `${API_BASE_URL}${normalized}`;
 };
 
+export const resolveApiUrl = (url: string) => {
+  if (/^https?:\/\//i.test(url)) return url;
+  const normalizedBase = API_BASE_URL.replace(/\/+$/, "");
+  const normalizedUrl = url.startsWith("/") ? url : `/${url}`;
+  if (normalizedBase.endsWith("/api") && normalizedUrl.startsWith("/api/")) {
+    return `${normalizedBase}${normalizedUrl.slice(4)}`;
+  }
+  return `${normalizedBase}${normalizedUrl}`;
+};
+
 interface ApiErrorPayload {
   message?: string;
   code?: string;
   fields?: Record<string, string>;
+  metadata?: unknown;
 }
 
 interface ApiRequestInit extends RequestInit {
@@ -34,13 +45,15 @@ export class ApiError extends Error {
   status: number;
   code: string;
   fields?: Record<string, string>;
+  metadata?: unknown;
 
-  constructor(message: string, status: number, code = "N/A", fields?: Record<string, string>) {
+  constructor(message: string, status: number, code = "N/A", fields?: Record<string, string>, metadata?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.fields = fields;
+    this.metadata = metadata;
   }
 }
 
@@ -155,7 +168,7 @@ export async function apiRequest<T = unknown>(
       }
 
       if (showErrorToast && !suppressErrorToast) {
-        toast.error(getApiErrorMessage(new ApiError(message, res.status, code, payload?.fields)), {
+        toast.error(getApiErrorMessage(new ApiError(message, res.status, code, payload?.fields, payload?.metadata)), {
           style: {
             whiteSpace: "pre-line",
             background: "#fee2e2",
@@ -163,7 +176,7 @@ export async function apiRequest<T = unknown>(
           },
         });
       }
-      throw new ApiError(message, res.status, code, payload?.fields);
+      throw new ApiError(message, res.status, code, payload?.fields, payload?.metadata);
     }
 
     if (success) {
@@ -188,6 +201,12 @@ export const apiClient = {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
       body: body === undefined ? undefined : JSON.stringify(body),
+    }),
+  postForm: <T>(path: string, body: FormData, init?: ApiRequestInit) =>
+    apiRequest<T>(getApiUrl(path), {
+      ...init,
+      method: "POST",
+      body,
     }),
   put: <T>(path: string, body?: unknown, init?: ApiRequestInit) =>
     apiRequest<T>(getApiUrl(path), {

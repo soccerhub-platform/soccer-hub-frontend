@@ -1,154 +1,215 @@
-import React from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
-  CreditCardIcon,
-  HomeIcon,
-  UserGroupIcon,
-  Squares2X2Icon,
-  BuildingOffice2Icon,
   ArrowRightOnRectangleIcon,
-  UserCircleIcon,
-  DocumentTextIcon,
+  Bars3BottomLeftIcon,
   CalendarDaysIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CreditCardIcon,
+  DocumentTextIcon,
+  HomeIcon,
+  Squares2X2Icon,
+  UserIcon,
+  UserCircleIcon,
+  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../shared/AuthContext";
-import { useAdminBranch } from "./BranchContext";
-import { Button } from "../../shared/ui";
 import BrandMark from "../../shared/ui/BrandMark";
+import { useAdminBranch } from "./BranchContext";
+
+const SIDEBAR_COLLAPSED_KEY = "admin.sidebar.collapsed";
+
+type AdminNavItem = {
+  to: string;
+  label: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  end?: boolean;
+};
+
+const MAIN_NAV_ITEMS: AdminNavItem[] = [
+  { to: "/admin/dashboard", label: "Главная", icon: HomeIcon, end: true },
+  { to: "/admin/leads", label: "Лиды", icon: Squares2X2Icon },
+  { to: "/admin/coaches", label: "Тренеры", icon: UserCircleIcon },
+  { to: "/admin/groups", label: "Группы", icon: UserGroupIcon },
+  { to: "/admin/schedule", label: "Расписание", icon: CalendarDaysIcon },
+  { to: "/admin/students", label: "Ученики", icon: UserCircleIcon },
+  { to: "/admin/contracts", label: "Контракты", icon: DocumentTextIcon },
+  { to: "/admin/payments", label: "Платежи", icon: CreditCardIcon },
+];
 
 const AdminLayout: React.FC = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { branchName, canSwitchBranch } = useAdminBranch();
+  const { branchName } = useAdminBranch();
   const branchLabel = branchName === "Main Branch" ? "Главный филиал" : branchName;
-  const isDashboard = location.pathname === "/admin/dashboard" || location.pathname === "/admin";
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+    } catch {
+      // Keep the current session state even when storage is unavailable.
+    }
+  }, [collapsed]);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  const linkClasses = ({ isActive }: { isActive: boolean }) =>
-    `mx-3 flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-200 ${
+  const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
+    `group relative mx-2 flex items-center rounded-xl text-sm font-semibold transition-all duration-200 ${
+      collapsed ? "justify-center px-0 py-3" : "gap-3 px-3 py-2.5"
+    } ${
       isActive
-        ? "bg-admin-100 text-admin-800 ring-1 ring-admin-200"
-        : "text-slate-600 hover:bg-slate-100 hover:text-admin-700"
+        ? "bg-cyan-50 text-cyan-900"
+        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
     }`;
 
+  const renderNavItem = (item: AdminNavItem) => {
+    const Icon = item.icon;
+    return (
+      <NavLink
+        key={item.to}
+        to={item.to}
+        className={navLinkClasses}
+        end={item.end}
+        title={collapsed ? item.label : undefined}
+      >
+        {({ isActive }) => (
+          <>
+            <Icon
+              className={`h-5 w-5 shrink-0 ${
+                isActive ? "text-cyan-700" : "text-slate-400 group-hover:text-cyan-700"
+              }`}
+            />
+            {!collapsed ? <span className="min-w-0 truncate">{item.label}</span> : null}
+          </>
+        )}
+      </NavLink>
+    );
+  };
+
   return (
-    <div className="min-h-screen flex app-bg-admin">
-      {/* Sidebar */}
-      <aside className="flex w-64 flex-col border-r border-slate-200 bg-white/95 shadow-sm backdrop-blur">
-        <div className="p-5">
-          <div className="flex items-center gap-3">
-            <BrandMark compact />
-            <div>
-              <div className="heading-font text-admin-700 font-semibold text-lg tracking-tight">
-                Club Hub
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                Админ-панель
-              </div>
+    <div className="flex h-screen overflow-hidden app-bg-admin">
+      <aside
+        className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-slate-200 bg-white/92 shadow-sm backdrop-blur transition-[width] duration-300 ${
+          collapsed ? "w-[72px]" : "w-[260px]"
+        }`}
+      >
+        <div className={`${collapsed ? "px-3" : "px-5"} pb-4 pt-5`}>
+          <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between gap-3"}`}>
+            <div className={`flex min-w-0 items-center ${collapsed ? "justify-center" : "gap-3"}`}>
+              <BrandMark compact />
+              {!collapsed ? (
+                <div className="min-w-0">
+                  <div className="heading-font truncate text-lg font-semibold tracking-tight text-slate-950">
+                    FootballCRM
+                  </div>
+                </div>
+              ) : null}
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCollapsed((value) => !value);
+                setProfileMenuOpen(false);
+              }}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-cyan-200 hover:text-cyan-700 ${
+                collapsed ? "absolute left-[54px] top-5" : ""
+              }`}
+              aria-label={collapsed ? "Открыть меню" : "Свернуть меню"}
+              title={collapsed ? "Открыть меню" : "Свернуть меню"}
+            >
+              {collapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
+            </button>
           </div>
+
         </div>
-        <nav className="mt-2 flex-1 space-y-1">
-          <NavLink to="/admin/dashboard" className={linkClasses} end>
-            <HomeIcon className="h-5 w-5 mr-3" />
-            <span>Панель</span>
-          </NavLink>
-          <NavLink to="/admin/coaches" className={linkClasses}>
-            <UserGroupIcon className="h-5 w-5 mr-3" />
-            <span>Тренеры</span>
-          </NavLink>
-          <NavLink to="/admin/leads" className={linkClasses}>
-            <Squares2X2Icon className="h-5 w-5 mr-3" />
-            <span>Лиды</span>
-          </NavLink>
-          <NavLink to="/admin/groups" className={linkClasses}>
-            <UserGroupIcon className="h-5 w-5 mr-3" />
-            <span>Группы</span>
-          </NavLink>
-          <NavLink to="/admin/schedule" className={linkClasses}>
-            <CalendarDaysIcon className="h-5 w-5 mr-3" />
-            <span>Расписание</span>
-          </NavLink>
-          <NavLink to="/admin/students" className={linkClasses}>
-            <UserCircleIcon className="h-5 w-5 mr-3" />
-            <span>Ученики</span>
-          </NavLink>
-          <NavLink to="/admin/contracts" className={linkClasses}>
-            <DocumentTextIcon className="h-5 w-5 mr-3" />
-            <span>Контракты</span>
-          </NavLink>
-          <NavLink to="/admin/payments" className={linkClasses}>
-            <CreditCardIcon className="h-5 w-5 mr-3" />
-            <span>Платежи</span>
-          </NavLink>
+
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-1 pb-4">
+          {!collapsed ? (
+            <div className="mb-2 px-5 text-[11px] font-semibold uppercase text-slate-300">Меню</div>
+          ) : (
+            <div className="mb-2 flex justify-center text-slate-300">
+              <Bars3BottomLeftIcon className="h-4 w-4" />
+            </div>
+          )}
+          {MAIN_NAV_ITEMS.map(renderNavItem)}
         </nav>
 
-        <nav className="border-t border-slate-100 p-3">
-          <NavLink to="/admin/profile" className={linkClasses}>
-            <UserCircleIcon className="h-5 w-5 mr-3" />
-            <span>Профиль</span>
-          </NavLink>
+        <nav className="relative mt-auto border-t border-slate-100 bg-white/95 p-3">
+          {profileMenuOpen ? (
+            <div
+              className={`absolute bottom-[74px] z-30 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10 ${
+                collapsed ? "left-3 w-56" : "left-3 right-3"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  navigate("/admin/profile");
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+              >
+                <UserIcon className="h-4 w-4 text-slate-400" />
+                Профиль
+              </button>
+              <div className="mx-3 my-1 border-t border-slate-100" />
+              <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                <div className="truncate font-semibold text-slate-700">Администратор</div>
+                <div className="mt-0.5 truncate">{user?.email ?? "Пользователь"}</div>
+                <div className="mt-1 truncate text-slate-400">{branchLabel ?? "Филиал не выбран"}</div>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+              >
+                <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                Выйти
+              </button>
+            </div>
+          ) : null}
           <button
-            onClick={handleLogout}
-            className="mx-3 mt-1 flex w-[calc(100%-1.5rem)] items-center rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-rose-700"
+            type="button"
+            onClick={() => setProfileMenuOpen((value) => !value)}
+            title={collapsed ? "Профиль" : undefined}
+            className={`flex w-full items-center rounded-2xl text-left transition ${
+              collapsed ? "justify-center px-0 py-2" : "gap-3 px-1 py-2"
+            } ${profileMenuOpen ? "bg-slate-50" : "hover:bg-slate-50"}`}
+            aria-expanded={profileMenuOpen}
           >
-            <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
-            <span>Выйти</span>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-700 text-sm font-semibold text-white">
+              {(user?.email?.[0] ?? "A").toUpperCase()}
+            </div>
+            {!collapsed ? (
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-slate-800">Администратор</div>
+                <div className="truncate text-xs text-slate-500">{branchLabel ?? "Филиал не выбран"}</div>
+              </div>
+            ) : null}
+            {!collapsed ? (
+              <ChevronRightIcon
+                className={`h-4 w-4 shrink-0 text-slate-400 transition ${profileMenuOpen ? "-rotate-90" : ""}`}
+              />
+            ) : null}
           </button>
         </nav>
       </aside>
 
-      {/* Main */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {!isDashboard ? (
-          <header className="px-6 pt-5">
-            <div className="flex items-center justify-between">
-              {/* LEFT: greeting */}
-              <div className="glass-card rounded-2xl px-4 py-2.5">
-                <div className="heading-font text-admin-700 font-semibold">
-                  Здравствуйте{user?.email ? `, ${user.email}` : ""}
-                </div>
-                <div className="text-xs text-slate-500">
-                  Панель администратора
-                </div>
-              </div>
-
-              {/* RIGHT: branch + actions */}
-              <div className="flex items-center gap-3">
-                {/* Branch badge */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-200 text-sm text-admin-700 shadow-sm">
-                  <BuildingOffice2Icon className="h-4 w-4 text-admin-500" />
-                  <span className="font-medium">
-                    {branchLabel ?? "Филиал не выбран"}
-                  </span>
-                </div>
-
-                {/* Switch branch */}
-                {canSwitchBranch && (
-                  <button
-                    onClick={() => navigate("/admin/branch-select")}
-                    className="text-sm px-3 py-2 border border-slate-200 rounded-xl hover:bg-white shadow-sm"
-                  >
-                    Сменить
-                  </button>
-                )}
-
-                {/* Logout */}
-                <Button variant="secondary" size="sm" onClick={() => navigate("/admin/profile")}>
-                  <UserCircleIcon className="h-4 w-4" />
-                  Профиль
-                </Button>
-              </div>
-            </div>
-          </header>
-        ) : null}
-
-        <main className="min-w-0 flex-1 overflow-y-auto p-6">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <main className="min-w-0 flex-1 overflow-y-auto p-5 text-[0.95rem]">
           <Outlet />
         </main>
       </div>
