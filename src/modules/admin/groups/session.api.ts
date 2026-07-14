@@ -18,6 +18,11 @@ export interface AdminSessionCoach {
 export interface AdminSessionAttendanceSummary {
   total: number;
   marked: number;
+  present?: number;
+  absent?: number;
+  excused?: number;
+  late?: number;
+  unmarked?: number;
   presentLike: number;
 }
 
@@ -85,6 +90,78 @@ export interface AdminSubstituteCoachInput {
   reason?: string;
 }
 
+export type AdminAttendanceStatus = "PRESENT" | "ABSENT" | "EXCUSED" | "LATE" | "UNMARKED";
+export type AdminPersistedAttendanceStatus = Exclude<AdminAttendanceStatus, "UNMARKED">;
+
+export interface AdminSessionAttendanceParticipant {
+  playerId: string;
+  fullName: string;
+  status: AdminPersistedAttendanceStatus | null;
+  comment: string | null;
+}
+
+export interface AdminSessionAttendanceOutput {
+  sessionId: string;
+  group: {
+    id: string;
+    name: string;
+  };
+  sessionDate: string;
+  startsAt: string;
+  endsAt: string;
+  status: AdminSessionStatus;
+  effectiveStatus: AdminSessionEffectiveStatus;
+  summary: Required<AdminSessionAttendanceSummary>;
+  participants: AdminSessionAttendanceParticipant[];
+  capabilities: {
+    canEdit: boolean;
+  };
+}
+
+export interface AdminSessionAttendanceUpdateInput {
+  entries: Array<{
+    playerId: string;
+    status: AdminPersistedAttendanceStatus;
+    comment?: string | null;
+  }>;
+}
+
+export interface AdminGroupAttendanceSummary {
+  sessionsCount: number;
+  recordedSessionsCount: number;
+  totalParticipants: number;
+  totalMarked: number;
+  totalPresent: number;
+  totalAbsent: number;
+  totalExcused: number;
+  totalLate: number;
+  totalUnmarked: number;
+  totalPresentLike: number;
+  averageAttendanceRate: number;
+}
+
+export interface AdminGroupAttendanceSession {
+  sessionId: string;
+  sessionDate: string;
+  startsAt: string;
+  endsAt: string;
+  status: AdminSessionStatus;
+  effectiveStatus: AdminSessionEffectiveStatus;
+  summary: Required<AdminSessionAttendanceSummary>;
+  capabilities: {
+    canOpenAttendance: boolean;
+    canEditAttendance: boolean;
+  };
+}
+
+export interface AdminGroupAttendanceOutput {
+  groupId: string;
+  from: string;
+  to: string;
+  summary: AdminGroupAttendanceSummary;
+  sessions: AdminGroupAttendanceSession[];
+}
+
 export const AdminSessionApi = {
   listByGroup(groupId: string, params: AdminGroupSessionsParams, _token: string): Promise<AdminGroupSessionsOutput> {
     const qs = new URLSearchParams({
@@ -110,5 +187,21 @@ export const AdminSessionApi = {
 
   substituteCoach(sessionId: string, payload: AdminSubstituteCoachInput, _token: string): Promise<AdminSessionDetailsOutput> {
     return apiClient.post<AdminSessionDetailsOutput>(`/admin/sessions/${sessionId}/substitute-coach`, payload);
+  },
+
+  getAttendance(sessionId: string, _token: string): Promise<AdminSessionAttendanceOutput> {
+    return apiClient.get<AdminSessionAttendanceOutput>(`/admin/sessions/${sessionId}/attendance`);
+  },
+
+  updateAttendance(sessionId: string, payload: AdminSessionAttendanceUpdateInput, _token: string): Promise<AdminSessionAttendanceOutput> {
+    return apiClient.put<AdminSessionAttendanceOutput>(`/admin/sessions/${sessionId}/attendance`, payload);
+  },
+
+  getGroupAttendance(groupId: string, params: { from: string; to: string }, _token: string): Promise<AdminGroupAttendanceOutput> {
+    const qs = new URLSearchParams({
+      from: params.from,
+      to: params.to,
+    });
+    return apiClient.get<AdminGroupAttendanceOutput>(`/admin/groups/${groupId}/attendance?${qs}`);
   },
 };

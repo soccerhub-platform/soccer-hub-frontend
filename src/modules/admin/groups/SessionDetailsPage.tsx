@@ -114,6 +114,7 @@ const SessionDetailsPage: React.FC = () => {
   }, [sessionId, token]);
 
   const branchId = groupDetails?.branchId ?? groupDetails?.branch?.id ?? groupDetails?.branch?.branchId ?? selectedBranchId ?? null;
+  const detailsGroupId = groupId ?? session?.group.id;
   const backTo = groupId ? `/admin/groups/${groupId}/schedule` : "/admin/groups";
 
   if (!token) return <ErrorState message="Нет авторизации" />;
@@ -250,7 +251,11 @@ const SessionDetailsPage: React.FC = () => {
           <SectionCard title="Действия" description="Операции применяются только к этому занятию.">
             <div className="space-y-2">
               {session.capabilities.canOpenAttendance ? (
-                <Button type="button" className="w-full justify-center">
+                <Button
+                  type="button"
+                  className="w-full justify-center"
+                  onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/sessions/${session.id}/attendance`)}
+                >
                   Открыть журнал посещаемости
                 </Button>
               ) : null}

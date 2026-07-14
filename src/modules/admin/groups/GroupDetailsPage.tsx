@@ -21,6 +21,7 @@ import {
 } from "./group.api";
 import GroupCoachesTab from "./components/GroupCoachesTab";
 import GroupMembersTab from "./components/GroupMembersTab";
+import GroupAttendanceTab from "./components/GroupAttendanceTab";
 import GroupScheduleTab from "./schedule/GroupScheduleTab";
 import toast from "react-hot-toast";
 import {
@@ -571,20 +572,8 @@ const GroupDetailsPage: React.FC = () => {
       ) : null}
 
       {activeSection === "attendance" ? (
-        <SectionCard
-          title="Посещаемость"
-          description="Раздел подготовлен под admin attendance API."
-        >
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
-            <div className="text-sm font-semibold text-slate-900">Журнал посещаемости появится здесь</div>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
-              Для полноценной работы нужен admin API по занятиям и посещаемости. Пока перейти к расписанию можно через соседнюю вкладку.
-            </p>
-            <Button type="button" variant="secondary" className="mt-4" onClick={() => openSection("schedule")}>
-              <CalendarDaysIcon className="h-4 w-4" />
-              Открыть расписание
-            </Button>
-          </div>
+        <SectionCard title="Посещаемость" description="Сводка по занятиям группы и заполненности журналов.">
+          <GroupAttendanceTab groupId={detailsGroupId} />
         </SectionCard>
       ) : null}
 

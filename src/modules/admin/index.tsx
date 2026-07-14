@@ -12,6 +12,7 @@ import ChangePasswordPage from '../../shared/components/ChangePassword';
 import GroupsPage from './groups/GroupsPage';
 import GroupDetailsPage from './groups/GroupDetailsPage';
 import SessionDetailsPage from './groups/SessionDetailsPage';
+import SessionAttendancePage from './groups/SessionAttendancePage';
 import { AdminBranchProvider } from './BranchContext';
 import BranchSelectPage from './branches/BranchSelectPage';
 import BranchGuard from './branches/BranchGuard';
@@ -53,6 +54,7 @@ const AdminRoutes: React.FC = () => {
               <Route path="leads" element={<LeadKanbanPage />} />
               <Route path="groups" element={<GroupsPage />} />
               <Route path="groups/:groupId" element={<Navigate to="overview" replace />} />
+              <Route path="groups/:groupId/sessions/:sessionId/attendance" element={<SessionAttendancePage />} />
               <Route path="groups/:groupId/sessions/:sessionId" element={<SessionDetailsPage />} />
               <Route path="groups/:groupId/:section" element={<GroupDetailsPage />} />
               <Route path="profile" element={<AdminProfilePage />} />
