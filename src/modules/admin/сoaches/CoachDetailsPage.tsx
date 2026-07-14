@@ -320,7 +320,7 @@ const CoachDetailsPage: React.FC = () => {
             activity={activity}
             activityLoading={activityLoading}
             onActivityPageChange={setActivityPage}
-            onOpenGroup={(groupId) => navigate(`/admin/groups/${groupId}`)}
+            onOpenGroup={(groupId) => navigate(`/admin/groups/${groupId}/overview`)}
             onUnassignGroup={unassignFromGroup}
             onAssignGroup={() => setShowAssignGroup(true)}
             onEditAvailability={() => setShowAvailability(true)}

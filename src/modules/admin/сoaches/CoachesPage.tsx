@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   BriefcaseIcon,
   CalendarDaysIcon,
@@ -841,64 +842,66 @@ const CoachFiltersDrawer: React.FC<{
   onClose: () => void;
   onReset: () => void;
   onApply: () => void;
-}> = ({ draftFilters, activeCount, onChange, onClose, onReset, onApply }) => (
-  <div className="fixed inset-0 z-50">
-    <button type="button" aria-label="Закрыть фильтры" className="absolute inset-0 bg-slate-950/30" onClick={onClose} />
-    <aside
-      role="dialog"
-      aria-modal="true"
-      aria-label="Фильтры тренеров"
-      className="absolute inset-x-0 bottom-0 flex max-h-[92vh] flex-col rounded-t-2xl bg-white shadow-2xl shadow-slate-950/20 lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:w-[min(400px,100vw)] lg:rounded-none"
-    >
-      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
-        <div>
-          <div className="text-lg font-semibold text-slate-950">Фильтры</div>
-          <div className="mt-0.5 text-xs text-slate-500">Активных: {activeCount}</div>
+}> = ({ draftFilters, activeCount, onChange, onClose, onReset, onApply }) =>
+  createPortal(
+    <div className="fixed inset-0 z-50">
+      <button type="button" aria-label="Закрыть фильтры" className="fixed inset-0 bg-slate-950/30" onClick={onClose} />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Фильтры тренеров"
+        className="fixed inset-x-0 bottom-0 flex max-h-[92vh] min-h-0 flex-col rounded-t-2xl bg-white shadow-2xl shadow-slate-950/20 lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:w-[min(400px,100vw)] lg:rounded-none"
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
+          <div>
+            <div className="text-lg font-semibold text-slate-950">Фильтры</div>
+            <div className="mt-0.5 text-xs text-slate-500">Активных: {activeCount}</div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Закрыть" className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600">
+            <XMarkIcon className="h-5 w-5" />
+          </button>
         </div>
-        <button type="button" onClick={onClose} aria-label="Закрыть" className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600">
-          <XMarkIcon className="h-5 w-5" />
-        </button>
-      </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
-        <DrawerSection title="Рабочий статус">
-          <FilterCheckGroup options={workStatusOptions} values={draftFilters.workStatuses} onChange={(values) => onChange((current) => ({ ...current, workStatuses: values as WorkStatus[] }))} />
-        </DrawerSection>
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pb-6 pt-3">
+          <DrawerSection title="Рабочий статус">
+            <FilterCheckGroup options={workStatusOptions} values={draftFilters.workStatuses} onChange={(values) => onChange((current) => ({ ...current, workStatuses: values as WorkStatus[] }))} />
+          </DrawerSection>
 
-        <DrawerSection title="Группы">
-          <FilterSelect
-            value={draftFilters.groupFilter}
-            options={groupFilterOptions}
-            emptyLabel="Любое количество"
-            onChange={(value) => onChange((current) => ({ ...current, groupFilter: value as AdvancedFilters["groupFilter"] }))}
-          />
-        </DrawerSection>
+          <DrawerSection title="Группы">
+            <FilterSelect
+              value={draftFilters.groupFilter}
+              options={groupFilterOptions}
+              emptyLabel="Любое количество"
+              onChange={(value) => onChange((current) => ({ ...current, groupFilter: value as AdvancedFilters["groupFilter"] }))}
+            />
+          </DrawerSection>
 
-        <DrawerSection title="Нагрузка">
-          <FilterRadioGroup
-            options={workloadStatusOptions}
-            value={draftFilters.workloadStatus}
-            emptyLabel="Любая"
-            onChange={(value) => onChange((current) => ({ ...current, workloadStatus: value as AdvancedFilters["workloadStatus"] }))}
-          />
-        </DrawerSection>
+          <DrawerSection title="Нагрузка">
+            <FilterRadioGroup
+              options={workloadStatusOptions}
+              value={draftFilters.workloadStatus}
+              emptyLabel="Любая"
+              onChange={(value) => onChange((current) => ({ ...current, workloadStatus: value as AdvancedFilters["workloadStatus"] }))}
+            />
+          </DrawerSection>
 
-        <DrawerSection title="Отчетность">
-          <FilterCheckGroup options={reportStatusOptions} values={draftFilters.reportStatus ? [draftFilters.reportStatus] : []} onChange={(values) => onChange((current) => ({ ...current, reportStatus: (values.at(-1) ?? "") as AdvancedFilters["reportStatus"] }))} />
-        </DrawerSection>
+          <DrawerSection title="Отчетность">
+            <FilterCheckGroup options={reportStatusOptions} values={draftFilters.reportStatus ? [draftFilters.reportStatus] : []} onChange={(values) => onChange((current) => ({ ...current, reportStatus: (values.at(-1) ?? "") as AdvancedFilters["reportStatus"] }))} />
+          </DrawerSection>
 
-        <DrawerSection title="Занятия">
-          <FilterCheckGroup options={[["true", "Ведет сегодня"]]} values={draftFilters.hasSessionToday ? [draftFilters.hasSessionToday] : []} onChange={(values) => onChange((current) => ({ ...current, hasSessionToday: values.includes("true") ? "true" : "" }))} />
-        </DrawerSection>
-      </div>
+          <DrawerSection title="Занятия">
+            <FilterCheckGroup options={[["true", "Ведет сегодня"]]} values={draftFilters.hasSessionToday ? [draftFilters.hasSessionToday] : []} onChange={(values) => onChange((current) => ({ ...current, hasSessionToday: values.includes("true") ? "true" : "" }))} />
+          </DrawerSection>
+        </div>
 
-      <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-5 py-4">
-        <button type="button" onClick={onReset} className="text-sm font-semibold text-slate-500 transition hover:text-slate-900">Сбросить</button>
-        <Button type="button" size="sm" onClick={onApply}>Применить</Button>
-      </div>
-    </aside>
-  </div>
-);
+        <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
+          <button type="button" onClick={onReset} className="text-sm font-semibold text-slate-500 transition hover:text-slate-900">Сбросить</button>
+          <Button type="button" size="sm" onClick={onApply}>Применить</Button>
+        </div>
+      </aside>
+    </div>,
+    document.body,
+  );
 
 const DrawerSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section className="border-b border-slate-100 pb-5 last:border-b-0">

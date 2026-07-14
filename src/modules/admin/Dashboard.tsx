@@ -52,6 +52,28 @@ const formatDelta = (value: number | null | undefined) => {
   return value > 0 ? `+ ${formatNumber(value)}` : formatNumber(value);
 };
 
+const scheduleMinutes = (value: string) => {
+  const match = value.match(/T(\d{2}):(\d{2})/);
+  if (match) return Number(match[1]) * 60 + Number(match[2]);
+
+  const date = new Date(value);
+  return date.getHours() * 60 + date.getMinutes();
+};
+
+const formatScheduleTime = (value: string) => {
+  const minutes = scheduleMinutes(value);
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+};
+
+const formatScheduleRange = (startAt: string, endAt: string) => `${formatScheduleTime(startAt)}-${formatScheduleTime(endAt)}`;
+
+const scheduleStatusLabel = (status: string) => {
+  if (status === "PLANNED") return "Запланирована";
+  if (status === "COMPLETED") return "Проведена";
+  if (status === "CANCELLED") return "Отменена";
+  return status;
+};
+
 const normalizeTone = (tone: string | undefined): DashboardTone => {
   if (tone === "danger" || tone === "warning" || tone === "success" || tone === "info") return tone;
   return "info";
@@ -104,6 +126,13 @@ const dotClasses = {
 const getRiskTone = (tone: DashboardRiskItem["tone"]) => {
   if (tone === "danger" || tone === "warning" || tone === "success") return tone;
   return "info";
+};
+
+const weeklySummaryLabel = (code: string, fallback: string) => {
+  if (code === "leads") return "Лиды";
+  if (code === "trainings") return "Тренировки";
+  if (code === "payments") return "Оплаты";
+  return fallback;
 };
 
 const Dashboard: React.FC = () => {
@@ -518,32 +547,72 @@ const SchedulePreview = ({
     );
   }
 
-  const cards = visible.map((session) => ({
-    group: session.groupName,
-    type: session.scheduleType === "TEMPORARY" ? "Временное занятие" : "Регулярное занятие",
-    coach: session.coachName,
-  }));
+  const timelineStart = Math.min(9 * 60, ...visible.map((session) => Math.floor(scheduleMinutes(session.startAt) / 60) * 60));
+  const timelineEnd = Math.max(17 * 60, ...visible.map((session) => Math.ceil(scheduleMinutes(session.endAt) / 60) * 60));
+  const minutesPerPixel = 60 / 44;
+  const timelineHeight = (timelineEnd - timelineStart) / minutesPerPixel;
+  const labels = Array.from(
+    { length: Math.floor((timelineEnd - timelineStart) / 120) + 1 },
+    (_, index) => timelineStart + index * 120,
+  );
 
   return (
     <div>
       <div className="grid grid-cols-[44px_1fr] gap-3">
-        <div className="space-y-[34px] pt-2 text-xs text-slate-500">
-          <div>09:00</div>
-          <div>11:00</div>
-          <div>13:00</div>
-          <div>15:00</div>
-        </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((card) => (
-            <div key={`${card.group}-${card.coach}`} className="min-h-[178px] rounded-xl border border-cyan-100 bg-gradient-to-b from-cyan-50/70 to-white p-3">
-              <div className="text-sm font-semibold text-admin-800">{card.group}</div>
-              <div className="mt-2 text-xs text-slate-500">{card.type}</div>
-              <div className="mt-5 flex items-center gap-2 text-xs font-medium text-slate-700">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-[10px] text-amber-800">ТР</span>
-                {card.coach}
-              </div>
+        <div className="relative text-xs text-slate-500" style={{ height: timelineHeight }}>
+          {labels.map((minutes) => (
+            <div
+              key={minutes}
+              className="absolute -translate-y-1/2"
+              style={{ top: (minutes - timelineStart) / minutesPerPixel }}
+            >
+              {String(Math.floor(minutes / 60)).padStart(2, "0")}:00
             </div>
           ))}
+        </div>
+        <div className="overflow-x-auto">
+          <div
+            className="relative grid gap-2 border-y border-slate-100"
+            style={{
+              height: timelineHeight,
+              gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))`,
+              minWidth: visible.length > 1 ? visible.length * 160 : undefined,
+            }}
+          >
+            {labels.map((minutes) => (
+              <div
+                key={minutes}
+                className="pointer-events-none absolute inset-x-0 border-t border-dashed border-slate-100"
+                style={{ top: (minutes - timelineStart) / minutesPerPixel }}
+              />
+            ))}
+            {visible.map((session) => {
+              const start = scheduleMinutes(session.startAt);
+              const end = scheduleMinutes(session.endAt);
+              const top = Math.max(0, (start - timelineStart) / minutesPerPixel);
+              const height = Math.max(76, (Math.max(end, start + 30) - start) / minutesPerPixel);
+
+              return (
+                <div key={session.sessionId} className="relative min-w-0">
+                  <div
+                    className="absolute inset-x-0 overflow-hidden rounded-lg border border-cyan-100 bg-cyan-50/90 p-3 shadow-[0_12px_24px_-22px_rgba(8,145,178,0.75)] before:absolute before:inset-y-3 before:left-0 before:w-1 before:rounded-r-full before:bg-cyan-600"
+                    style={{ top, height }}
+                  >
+                    <div className="relative min-w-0 pl-2">
+                      <div className="text-xs font-semibold text-cyan-800">{formatScheduleRange(session.startAt, session.endAt)}</div>
+                      <div className="mt-1 truncate text-[15px] font-semibold leading-5 text-admin-900">{session.groupName}</div>
+                      <div className="mt-1 truncate text-xs text-slate-600">
+                        {session.coachName} · {session.scheduleType === "TEMPORARY" ? "Временная тренировка" : "Регулярная тренировка"}
+                      </div>
+                      <div className="mt-2 inline-flex rounded-full border border-cyan-100 bg-white/70 px-2 py-0.5 text-[11px] font-medium text-cyan-800">
+                        {scheduleStatusLabel(session.status)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
       <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
@@ -557,7 +626,7 @@ const SchedulePreview = ({
 const RiskRow = ({ risk, onClick }: { risk: DashboardRiskItem; onClick: () => void }) => {
   const tone = getRiskTone(risk.tone);
   return (
-    <div className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50">
+    <button type="button" onClick={onClick} className="group flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-slate-50">
       <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${dotClasses[tone]}`}>
         <ExclamationCircleIcon className="h-3.5 w-3.5 text-white" />
       </span>
@@ -565,14 +634,8 @@ const RiskRow = ({ risk, onClick }: { risk: DashboardRiskItem; onClick: () => vo
         <div className="truncate text-sm font-medium text-slate-800">{risk.label}</div>
         <div className="mt-0.5 truncate text-xs text-slate-500">{risk.description || `Значение: ${formatNumber(risk.value)} ${risk.unit}`}</div>
       </div>
-      <button
-        type="button"
-        onClick={onClick}
-        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white"
-      >
-        Подробнее
-      </button>
-    </div>
+      <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
+    </button>
   );
 };
 
@@ -602,9 +665,28 @@ const WeeklySparkline = ({ dynamics }: { dynamics: DashboardWeeklyDynamics | nul
   const allValues = series.flatMap((item) => item.points.map((point) => Number(point.value ?? 0)));
   const max = Math.max(...allValues, 1);
   const labels = series[0]?.points.map((point) => point.date.slice(5).replace("-", ".")) ?? [];
+  const summaryItems = series.map((item) => {
+    const total = item.points.reduce((sum, point) => sum + Number(point.value ?? 0), 0);
+    return {
+      code: item.code,
+      label: weeklySummaryLabel(item.code, item.label),
+      value: item.unit === "amount" ? formatCurrency(total) : formatNumber(total),
+    };
+  });
 
   return (
     <div>
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        {summaryItems.map((item) => (
+          <div key={item.code} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: seriesColor(item.code) }} />
+              {item.label}
+            </div>
+            <div className="mt-1 truncate text-sm font-semibold text-slate-950">{item.value}</div>
+          </div>
+        ))}
+      </div>
       <div className="mb-3 flex flex-wrap gap-5 text-xs text-slate-500">
         {series.map((item) => (
           <span key={item.code} className="inline-flex items-center gap-2">

@@ -26,6 +26,16 @@ export interface GroupCreatePayload {
   level: string;
 }
 
+export interface GroupUpdatePayload {
+  name: string;
+  description?: string;
+  audienceType: "CHILDREN" | "ADULT";
+  ageFrom?: number;
+  ageTo?: number;
+  capacity: number;
+  level: string;
+}
+
 export interface GroupCoachApiModel {
   groupCoachId: string;
   coachId: string;
@@ -59,6 +69,58 @@ export interface GroupSummaryModel {
   studentsCount: number;
   capacity: number;
   scheduleActive: boolean;
+}
+
+export interface AdminGroupDetailsSummary {
+  studentsCount: number;
+  coachesCount: number;
+  sessionsPerWeek?: number;
+  sessionPerWeek?: number;
+  occupancyPercent?: number;
+  averageAttendancePercent?: number | null;
+  capacity?: number;
+  scheduleActive?: boolean;
+}
+
+export interface AdminGroupNextSession {
+  id?: string;
+  sessionId?: string;
+  startsAt?: string;
+  endsAt?: string;
+  startAt?: string;
+  endAt?: string;
+}
+
+export interface AdminGroupCapabilities {
+  canEdit?: boolean;
+  canPause?: boolean;
+  canResume?: boolean;
+  canStop?: boolean;
+  canArchive?: boolean;
+  canAddStudent?: boolean;
+}
+
+export interface AdminGroupDetailsModel {
+  id?: string;
+  groupId?: string;
+  name: string;
+  description?: string | null;
+  status: "ACTIVE" | "PAUSED" | "STOPPED";
+  audienceType?: "CHILDREN" | "ADULT";
+  ageFrom?: number | null;
+  ageTo?: number | null;
+  level: string;
+  capacity: number;
+  branchId?: string | null;
+  branch?: {
+    id?: string;
+    branchId?: string;
+    name?: string;
+  } | null;
+  summary?: AdminGroupDetailsSummary | null;
+  health?: GroupHealthResponse | null;
+  nextSession?: AdminGroupNextSession | string | null;
+  capabilities?: AdminGroupCapabilities | null;
 }
 
 export type GroupHealth =
@@ -161,6 +223,10 @@ export const GroupApi = {
     return apiClient.get<GroupApiModel>(`/organization/groups/${groupId}`);
   },
 
+  getDetails(groupId: string, _token: string): Promise<AdminGroupDetailsModel> {
+    return apiClient.get<AdminGroupDetailsModel>(`/admin/groups/${groupId}`);
+  },
+
   getHealth(groupId: string, _token: string): Promise<GroupHealthResponse> {
     return apiClient.get<GroupHealthResponse>(`/admin/groups/${groupId}/health`);
   },
@@ -189,6 +255,10 @@ export const GroupApi = {
     _token: string
   ): Promise<void> {
     return apiClient.patch<void>(`/admin/groups/${groupId}/status`, { status });
+  },
+
+  update(groupId: string, payload: GroupUpdatePayload, _token: string): Promise<AdminGroupDetailsModel> {
+    return apiClient.patch<AdminGroupDetailsModel>(`/admin/groups/${groupId}`, payload);
   },
 
   // ✅ GET /admin/groups/{groupId}/coaches

@@ -667,7 +667,7 @@ const StudentsPage: React.FC = () => {
                     ? navigate(`/admin/contracts?contractId=${encodeURIComponent(student.contractId)}&mode=view`)
                     : undefined
                 }
-                onOpenGroup={() => (student.groupId ? navigate(`/admin/groups/${student.groupId}`) : undefined)}
+                onOpenGroup={() => (student.groupId ? navigate(`/admin/groups/${student.groupId}/overview`) : undefined)}
               />
             ))}
           </div>
@@ -721,7 +721,7 @@ const StudentsPage: React.FC = () => {
           onAddPayment={(contractId) =>
             navigate(`/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view&payment=create`)
           }
-          onOpenGroup={(groupId) => navigate(`/admin/groups/${groupId}`)}
+          onOpenGroup={(groupId) => navigate(`/admin/groups/${groupId}/overview`)}
           onUploadAvatar={uploadStudentAvatar}
           onDeleteAvatar={deleteStudentAvatar}
           onDownloadAvatar={downloadStudentAvatar}

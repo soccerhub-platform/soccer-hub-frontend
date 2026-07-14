@@ -71,7 +71,6 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
 
   useEffect(() => {
     if (!branchId) return;
-    if (searchParams.get("tab") !== "coaches") return;
     if (searchParams.get("action") !== "assign-main") return;
     setShowAssign(true);
   }, [branchId, searchParams]);

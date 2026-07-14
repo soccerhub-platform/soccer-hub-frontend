@@ -34,13 +34,18 @@ const GroupsTable: React.FC<Props> = ({ groups }) => {
         return (
           <section
             key={group.groupId}
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(`/admin/groups/${group.groupId}/overview`)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                navigate(`/admin/groups/${group.groupId}/overview`);
+              }
+            }}
             className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-md"
           >
-            <button
-              type="button"
-              onClick={() => navigate(`/admin/groups/${group.groupId}`)}
-              className="w-full text-left"
-            >
+            <div className="w-full text-left">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 gap-3">
                   <div
@@ -75,16 +80,28 @@ const GroupsTable: React.FC<Props> = ({ groups }) => {
                   icon={<UsersIcon className="h-4 w-4" />}
                   label="Состав"
                   value={`${group.studentsCount}/${group.capacity}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate(`/admin/groups/${group.groupId}/students`);
+                  }}
                 />
                 <MiniStat
                   icon={<UserGroupIcon className="h-4 w-4" />}
                   label="Тренеры"
                   value={String(group.coachesCount)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate(`/admin/groups/${group.groupId}/coaches`);
+                  }}
                 />
                 <MiniStat
                   icon={<CalendarDaysIcon className="h-4 w-4" />}
                   label="Следующее"
                   value={formatNextSession(group.nextSessionAt)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate(`/admin/groups/${group.groupId}/schedule`);
+                  }}
                 />
               </div>
 
@@ -105,7 +122,7 @@ const GroupsTable: React.FC<Props> = ({ groups }) => {
                 <HealthBadge health={group.health} />
                 <span className="text-xs font-medium text-cyan-800">Открыть группу</span>
               </div>
-            </button>
+            </div>
           </section>
         );
       })}
@@ -113,14 +130,23 @@ const GroupsTable: React.FC<Props> = ({ groups }) => {
   );
 };
 
-const MiniStat: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
-  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+const MiniStat: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+}> = ({ icon, label, value, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-cyan-200 hover:bg-cyan-50"
+  >
     <div className="flex items-center gap-1.5 text-xs text-slate-500">
       {icon}
       {label}
     </div>
     <div className="mt-1 truncate text-sm font-semibold text-slate-950">{value}</div>
-  </div>
+  </button>
 );
 
 function formatAudience(group: GroupOverviewItem) {

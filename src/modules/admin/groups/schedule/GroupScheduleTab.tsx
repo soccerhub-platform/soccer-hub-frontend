@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../shared/AuthContext";
 import { ScheduleApi } from "./schedule.api";
 import { groupSchedulesToBatches } from "./schedule.batch";
@@ -29,6 +30,7 @@ import {
   PlusIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
+import { AdminSessionApi, AdminSessionListItem, AdminSessionEffectiveStatus } from "../session.api";
 
 const weekDays = [
   { key: "MONDAY", label: "Пн" },
@@ -42,11 +44,58 @@ const weekDays = [
 
 const toTime = (value: string) => value.slice(0, 5);
 
+const toDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getMonthRange = () => {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1);
+  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return { from: toDateInput(from), to: toDateInput(to) };
+};
+
+const sessionStatusLabels: Record<AdminSessionEffectiveStatus, string> = {
+  PLANNED: "Запланировано",
+  IN_PROGRESS: "Идет",
+  COMPLETED: "Завершено",
+  CANCELLED: "Отменено",
+  OVERDUE: "Просрочено",
+};
+
+const sessionStatusClasses: Record<AdminSessionEffectiveStatus, string> = {
+  PLANNED: "border-cyan-100 bg-cyan-50 text-cyan-800",
+  IN_PROGRESS: "border-emerald-100 bg-emerald-50 text-emerald-700",
+  COMPLETED: "border-slate-200 bg-slate-50 text-slate-600",
+  CANCELLED: "border-rose-100 bg-rose-50 text-rose-700",
+  OVERDUE: "border-amber-100 bg-amber-50 text-amber-800",
+};
+
+const formatSessionDate = (value: string) => {
+  const [datePart] = value.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const date = year && month && day ? new Date(year, month - 1, day) : new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "short",
+  }).format(date);
+};
+
+const formatSessionTime = (value: string) => {
+  return value.split("T")[1]?.slice(0, 5) ?? value.slice(11, 16);
+};
+
 const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   const { user } = useAuth();
   const token = user?.accessToken;
+  const navigate = useNavigate();
 
   const [schedules, setSchedules] = useState<GroupScheduleDto[]>([]);
+  const [sessions, setSessions] = useState<AdminSessionListItem[]>([]);
   const [coaches, setCoaches] = useState<GroupCoachApiModel[]>([]);
   const [risks, setRisks] = useState<GroupScheduleRisksResponse | null>(null);
   const [editingBatch, setEditingBatch] = useState<ScheduleBatch | null>(null);
@@ -78,10 +127,17 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
       ]);
       setSchedules(data);
       setRisks(risksData);
+      const range = getMonthRange();
+      const sessionsData = await AdminSessionApi.listByGroup(groupId, range, token).catch((sessionError) => {
+        console.error("Failed to load materialized group sessions", sessionError);
+        return null;
+      });
+      setSessions(sessionsData?.items ?? []);
     } catch (e) {
       console.error("Failed to load group schedule", e);
       setError("Не удалось загрузить расписание группы");
       setSchedules([]);
+      setSessions([]);
       setRisks(null);
     } finally {
       setLoading(false);
@@ -111,6 +167,10 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
     coachName: coachMap[b.coachId],
   }));
   const activeSchedules = schedules.filter((schedule) => schedule.status !== "CANCELLED");
+  const upcomingSessions = sessions
+    .slice()
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+    .slice(0, 8);
   const weeklyScheduleByDay = weekDays.map((day) => ({
     ...day,
     items: activeSchedules
@@ -231,6 +291,68 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
           </div>
         </div>
       ) : null}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-slate-950">Конкретные занятия</div>
+            <div className="mt-1 text-xs text-slate-500">
+              Материализованные занятия текущего месяца. Клик открывает деталку занятия.
+            </div>
+          </div>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+            {sessions.length} занятий
+          </span>
+        </div>
+
+        {loading ? (
+          <LoadingState label="Загрузка занятий..." />
+        ) : upcomingSessions.length === 0 ? (
+          <EmptyState
+            title="Занятий на месяц нет"
+            description="После материализации расписания конкретные тренировки появятся здесь."
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {upcomingSessions.map((session) => {
+              const effectiveStatus = session.effectiveStatus ?? session.status;
+              const mainCoach = session.coaches[0];
+
+              return (
+                <button
+                  key={session.id}
+                  type="button"
+                  onClick={() => navigate(`/admin/groups/${groupId}/sessions/${session.id}`)}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-white hover:shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-950">
+                          {formatSessionDate(session.startsAt)} · {formatSessionTime(session.startsAt)}-{formatSessionTime(session.endsAt)}
+                        </span>
+                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${sessionStatusClasses[effectiveStatus]}`}>
+                          {sessionStatusLabels[effectiveStatus]}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <span>{session.location?.name ?? "Локация не указана"}</span>
+                        <span>{mainCoach?.fullName ?? "Тренер не указан"}</span>
+                      </div>
+                    </div>
+                    <CalendarDaysIcon className="h-5 w-5 shrink-0 text-cyan-800" />
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                    <SessionMiniStat label="Всего" value={session.attendance.total} />
+                    <SessionMiniStat label="Отмечено" value={session.attendance.marked} />
+                    <SessionMiniStat label="Зачтено" value={session.attendance.presentLike} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -390,5 +512,12 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
     </div>
   );
 };
+
+const SessionMiniStat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
+  <div className="rounded-xl border border-slate-200 bg-white px-2.5 py-2">
+    <div className="font-semibold text-slate-950">{value}</div>
+    <div className="mt-0.5 text-slate-500">{label}</div>
+  </div>
+);
 
 export default GroupScheduleTab;
