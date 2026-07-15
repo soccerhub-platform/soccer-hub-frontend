@@ -175,13 +175,20 @@ export interface GroupHealthResponse {
 }
 
 export interface GroupMemberItem {
+  membershipId?: string | null;
   clientId: string;
   playerId: string;
   childName: string;
   birthDate: string;
   attendanceRate: number;
+  membershipStatus?: "UPCOMING" | "ACTIVE" | "TRANSFERRED" | "COMPLETED" | "REMOVED" | string;
   contractStatus: "ACTIVE" | "UPCOMING" | "EXPIRED" | string;
   joinedAt: string;
+  leftAt?: string | null;
+  capabilities?: {
+    canTransfer?: boolean;
+    canRemove?: boolean;
+  } | null;
 }
 
 export interface GroupMembersResponse {
@@ -189,6 +196,95 @@ export interface GroupMembersResponse {
   totalElements: number;
   totalPages: number;
   number: number;
+  size: number;
+}
+
+export type GroupMembershipReason =
+  | "NEW_ENROLLMENT"
+  | "TRANSFER"
+  | "SCHEDULE_CHANGE"
+  | "PARENT_REQUEST"
+  | "MOVED_TO_ANOTHER_CITY"
+  | "MEDICAL"
+  | "PAYMENT_ISSUES"
+  | "DISCIPLINE"
+  | "OTHER"
+  | string;
+
+export interface GroupMemberCommandOutput {
+  membershipId: string;
+  group: {
+    id: string;
+    name: string;
+  };
+  player: {
+    id: string;
+    fullName: string;
+    birthDate?: string | null;
+  };
+  status: string;
+  joinedAt: string;
+  leftAt?: string | null;
+  joinReason?: string | null;
+  leaveReason?: string | null;
+  comment?: string | null;
+  sourceContractId?: string | null;
+}
+
+export interface GroupMemberTransferOutput {
+  previousMembership: GroupMemberCommandOutput;
+  newMembership: GroupMemberCommandOutput;
+}
+
+export interface AddGroupMemberPayload {
+  playerId: string;
+  joinedAt: string;
+  reason: GroupMembershipReason;
+  comment?: string | null;
+}
+
+export interface TransferGroupMemberPayload {
+  targetGroupId: string;
+  transferDate: string;
+  reason: GroupMembershipReason;
+  comment?: string | null;
+}
+
+export interface RemoveGroupMemberPayload {
+  leftAt: string;
+  reason: GroupMembershipReason;
+  comment?: string | null;
+}
+
+export interface GroupMemberCandidateWarning {
+  code: string;
+  message: string;
+}
+
+export interface GroupMemberCandidateMembership {
+  membershipId?: string;
+  groupId: string;
+  groupName: string;
+  status: string;
+  joinedAt: string;
+  leftAt?: string | null;
+}
+
+export interface GroupMemberCandidate {
+  playerId: string;
+  fullName: string;
+  birthDate?: string | null;
+  age?: number | null;
+  eligible: boolean;
+  warnings?: GroupMemberCandidateWarning[];
+  currentMemberships?: GroupMemberCandidateMembership[];
+}
+
+export interface GroupMemberCandidatesResponse {
+  groupId: string;
+  items: GroupMemberCandidate[];
+  total: number;
+  page: number;
   size: number;
 }
 
@@ -236,6 +332,19 @@ export const GroupApi = {
     return apiClient.get<GroupMembersResponse>(`/admin/groups/${groupId}/members?${qs}`);
   },
 
+  getMemberCandidates(
+    groupId: string,
+    params: { search?: string; page?: number; size?: number },
+    _token: string
+  ): Promise<GroupMemberCandidatesResponse> {
+    const qs = new URLSearchParams({
+      search: params.search ?? "",
+      page: String(params.page ?? 0),
+      size: String(params.size ?? 20),
+    });
+    return apiClient.get<GroupMemberCandidatesResponse>(`/admin/groups/${groupId}/member-candidates?${qs}`);
+  },
+
   getScheduleRisks(groupId: string, _token: string): Promise<GroupScheduleRisksResponse> {
     return apiClient.get<GroupScheduleRisksResponse>(`/admin/groups/${groupId}/schedule/risks`);
   },
@@ -259,6 +368,26 @@ export const GroupApi = {
 
   update(groupId: string, payload: GroupUpdatePayload, _token: string): Promise<AdminGroupDetailsModel> {
     return apiClient.patch<AdminGroupDetailsModel>(`/admin/groups/${groupId}`, payload);
+  },
+
+  addMember(groupId: string, payload: AddGroupMemberPayload, _token: string): Promise<GroupMemberCommandOutput> {
+    return apiClient.post<GroupMemberCommandOutput>(`/admin/groups/${groupId}/members`, payload);
+  },
+
+  transferMember(
+    membershipId: string,
+    payload: TransferGroupMemberPayload,
+    _token: string
+  ): Promise<GroupMemberTransferOutput> {
+    return apiClient.post<GroupMemberTransferOutput>(`/admin/groups/group-memberships/${membershipId}/transfer`, payload);
+  },
+
+  removeMember(
+    membershipId: string,
+    payload: RemoveGroupMemberPayload,
+    _token: string
+  ): Promise<GroupMemberCommandOutput> {
+    return apiClient.post<GroupMemberCommandOutput>(`/admin/groups/group-memberships/${membershipId}/remove`, payload);
   },
 
   // ✅ GET /admin/groups/{groupId}/coaches

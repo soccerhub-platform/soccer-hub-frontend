@@ -1,6 +1,7 @@
 import { apiClient } from "../../../shared/api";
 import type {
   AdminStudentDetails,
+  AdminStudentMembershipHistoryResponse,
   AdminStudentsPageResponse,
   AdminStudentsQuery,
 } from "./student.types";
@@ -27,6 +28,10 @@ export const StudentApi = {
 
   get(playerId: string): Promise<AdminStudentDetails> {
     return apiClient.get<AdminStudentDetails>(`/admin/students/${playerId}`);
+  },
+
+  getMemberships(playerId: string): Promise<AdminStudentMembershipHistoryResponse> {
+    return apiClient.get<AdminStudentMembershipHistoryResponse>(`/admin/students/${playerId}/memberships`);
   },
 
   uploadAvatar(playerId: string, file: File): Promise<MediaAsset> {

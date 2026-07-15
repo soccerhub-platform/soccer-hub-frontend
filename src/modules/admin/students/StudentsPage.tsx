@@ -18,7 +18,6 @@ import {
   ArrowsUpDownIcon,
   PhotoIcon,
   TrashIcon,
-  UserCircleIcon,
   UserGroupIcon,
   WalletIcon,
 } from "@heroicons/react/24/outline";
@@ -38,6 +37,7 @@ import { StudentApi } from "./student.api";
 import type {
   AdminStudentDetails,
   AdminStudentListItem,
+  AdminStudentMembershipHistoryItem,
   AdminStudentsSummary,
   StudentRisk,
   StudentRiskCode,
@@ -236,6 +236,40 @@ const riskClassName = (severity: StudentRiskSeverity) => {
   }
 };
 
+const membershipStatusLabel = (status?: string | null) => {
+  switch (status) {
+    case "UPCOMING":
+      return "Скоро";
+    case "ACTIVE":
+      return "Активно";
+    case "TRANSFERRED":
+      return "Переведен";
+    case "COMPLETED":
+      return "Завершено";
+    case "REMOVED":
+      return "Исключен";
+    default:
+      return status || "Не указано";
+  }
+};
+
+const membershipStatusClassName = (status?: string | null) => {
+  switch (status) {
+    case "UPCOMING":
+      return "border-cyan-100 bg-cyan-50 text-cyan-800";
+    case "ACTIVE":
+      return "border-emerald-100 bg-emerald-50 text-emerald-800";
+    case "TRANSFERRED":
+      return "border-blue-100 bg-blue-50 text-blue-800";
+    case "COMPLETED":
+      return "border-slate-200 bg-slate-50 text-slate-700";
+    case "REMOVED":
+      return "border-rose-100 bg-rose-50 text-rose-700";
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-700";
+  }
+};
+
 const paymentBadgeClassName = (status?: ContractPaymentStatus | null) => {
   switch (status) {
     case "PAID":
@@ -415,7 +449,13 @@ const StudentsPage: React.FC = () => {
     setDetailsLoading(true);
     try {
       const details = await StudentApi.get(playerId);
-      setSelectedStudent(details);
+      try {
+        const memberships = await StudentApi.getMemberships(playerId);
+        setSelectedStudent({ ...details, memberships: memberships.items ?? [] });
+      } catch (membershipError) {
+        console.error(membershipError);
+        setSelectedStudent({ ...details, memberships: [] });
+      }
     } catch (err) {
       console.error(err);
       setError(getApiErrorMessage(err, "Не удалось открыть карточку ученика"));
@@ -1077,8 +1117,25 @@ const StudentDetailsModal: React.FC<{
   onDeleteAvatar,
   onDownloadAvatar,
   onAvatarExpired,
-}) => (
-  <ModalShell
+}) => {
+  const activeMembership =
+    student?.memberships?.find((item) => item.status === "ACTIVE" || item.status === "UPCOMING") ?? null;
+  const resolvedCurrentGroup = student
+    ? activeMembership
+      ? {
+          id: activeMembership.group.id,
+          name: activeMembership.group.name,
+          coachName: student.currentGroup?.id === activeMembership.group.id ? student.currentGroup.coachName : null,
+          scheduleLabel: student.currentGroup?.id === activeMembership.group.id ? student.currentGroup.scheduleLabel : null,
+          nextSessionAt: student.currentGroup?.id === activeMembership.group.id ? student.currentGroup.nextSessionAt : null,
+        }
+      : student.memberships
+      ? null
+      : student.currentGroup
+    : null;
+
+  return (
+    <ModalShell
     title={student?.player.fullName ?? "Карточка ученика"}
     description={student ? `${student.client.fullName} · ${student.client.phone}` : "Загрузка карточки ученика"}
     eyebrow="Ученик"
@@ -1100,8 +1157,8 @@ const StudentDetailsModal: React.FC<{
                 Открыть договор
               </Button>
             ) : null}
-            {student.currentGroup ? (
-              <Button type="button" variant="secondary" onClick={() => onOpenGroup(student.currentGroup!.id)}>
+            {resolvedCurrentGroup ? (
+              <Button type="button" variant="secondary" onClick={() => onOpenGroup(resolvedCurrentGroup.id)}>
                 <UserGroupIcon className="h-4 w-4" />
                 Открыть группу
               </Button>
@@ -1171,19 +1228,41 @@ const StudentDetailsModal: React.FC<{
             )}
           </Panel>
 
-          <Panel title="Текущая группа">
-            {student.currentGroup ? (
+          <Panel title="Текущее участие">
+            {resolvedCurrentGroup ? (
               <div className="space-y-2 text-sm text-slate-600">
-                <div className="text-base font-semibold text-slate-900">{student.currentGroup.name}</div>
-                <div>Тренер: {student.currentGroup.coachName || "Не указан"}</div>
-                <div>Расписание: {student.currentGroup.scheduleLabel || "Не указано"}</div>
-                <div>Следующее занятие: {formatDateTime(student.currentGroup.nextSessionAt)}</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-base font-semibold text-slate-900">{resolvedCurrentGroup.name}</div>
+                  {activeMembership ? (
+                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${membershipStatusClassName(activeMembership.status)}`}>
+                      {membershipStatusLabel(activeMembership.status)}
+                    </span>
+                  ) : null}
+                </div>
+                <div>Тренер: {resolvedCurrentGroup.coachName || "Не указан"}</div>
+                <div>Расписание: {resolvedCurrentGroup.scheduleLabel || "Не указано"}</div>
+                <div>Следующее занятие: {formatDateTime(resolvedCurrentGroup.nextSessionAt)}</div>
+                {activeMembership ? (
+                  <div>В группе с: {formatDate(activeMembership.joinedAt)}</div>
+                ) : null}
               </div>
             ) : (
-              <EmptyState title="Группа не назначена" description="Группа появится после активного договора с привязкой к группе." />
+              <EmptyState title="Нет активного участия" description="Текущая группа определяется по активному membership, а не по договору." />
             )}
           </Panel>
         </div>
+
+        <Panel title="История групп">
+          {(student.memberships ?? []).length === 0 ? (
+            <EmptyState title="История участия пока пуста" description="Здесь появятся переводы, исключения и текущее участие ученика в группах." />
+          ) : (
+            <div className="space-y-2">
+              {(student.memberships ?? []).map((membership) => (
+                <MembershipHistoryRow key={membership.membershipId} membership={membership} />
+              ))}
+            </div>
+          )}
+        </Panel>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <Panel title="Последние платежи">
@@ -1228,6 +1307,26 @@ const StudentDetailsModal: React.FC<{
       </div>
     )}
   </ModalShell>
+  );
+};
+
+const MembershipHistoryRow: React.FC<{ membership: AdminStudentMembershipHistoryItem }> = ({ membership }) => (
+  <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="font-semibold text-slate-900">{membership.group.name}</div>
+      <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${membershipStatusClassName(membership.status)}`}>
+        {membershipStatusLabel(membership.status)}
+      </span>
+    </div>
+    <div className="mt-1 text-xs text-slate-500">
+      {formatDate(membership.joinedAt)} - {membership.leftAt ? formatDate(membership.leftAt) : "по настоящее время"}
+    </div>
+    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+      {membership.joinReason ? <span>Вход: {membership.joinReason}</span> : null}
+      {membership.leaveReason ? <span>Выход: {membership.leaveReason}</span> : null}
+    </div>
+    {membership.comment ? <div className="mt-2 text-xs text-slate-600">{membership.comment}</div> : null}
+  </div>
 );
 
 const MetricCard: React.FC<{

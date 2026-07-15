@@ -544,11 +544,16 @@ const GroupDetailsPage: React.FC = () => {
             description="Ключевые разделы группы открываются отдельными ссылками."
             className="xl:col-span-2"
           >
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
               <OverviewAction
                 title="Ученики"
                 description="Состав группы, договоры и посещаемость по ученикам."
                 to={sectionPath("students")}
+              />
+              <OverviewAction
+                title="Посещаемость"
+                description="Журналы занятий, сводка по группе и незаполненные отметки."
+                to={sectionPath("attendance")}
               />
               <OverviewAction
                 title="Тренеры"
@@ -566,8 +571,15 @@ const GroupDetailsPage: React.FC = () => {
       ) : null}
 
       {activeSection === "students" ? (
-        <SectionCard title="Ученики" description="Состав группы и статусы договоров.">
-          <GroupMembersTab groupId={detailsGroupId} />
+        <SectionCard title="Ученики" description="Состав группы, участие учеников и действия по переводу или исключению.">
+          <GroupMembersTab
+            groupId={detailsGroupId}
+            groupName={group.name}
+            branchId={detailsBranchId}
+            capacity={capacity}
+            studentsCount={displayStudentsCount}
+            onChanged={loadGroup}
+          />
         </SectionCard>
       ) : null}
 

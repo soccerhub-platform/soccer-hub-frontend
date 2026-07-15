@@ -135,4 +135,28 @@ export interface AdminStudentDetails {
     status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
   }>;
   risks: StudentRisk[];
+  memberships?: AdminStudentMembershipHistoryItem[];
+}
+
+export interface AdminStudentMembershipHistoryItem {
+  membershipId: string;
+  group: {
+    id: string;
+    name: string;
+  };
+  status: "UPCOMING" | "ACTIVE" | "TRANSFERRED" | "COMPLETED" | "REMOVED" | string;
+  joinedAt: string;
+  leftAt?: string | null;
+  joinReason?: string | null;
+  leaveReason?: string | null;
+  comment?: string | null;
+  sourceContractId?: string | null;
+}
+
+export interface AdminStudentMembershipHistoryResponse {
+  player: {
+    id: string;
+    fullName: string;
+  };
+  items: AdminStudentMembershipHistoryItem[];
 }
