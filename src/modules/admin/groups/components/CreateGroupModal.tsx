@@ -3,6 +3,9 @@ import { GroupApi } from "../group.api";
 import { useAuth } from "../../../../shared/AuthContext";
 import { useAdminBranch } from "../../BranchContext";
 import toast from "react-hot-toast";
+import { AcademicCapIcon, IdentificationIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { getApiErrorMessage } from "../../../../shared/api";
+import { Button, FormField, ModalShell, formControlClassName } from "../../../../shared/ui";
 
 interface Props {
   onClose: () => void;
@@ -36,6 +39,7 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
     if (!token) {
@@ -73,6 +77,7 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
     }
 
     setLoading(true);
+    setError(null);
     try {
       await GroupApi.create(
         {
@@ -92,37 +97,48 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
       onCreated();
     } catch (e) {
       console.error(e);
-      toast.error("Не удалось создать группу");
+      setError(getApiErrorMessage(e, "Не удалось создать группу"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl w-full max-w-lg p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Создание группы</h3>
-          <button onClick={onClose}>✕</button>
+    <ModalShell
+      title="Создать группу"
+      description="Основные параметры состава. Тренеров и расписание можно назначить после создания."
+      placement="right"
+      maxWidthClassName="max-w-2xl"
+      closeDisabled={loading}
+      onClose={onClose}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" disabled={loading} onClick={onClose}>Отмена</Button>
+          <Button type="button" isLoading={loading} onClick={submit}>Создать группу</Button>
         </div>
+      }
+    >
+      <div className="space-y-6">
+        <section>
+          <SectionHeading icon={<IdentificationIcon />} title="Основные данные" description="Название и краткое описание для администраторов и тренеров." />
+          <div className="mt-4 space-y-4">
+            <FormField label="Название *">
+              <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={formControlClassName} placeholder="Например, Adal PRO" />
+            </FormField>
+            <FormField label="Описание" hint="Необязательно. Отображается в шапке группы.">
+              <textarea rows={3} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className={formControlClassName} placeholder="Особенности и цель группы" />
+            </FormField>
+          </div>
+        </section>
 
-        <div className="space-y-3 text-sm">
-          <Input label="Название*" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-
-          <Input label="Описание" value={form.description} onChange={(v) => setForm({ ...form, description: v })} />
-
-          <div>
-            <div className="text-xs text-gray-500 mb-1">Тип аудитории</div>
+        <section className="border-t border-slate-200 pt-5">
+          <SectionHeading icon={<UserGroupIcon />} title="Состав и ограничения" description="Кому подходит группа и сколько учеников можно принять." />
+          <div className="mt-4 space-y-4">
+            <FormField label="Тип аудитории">
             <select
               value={form.audienceType}
               onChange={(e) => setForm({ ...form, audienceType: e.target.value })}
-              className="w-full border rounded-xl px-3 py-2"
+              className={formControlClassName}
             >
               {AUDIENCE_TYPES.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -130,35 +146,33 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
                 </option>
               ))}
             </select>
-          </div>
+            </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              label={form.audienceType === "ADULT" ? "Возраст от (необязательно)" : "Возраст от"}
-              value={form.ageFrom}
-              onChange={(v) => setForm({ ...form, ageFrom: v })}
-            />
-            <Input
-              label={form.audienceType === "ADULT" ? "Возраст до (необязательно)" : "Возраст до"}
-              value={form.ageTo}
-              onChange={(v) => setForm({ ...form, ageTo: v })}
-            />
+            <FormField label="Возраст от"><input type="number" min="1" value={form.ageFrom} onChange={(event) => setForm({ ...form, ageFrom: event.target.value })} className={formControlClassName} placeholder="10" /></FormField>
+            <FormField label="Возраст до"><input type="number" min="1" value={form.ageTo} onChange={(event) => setForm({ ...form, ageTo: event.target.value })} className={formControlClassName} placeholder="16" /></FormField>
           </div>
 
           {form.audienceType === "ADULT" ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
               Для взрослых групп возрастной диапазон можно не задавать.
             </div>
           ) : null}
 
-          <Input label="Вместимость" value={form.capacity} onChange={(v) => setForm({ ...form, capacity: v })} />
+            <FormField label="Вместимость" hint="Можно изменить позже, если состав не превышает новое значение.">
+              <input type="number" min="1" value={form.capacity} onChange={(event) => setForm({ ...form, capacity: event.target.value })} className={formControlClassName} placeholder="20" />
+            </FormField>
+          </div>
+        </section>
 
-          <div>
-            <div className="text-xs text-gray-500 mb-1">Уровень</div>
+        <section className="border-t border-slate-200 pt-5">
+          <SectionHeading icon={<AcademicCapIcon />} title="Уровень подготовки" description="Помогает подобрать учеников и тренеров подходящего уровня." />
+          <div className="mt-4">
+            <FormField label="Уровень">
             <select
               value={form.level}
               onChange={(e) => setForm({ ...form, level: e.target.value })}
-              className="w-full border rounded-xl px-3 py-2"
+              className={formControlClassName}
             >
               {LEVELS.map((l) => (
                 <option key={l.value} value={l.value}>
@@ -166,45 +180,23 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
                 </option>
               ))}
             </select>
+            </FormField>
           </div>
-        </div>
+        </section>
 
-        <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 border rounded-xl text-sm">
-            Отмена
-          </button>
-          <button
-            onClick={submit}
-            disabled={loading}
-            className="px-4 py-2 rounded-xl bg-admin-500 text-white text-sm"
-          >
-            {loading ? "Создание…" : "Создать"}
-          </button>
-        </div>
+        {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-700">{error}</div> : null}
       </div>
-    </div>
+    </ModalShell>
   );
 };
 
 export default CreateGroupModal;
 
-/* -------- Input -------- */
-
-const Input = ({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) => (
-  <div>
-    <div className="text-xs text-gray-500 mb-1">{label}</div>
-    <input
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full border rounded-xl px-3 py-2"
-    />
+const SectionHeading: React.FC<{ icon: React.ReactElement; title: string; description: string }> = ({ icon, title, description }) => (
+  <div className="flex items-start gap-3">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
+      {React.cloneElement(icon, { className: "h-5 w-5" })}
+    </span>
+    <div><h4 className="text-sm font-semibold text-slate-950">{title}</h4><p className="mt-1 text-xs leading-5 text-slate-500">{description}</p></div>
   </div>
 );

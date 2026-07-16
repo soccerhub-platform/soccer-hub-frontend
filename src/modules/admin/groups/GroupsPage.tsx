@@ -24,6 +24,7 @@ import {
   PlusIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
+import { useSearchParams } from "react-router-dom";
 
 const emptyOverview: GroupOverviewResponse = {
   summary: {
@@ -42,12 +43,25 @@ const GroupsPage: React.FC = () => {
   const { user } = useAuth();
   const token = user?.accessToken;
   const { branchId } = useAdminBranch();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [overview, setOverview] = useState<GroupOverviewResponse>(emptyOverview);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [showCreate, setShowCreate] = useState(false);
+  const showCreate = searchParams.get("drawer") === "create-group";
+
+  const openCreate = () => {
+    const next = new URLSearchParams(searchParams);
+    next.set("drawer", "create-group");
+    setSearchParams(next);
+  };
+
+  const closeCreate = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("drawer");
+    setSearchParams(next, { replace: true });
+  };
 
   const [filters, setFilters] = useState({
     search: "",
@@ -115,7 +129,7 @@ const GroupsPage: React.FC = () => {
         title="Группы"
         description="Операционный обзор групп: состояние, риски и действия."
         actions={
-          <Button type="button" onClick={() => setShowCreate(true)}>
+          <Button type="button" onClick={openCreate}>
             <PlusIcon className="h-4 w-4" />
             Создать группу
           </Button>
@@ -172,9 +186,9 @@ const GroupsPage: React.FC = () => {
 
       {showCreate && (
         <CreateGroupModal
-          onClose={() => setShowCreate(false)}
+          onClose={closeCreate}
           onCreated={() => {
-            setShowCreate(false);
+            closeCreate();
             void loadGroups();
           }}
         />

@@ -264,7 +264,7 @@ export interface CoachProfile {
 
 export type CoachStatus = "ACTIVE" | "INACTIVE";
 
-export interface CoachAvailability { days: string[]; timeFrom: string; timeTo: string; timezone: string; }
+export interface CoachAvailability { days: string[]; timeFrom: string; timeTo: string; timezone: string; configured?: boolean; }
 
 const normalizeAvailabilityDayForApi = (day: unknown): string => {
   const text = String(day).trim().toUpperCase();
@@ -557,6 +557,11 @@ export const CoachApi = {
   },
 
   assignTrainerToGroup(coachId: string, payload: TrainerGroupAssignmentRequest, _token: string): Promise<{ assignmentId: string }> {
-    return apiClient.post<{ assignmentId: string }>(`/api/admin/trainers/${coachId}/group-assignments`, payload);
+    return apiClient.post<{ groupCoachId: string }>(`/admin/groups/${payload.groupId}/coaches`, {
+      coachId,
+      role: payload.role,
+      assignedFrom: payload.assignedFrom ?? null,
+      assignedTo: payload.assignedTo ?? null,
+    }).then(({ groupCoachId }) => ({ assignmentId: groupCoachId }));
   },
 };

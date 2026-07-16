@@ -195,24 +195,19 @@ const GroupDetailsPage: React.FC = () => {
 
   const changeStatus = async (
     status: "ACTIVE" | "PAUSED" | "STOPPED"
-  ) => {
-    if (!group || !token) return;
-
-    if (status === "STOPPED") {
-      const ok = confirm(
-        "Вы уверены, что хотите остановить группу? Расписание будет отменено."
-      );
-      if (!ok) return;
-    }
+  ): Promise<boolean> => {
+    if (!group || !token) return false;
 
     setUpdating(true);
     try {
       await GroupApi.updateStatus(getGroupId(group, groupId), status, token);
       await loadGroup();
       toast.success("Статус группы обновлен");
+      return true;
     } catch (e) {
       console.error(e);
       toast.error("Не удалось изменить статус группы");
+      return false;
     } finally {
       setUpdating(false);
     }
@@ -247,18 +242,42 @@ const GroupDetailsPage: React.FC = () => {
   const displayStudentsCount = summary?.studentsCount ?? 0;
   const nextSessionStart = getNextSessionStart(group);
   const nextSessionId = getNextSessionId(group);
-  const editOpen = searchParams.get("edit") === "true";
+  const editOpen = searchParams.get("drawer") === "edit-group" || searchParams.get("edit") === "true";
+  const stopOpen = searchParams.get("drawer") === "stop-group";
+  const deleteAvatarConfirmOpen = editOpen && searchParams.get("confirm") === "delete-avatar";
   const branchName = group?.branch?.name;
 
   const openEdit = () => {
     const next = new URLSearchParams(searchParams);
-    next.set("edit", "true");
+    next.set("drawer", "edit-group");
+    next.delete("edit");
     setSearchParams(next);
   };
 
   const closeEdit = () => {
     const next = new URLSearchParams(searchParams);
     next.delete("edit");
+    next.delete("drawer");
+    next.delete("confirm");
+    setSearchParams(next, { replace: true });
+  };
+
+  const openStop = () => {
+    const next = new URLSearchParams(searchParams);
+    next.set("drawer", "stop-group");
+    setSearchParams(next);
+  };
+
+  const openDeleteAvatarConfirm = () => {
+    const next = new URLSearchParams(searchParams);
+    next.set("drawer", "edit-group");
+    next.set("confirm", "delete-avatar");
+    setSearchParams(next);
+  };
+
+  const closeDeleteAvatarConfirm = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("confirm");
     setSearchParams(next, { replace: true });
   };
 
@@ -395,7 +414,7 @@ const GroupDetailsPage: React.FC = () => {
                   </button>
                 ) : null}
                 {canStop ? (
-                  <button type="button" disabled={updating} onClick={() => { setActionsOpen(false); void changeStatus("STOPPED"); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-rose-700 hover:bg-rose-50">
+                  <button type="button" disabled={updating} onClick={() => { setActionsOpen(false); openStop(); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-rose-700 hover:bg-rose-50">
                     <StopIcon className="h-4 w-4" /> Остановить группу
                   </button>
                 ) : null}
@@ -549,11 +568,49 @@ const GroupDetailsPage: React.FC = () => {
           onAvatarChanged={(avatar) => {
             setGroup((current) => current ? { ...current, avatar } : current);
           }}
+          deleteAvatarConfirmOpen={deleteAvatarConfirmOpen}
+          onRequestDeleteAvatar={openDeleteAvatarConfirm}
+          onCancelDeleteAvatar={closeDeleteAvatarConfirm}
+        />
+      ) : null}
+      {stopOpen ? (
+        <StopGroupDrawer
+          groupName={group.name}
+          saving={updating}
+          onClose={closeEdit}
+          onConfirm={async () => {
+            if (await changeStatus("STOPPED")) closeEdit();
+          }}
         />
       ) : null}
     </PageShell>
   );
 };
+
+const StopGroupDrawer: React.FC<{
+  groupName: string;
+  saving: boolean;
+  onClose: () => void;
+  onConfirm: () => void | Promise<void>;
+}> = ({ groupName, saving, onClose, onConfirm }) => (
+  <ModalShell
+    title="Остановить группу"
+    description={`Группа «${groupName}» перестанет работать по текущему расписанию.`}
+    placement="right"
+    maxWidthClassName="max-w-lg"
+    closeDisabled={saving}
+    onClose={onClose}
+    footer={<div className="flex justify-end gap-2"><Button variant="secondary" disabled={saving} onClick={onClose}>Отмена</Button><Button variant="danger" isLoading={saving} onClick={onConfirm}>Остановить группу</Button></div>}
+  >
+    <div className="space-y-4">
+      <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
+        <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+        <div><div className="text-sm font-semibold text-rose-900">Группа станет неактивной</div><p className="mt-1 text-xs leading-5 text-rose-700">Статус изменится на «Остановлена». История группы, расписание и созданные занятия сохранятся.</p></div>
+      </div>
+      <p className="text-sm leading-6 text-slate-600">Если будущие занятия больше не должны проводиться, завершите активный период расписания отдельно. Группу можно будет снова активировать из меню действий.</p>
+    </div>
+  </ModalShell>
+);
 
 const LEVELS = [
   { value: "BEGINNER", label: "Начальный" },
@@ -572,7 +629,10 @@ const EditGroupModal: React.FC<{
   onClose: () => void;
   onSaved: () => void | Promise<void>;
   onAvatarChanged: (avatar: MediaAsset | null) => void;
-}> = ({ group, token, onClose, onSaved, onAvatarChanged }) => {
+  deleteAvatarConfirmOpen: boolean;
+  onRequestDeleteAvatar: () => void;
+  onCancelDeleteAvatar: () => void;
+}> = ({ group, token, onClose, onSaved, onAvatarChanged, deleteAvatarConfirmOpen, onRequestDeleteAvatar, onCancelDeleteAvatar }) => {
   const [form, setForm] = useState({
     name: group.name ?? "",
     description: group.description ?? "",
@@ -615,12 +675,12 @@ const EditGroupModal: React.FC<{
   };
 
   const deleteAvatar = async () => {
-    if (!confirm("Удалить фото группы?")) return;
     setAvatarAction("delete");
     try {
       await GroupApi.deleteAvatar(getGroupId(group), token);
       setAvatar(null);
       onAvatarChanged(null);
+      onCancelDeleteAvatar();
       toast.success("Фото группы удалено");
     } catch (error) {
       console.error("Failed to delete group avatar", error);
@@ -687,6 +747,7 @@ const EditGroupModal: React.FC<{
       onClose={onClose}
       closeDisabled={saving || avatarAction !== null}
       maxWidthClassName="max-w-2xl"
+      placement="right"
       footer={
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" disabled={saving} onClick={onClose}>
@@ -734,13 +795,28 @@ const EditGroupModal: React.FC<{
                     variant="softDanger"
                     isLoading={avatarAction === "delete"}
                     disabled={avatarAction !== null}
-                    onClick={deleteAvatar}
+                    onClick={onRequestDeleteAvatar}
                   >
                     <TrashIcon className="h-4 w-4" />
                     Удалить
                   </Button>
                 ) : null}
               </div>
+              {deleteAvatarConfirmOpen ? (
+                <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3">
+                  <div className="flex items-start gap-2">
+                    <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-rose-900">Удалить фото группы?</p>
+                      <p className="mt-1 text-xs leading-5 text-rose-700">В реестре и шапке снова будут показаны инициалы группы.</p>
+                      <div className="mt-3 flex justify-end gap-2">
+                        <Button type="button" size="sm" variant="secondary" disabled={avatarAction !== null} onClick={onCancelDeleteAvatar}>Отмена</Button>
+                        <Button type="button" size="sm" variant="danger" isLoading={avatarAction === "delete"} onClick={deleteAvatar}>Удалить фото</Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

@@ -45,9 +45,13 @@ export interface GroupCoachApiModel {
 
   coachFirstName: string;
   coachLastName: string;
+  avatar?: MediaAsset | null;
   email: string;
   phone: string;
+  specialization?: string | null;
   active: boolean;
+  accountStatus?: string | null;
+  workStatus?: string | null;
 
   coachRole: "MAIN" | "ASSISTANT";
 
@@ -56,11 +60,75 @@ export interface GroupCoachApiModel {
 
   createdAt: string;
   updatedAt: string;
+
+  load?: {
+    groupsCount: number;
+    weeklySessionsCount: number;
+    maxWeeklySessions: number;
+    percentage: number;
+    status: "NORMAL" | "HIGH" | "OVERLOADED" | string;
+  } | null;
+  nextSession?: {
+    sessionId: string;
+    sessionDate: string;
+    startsAt: string;
+    endsAt?: string | null;
+    status: string;
+  } | null;
+  capabilities?: {
+    canOpenProfile: boolean;
+    canChangeRole: boolean;
+    canSetMain: boolean;
+    canSetAssistant: boolean;
+    canUnassign: boolean;
+  } | null;
 }
 
 export interface GroupCoachesResponse {
   groupId: string;
   coaches: GroupCoachApiModel[];
+}
+
+export interface GroupCoachHistoryItem {
+  groupCoachId: string;
+  coach: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar?: MediaAsset | null;
+  } | null;
+  role: "MAIN" | "ASSISTANT";
+  assignedFrom: string;
+  assignedTo?: string | null;
+  active: boolean;
+  removalReason?: string | null;
+  replacementCoach?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar?: MediaAsset | null;
+  } | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface GroupCoachRemovalPreview {
+  groupCoachId: string;
+  groupId: string;
+  coachId: string;
+  coachName: string;
+  role: "MAIN" | "ASSISTANT";
+  activeScheduleSlots: number;
+  futureSessionsCount: number;
+  nextSessionAt?: string | null;
+  replacementRequired: boolean;
+  canRemove: boolean;
+  replacementCandidates: Array<{
+    groupCoachId: string;
+    coachId: string;
+    coachName: string;
+    role: "MAIN" | "ASSISTANT";
+  }>;
 }
 
 export interface GroupSummaryModel {
@@ -464,9 +532,29 @@ export const GroupApi = {
     return apiClient.get<GroupCoachesResponse>(`/admin/groups/${groupId}/coaches`);
   },
 
+  getCoachHistory(groupId: string, _token: string): Promise<GroupCoachHistoryItem[]> {
+    return apiClient.get<GroupCoachHistoryItem[]>(`/admin/groups/${groupId}/coaches/history`);
+  },
+
   // ✅ DELETE /admin/groups/coaches/{groupCoachId}
   unassignCoach(groupCoachId: string, _token: string): Promise<void> {
     return apiClient.delete<void>(`/admin/groups/coaches/${groupCoachId}`);
+  },
+
+  previewCoachRemoval(groupCoachId: string, _token: string): Promise<GroupCoachRemovalPreview> {
+    return apiClient.get<GroupCoachRemovalPreview>(`/admin/groups/coaches/${groupCoachId}/removal-preview`);
+  },
+
+  removeCoach(
+    groupCoachId: string,
+    payload: { replacementCoachId?: string | null; effectiveDate: string; reason: string },
+    _token: string
+  ): Promise<void> {
+    return apiClient.post<void>(`/admin/groups/coaches/${groupCoachId}/remove`, payload);
+  },
+
+  updateCoachRole(groupCoachId: string, role: "MAIN" | "ASSISTANT", _token: string): Promise<void> {
+    return apiClient.patch<void>(`/admin/groups/coaches/${groupCoachId}`, { role });
   },
 
   // ✅ POST /admin/groups/{groupId}/coaches/{coachId}
@@ -474,11 +562,14 @@ export const GroupApi = {
     groupId: string,
     coachId: string,
     role: "MAIN" | "ASSISTANT",
-    _token: string
+    _token: string,
+    assignment?: { assignedFrom?: string | null; assignedTo?: string | null }
   ): Promise<{ groupCoachId: string }> {
     return apiClient.post<{ groupCoachId: string }>(`/admin/groups/${groupId}/coaches`, {
       coachId,
       role,
+      assignedFrom: assignment?.assignedFrom ?? null,
+      assignedTo: assignment?.assignedTo ?? null,
     });
   },
 

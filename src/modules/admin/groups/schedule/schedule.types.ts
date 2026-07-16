@@ -56,7 +56,9 @@ export type ScheduleValidationConflictCode =
   | "INVALID_TIME_RANGE"
   | "OVERLAPPING_INPUT_SLOTS"
   | "GROUP_SCHEDULE_CONFLICT"
-  | "COACH_SCHEDULE_CONFLICT";
+  | "COACH_SCHEDULE_CONFLICT"
+  | "COACH_UNAVAILABLE_DAY"
+  | "COACH_OUTSIDE_WORKING_HOURS";
 
 export interface ScheduleValidationConflict {
   code: ScheduleValidationConflictCode | string;

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
@@ -84,6 +84,7 @@ const fromDateTimeLocal = (value: string) => value.length === 16 ? `${value}:00`
 const SessionDetailsPage: React.FC = () => {
   const { groupId, sessionId } = useParams<{ groupId: string; sessionId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const token = user?.accessToken;
   const { branchId: selectedBranchId } = useAdminBranch();
@@ -93,10 +94,23 @@ const SessionDetailsPage: React.FC = () => {
   const [scheduleRule, setScheduleRule] = useState<GroupScheduleDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [rescheduleOpen, setRescheduleOpen] = useState(false);
-  const [substituteOpen, setSubstituteOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const drawer = searchParams.get("drawer");
+  const cancelOpen = drawer === "cancel-session";
+  const rescheduleOpen = drawer === "reschedule-session";
+  const substituteOpen = drawer === "substitute-coach";
+
+  const openDrawer = (name: "cancel-session" | "reschedule-session" | "substitute-coach") => {
+    const next = new URLSearchParams(searchParams);
+    next.set("drawer", name);
+    setSearchParams(next);
+  };
+
+  const closeDrawer = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("drawer");
+    setSearchParams(next, { replace: true });
+  };
 
   const load = async () => {
     if (!token || !sessionId) return;
@@ -193,13 +207,13 @@ const SessionDetailsPage: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {session.capabilities.canReschedule ? <Button type="button" variant="secondary" onClick={() => setRescheduleOpen(true)}><ArrowPathIcon className="h-4 w-4" />Перенести</Button> : null}
-              {session.capabilities.canSubstituteCoach ? <Button type="button" variant="secondary" onClick={() => setSubstituteOpen(true)}><UserCircleIcon className="h-4 w-4" />Заменить тренера</Button> : null}
+              {session.capabilities.canReschedule ? <Button type="button" variant="secondary" onClick={() => openDrawer("reschedule-session")}><ArrowPathIcon className="h-4 w-4" />Перенести</Button> : null}
+              {session.capabilities.canSubstituteCoach ? <Button type="button" variant="secondary" onClick={() => openDrawer("substitute-coach")}><UserCircleIcon className="h-4 w-4" />Заменить тренера</Button> : null}
               <div className="relative">
                 <button type="button" aria-label="Дополнительные действия" title="Дополнительные действия" onClick={() => setMoreOpen((current) => !current)} className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"><EllipsisHorizontalIcon className="h-5 w-5" /></button>
                 {moreOpen ? (
                   <div className="absolute right-0 top-12 z-20 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl shadow-slate-950/10">
-                    <button type="button" disabled={!session.capabilities.canCancel} onClick={() => { setMoreOpen(false); setCancelOpen(true); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-white"><XCircleIcon className="h-4 w-4" />Отменить занятие</button>
+                    <button type="button" disabled={!session.capabilities.canCancel} onClick={() => { setMoreOpen(false); openDrawer("cancel-session"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-white"><XCircleIcon className="h-4 w-4" />Отменить занятие</button>
                   </div>
                 ) : null}
               </div>
@@ -257,10 +271,10 @@ const SessionDetailsPage: React.FC = () => {
         <CancelSessionModal
           sessionId={session.id}
           token={token}
-          onClose={() => setCancelOpen(false)}
+          onClose={closeDrawer}
           onSaved={(next) => {
             applyUpdatedSession(next);
-            setCancelOpen(false);
+            closeDrawer();
           }}
         />
       ) : null}
@@ -269,10 +283,10 @@ const SessionDetailsPage: React.FC = () => {
         <RescheduleSessionModal
           session={session}
           token={token}
-          onClose={() => setRescheduleOpen(false)}
+          onClose={closeDrawer}
           onSaved={(next) => {
             applyUpdatedSession(next);
-            setRescheduleOpen(false);
+            closeDrawer();
           }}
         />
       ) : null}
@@ -282,10 +296,10 @@ const SessionDetailsPage: React.FC = () => {
           session={session}
           branchId={branchId}
           token={token}
-          onClose={() => setSubstituteOpen(false)}
+          onClose={closeDrawer}
           onSaved={(next) => {
             applyUpdatedSession(next);
-            setSubstituteOpen(false);
+            closeDrawer();
           }}
         />
       ) : null}
@@ -342,6 +356,8 @@ const CancelSessionModal: React.FC<{
       description="Занятие будет отменено только для выбранной даты."
       onClose={onClose}
       closeDisabled={saving}
+      placement="right"
+      maxWidthClassName="max-w-lg"
       footer={
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" disabled={saving} onClick={onClose}>Назад</Button>
@@ -420,6 +436,8 @@ const RescheduleSessionModal: React.FC<{
       description="Изменение применится только к этому занятию."
       onClose={onClose}
       closeDisabled={saving}
+      placement="right"
+      maxWidthClassName="max-w-xl"
       footer={
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" disabled={saving} onClick={onClose}>Отмена</Button>
@@ -527,6 +545,8 @@ const SubstituteCoachModal: React.FC<{
       description="Замена применяется только к этому занятию."
       onClose={onClose}
       closeDisabled={saving}
+      placement="right"
+      maxWidthClassName="max-w-xl"
       footer={
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" disabled={saving} onClick={onClose}>Отмена</Button>

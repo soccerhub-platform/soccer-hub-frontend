@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
@@ -15,10 +14,9 @@ import {
   PencilSquareIcon,
   PlusIcon,
   UserCircleIcon,
-  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../../../shared/AuthContext";
-import { Button, EmptyState, ErrorState, LoadingState } from "../../../../shared/ui";
+import { Button, EmptyState, ErrorState, LoadingState, ModalShell } from "../../../../shared/ui";
 import { GroupApi, GroupCoachApiModel } from "../group.api";
 import CoachProfileLink from "../components/CoachProfileLink";
 import { AdminSessionApi, AdminSessionEffectiveStatus, AdminSessionListItem } from "../session.api";
@@ -110,6 +108,7 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   );
   const range = useMemo(() => getRange(view, anchor), [anchor, view]);
   const showCancelled = searchParams.get("cancelled") === "true";
+  const drawer = searchParams.get("drawer");
   const overviewMonth = toMonthParam(anchor);
 
   const [schedules, setSchedules] = useState<GroupScheduleDto[]>([]);
@@ -117,8 +116,6 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   const [sessions, setSessions] = useState<AdminSessionListItem[]>([]);
   const [overview, setOverview] = useState<GroupScheduleOverview | null>(null);
   const [coaches, setCoaches] = useState<GroupCoachApiModel[]>([]);
-  const [editingBatch, setEditingBatch] = useState<ScheduleBatch | null>(null);
-  const [periodsOpen, setPeriodsOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -169,13 +166,60 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   const batches = groupSchedulesToBatches(schedules).map((batch) => ({ ...batch, coachName: coachMap[batch.coachId] }));
   const archivedBatches = groupSchedulesToBatches(archivedSchedules).map((batch) => ({ ...batch, coachName: coachMap[batch.coachId] }));
   const visibleSessions = sessions.filter((session) => showCancelled || (session.effectiveStatus ?? session.status) !== "CANCELLED");
+  const editingBatch = drawer === "schedule-period"
+    ? searchParams.get("mode") === "create"
+      ? coachOptions.length > 0
+        ? { key: "new", coachId: coachOptions[0].id, type: "REGULAR" as const, startDate: toDateInput(new Date()), endDate: "", schedules: [] }
+        : null
+      : [...batches, ...archivedBatches].find((batch) => batch.key === searchParams.get("periodKey")) ?? null
+    : null;
+  const finishingBatch = drawer === "finish-schedule-period"
+    ? batches.find((batch) => batch.key === searchParams.get("periodKey")) ?? null
+    : null;
+
+  const closeScheduleDrawer = (replace = true) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("drawer");
+    next.delete("mode");
+    next.delete("periodKey");
+    setSearchParams(next, { replace });
+  };
+
+  const openPeriodsDrawer = () => {
+    const next = new URLSearchParams(searchParams);
+    next.set("drawer", "schedule-periods");
+    next.delete("mode");
+    next.delete("periodKey");
+    setSearchParams(next);
+  };
+
+  const openPeriodEditor = (batch: ScheduleBatch) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("drawer", "schedule-period");
+    if (batch.key === "new") {
+      next.set("mode", "create");
+      next.delete("periodKey");
+    } else {
+      next.set("mode", "edit");
+      next.set("periodKey", batch.key);
+    }
+    setSearchParams(next);
+  };
+
+  const openFinishPeriod = (batch: ScheduleBatch) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("drawer", "finish-schedule-period");
+    next.delete("mode");
+    next.set("periodKey", batch.key);
+    setSearchParams(next);
+  };
 
   const openNewPeriod = () => {
     if (!coachOptions.length) {
       toast.error("Сначала назначьте тренера группе");
       return;
     }
-    setEditingBatch({ key: "new", coachId: coachOptions[0].id, type: "REGULAR", startDate: toDateInput(new Date()), endDate: "", schedules: [] });
+    openPeriodEditor({ key: "new", coachId: coachOptions[0].id, type: "REGULAR", startDate: toDateInput(new Date()), endDate: "", schedules: [] });
   };
 
   const validateAndSaveBatch = async (payload: UpdateScheduleBatchCommand): Promise<ScheduleValidationResult> => {
@@ -187,15 +231,16 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
     if (!validation.valid) return validation;
     if (editingBatch?.key === "new") await ScheduleApi.createGroupSchedule(groupId, payload, token);
     else await ScheduleApi.updateGroupSchedule(groupId, payload, token);
-    setEditingBatch(null);
+    closeScheduleDrawer();
     await reload();
     return validation;
   };
 
   const finishBatch = async (batch: ScheduleBatch) => {
-    if (!token || !confirm("Завершить период? Будущие занятия по нему будут отменены, прошедшие сохранятся.")) return;
+    if (!token) return;
     await ScheduleApi.deleteBatch(groupId, { coachId: batch.coachId, type: batch.type, startDate: batch.startDate, endDate: batch.endDate }, token);
     toast.success("Период завершён");
+    closeScheduleDrawer();
     await reload();
   };
 
@@ -260,7 +305,7 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
             </Button>
             {actionsOpen ? (
               <div className="absolute right-0 top-12 z-20 w-64 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl shadow-slate-950/10">
-                <MenuButton icon={<CalendarDaysIcon />} label="Управление периодами" onClick={() => { setPeriodsOpen(true); setActionsOpen(false); }} />
+                <MenuButton icon={<CalendarDaysIcon />} label="Управление периодами" onClick={() => { openPeriodsDrawer(); setActionsOpen(false); }} />
                 <MenuButton icon={<NoSymbolIcon />} label={showCancelled ? "Скрыть отменённые" : "Показать отменённые"} active={showCancelled} onClick={toggleCancelled} />
                 <MenuButton icon={<ArrowPathIcon />} label="Обновить данные" onClick={() => { setActionsOpen(false); void reload(); }} />
               </div>
@@ -299,18 +344,19 @@ const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
 
       <CalendarLegend showCancelled={showCancelled} />
 
-      {periodsOpen ? (
+      {drawer === "schedule-periods" ? (
         <SchedulePeriodsDrawer
           batches={batches}
           archivedBatches={archivedBatches}
-          onClose={() => setPeriodsOpen(false)}
-          onCreate={() => { setPeriodsOpen(false); openNewPeriod(); }}
-          onEdit={(batch) => { setPeriodsOpen(false); setEditingBatch(batch); }}
-          onFinish={finishBatch}
+          onClose={() => closeScheduleDrawer()}
+          onCreate={openNewPeriod}
+          onEdit={openPeriodEditor}
+          onFinish={openFinishPeriod}
         />
       ) : null}
 
-      {editingBatch ? <EditScheduleModal coaches={coachOptions} initialCoachId={editingBatch.coachId} initialType={editingBatch.type} schedules={editingBatch.schedules} startDate={editingBatch.startDate} endDate={editingBatch.endDate} onClose={() => setEditingBatch(null)} onSave={validateAndSaveBatch} /> : null}
+      {editingBatch ? <EditScheduleModal coaches={coachOptions} initialCoachId={editingBatch.coachId} initialType={editingBatch.type} schedules={editingBatch.schedules} startDate={editingBatch.startDate} endDate={editingBatch.endDate} onClose={() => closeScheduleDrawer()} onSave={validateAndSaveBatch} /> : null}
+      {finishingBatch ? <FinishSchedulePeriodDrawer batch={finishingBatch} onClose={() => closeScheduleDrawer()} onConfirm={() => finishBatch(finishingBatch)} /> : null}
     </div>
   );
 };
@@ -434,26 +480,58 @@ const SchedulePeriodsDrawer: React.FC<{
   onCreate: () => void;
   onEdit: (batch: ScheduleBatch) => void;
   onFinish: (batch: ScheduleBatch) => void;
-}> = ({ batches, archivedBatches, onClose, onCreate, onEdit, onFinish }) => createPortal(
-  <div className="fixed inset-0 z-50">
-    <button type="button" aria-label="Закрыть управление периодами" className="fixed inset-0 bg-slate-950/30" onClick={onClose} />
-    <aside role="dialog" aria-modal="true" aria-label="Управление периодами расписания" className="fixed inset-x-0 bottom-0 flex max-h-[94vh] min-h-0 flex-col rounded-t-xl bg-white shadow-2xl lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:w-[min(560px,100vw)] lg:rounded-none">
-      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4">
-        <div><h2 className="text-lg font-semibold text-slate-950">Периоды расписания</h2><p className="mt-1 text-xs text-slate-500">Правила, по которым создаются будущие занятия.</p></div>
-        <button type="button" onClick={onClose} title="Закрыть" className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"><XMarkIcon className="h-5 w-5" /></button>
-      </div>
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
+}> = ({ batches, archivedBatches, onClose, onCreate, onEdit, onFinish }) => (
+  <ModalShell
+    title="Периоды расписания"
+    description="Правила, по которым автоматически создаются будущие занятия."
+    placement="right"
+    maxWidthClassName="max-w-xl"
+    onClose={onClose}
+    footer={<div className="flex justify-end"><Button onClick={onCreate}><PlusIcon className="h-4 w-4" />Добавить период</Button></div>}
+  >
+      <div className="space-y-6">
         <section>
           <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold text-slate-950">Активные периоды</h3><span className="text-xs text-slate-500">{batches.length}</span></div>
           {batches.length ? <div className="space-y-3">{batches.map((batch) => <PeriodRow key={batch.key} batch={batch} onEdit={() => onEdit(batch)} onFinish={() => onFinish(batch)} />)}</div> : <EmptyState title="Активных периодов нет" description="Добавьте период, чтобы автоматически создавать занятия." />}
         </section>
         {archivedBatches.length ? <section className="border-t border-slate-200 pt-5"><h3 className="mb-3 text-sm font-semibold text-slate-950">История · {archivedBatches.length}</h3><div className="divide-y divide-slate-100 rounded-lg border border-slate-200 px-3">{archivedBatches.map((batch) => <div key={batch.key} className="py-3 text-sm"><div className="font-medium text-slate-700">{formatPeriodDate(batch.startDate)} - {batch.endDate ? formatPeriodDate(batch.endDate) : "без даты"}</div><div className="mt-1 flex items-center gap-1 text-xs text-slate-500">{batch.coachName ? <CoachProfileLink coachId={batch.coachId} className="text-xs">{batch.coachName}</CoachProfileLink> : "Тренер не указан"}<span>· завершён</span></div></div>)}</div></section> : null}
       </div>
-      <div className="flex shrink-0 justify-end border-t border-slate-200 px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4"><Button onClick={onCreate}><PlusIcon className="h-4 w-4" />Добавить период</Button></div>
-    </aside>
-  </div>,
-  document.body,
+  </ModalShell>
 );
+
+const FinishSchedulePeriodDrawer: React.FC<{
+  batch: ScheduleBatch & { coachName?: string };
+  onClose: () => void;
+  onConfirm: () => void | Promise<void>;
+}> = ({ batch, onClose, onConfirm }) => {
+  const [saving, setSaving] = useState(false);
+  const submit = async () => {
+    setSaving(true);
+    try { await onConfirm(); } finally { setSaving(false); }
+  };
+  return (
+    <ModalShell
+      title="Завершить период"
+      description="Новые занятия по этому правилу больше создаваться не будут."
+      placement="right"
+      maxWidthClassName="max-w-lg"
+      closeDisabled={saving}
+      onClose={onClose}
+      footer={<div className="flex justify-end gap-2"><Button variant="secondary" disabled={saving} onClick={onClose}>Отмена</Button><Button variant="danger" isLoading={saving} onClick={submit}>Завершить период</Button></div>}
+    >
+      <div className="space-y-4">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Будущие занятия этого периода будут отменены. Прошедшие занятия и журналы посещаемости сохранятся.
+        </div>
+        <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 px-4 text-sm">
+          <div className="flex justify-between gap-4 py-3"><span className="text-slate-500">Период</span><span className="text-right font-medium text-slate-900">{formatPeriodDate(batch.startDate)} - {batch.endDate ? formatPeriodDate(batch.endDate) : "без даты"}</span></div>
+          <div className="flex justify-between gap-4 py-3"><span className="text-slate-500">Тренер</span><span className="text-right font-medium text-slate-900">{batch.coachName ?? "Не указан"}</span></div>
+          <div className="flex justify-between gap-4 py-3"><span className="text-slate-500">Слотов в неделю</span><span className="font-medium text-slate-900">{batch.schedules.length}</span></div>
+        </div>
+      </div>
+    </ModalShell>
+  );
+};
 
 const PeriodRow: React.FC<{ batch: ScheduleBatch & { coachName?: string }; onEdit: () => void; onFinish: () => void }> = ({ batch, onEdit, onFinish }) => (
   <div className="rounded-lg border border-slate-200 bg-white p-4">

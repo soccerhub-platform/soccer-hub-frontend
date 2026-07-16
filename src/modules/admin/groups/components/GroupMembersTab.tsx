@@ -239,10 +239,11 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
   });
 
   const action = searchParams.get("action");
+  const drawer = searchParams.get("drawer");
   const membershipId = searchParams.get("membershipId");
-  const addOpen = searchParams.get("add") === "true";
-  const transferOpen = action === "transfer" && Boolean(membershipId);
-  const removeOpen = action === "remove" && Boolean(membershipId);
+  const addOpen = drawer === "add-student" || searchParams.get("add") === "true";
+  const transferOpen = (drawer === "transfer-student" || action === "transfer") && Boolean(membershipId);
+  const removeOpen = (drawer === "remove-student" || action === "remove") && Boolean(membershipId);
 
   const selectedMember = useMemo(
     () => items.find((item) => item.membershipId === membershipId) ?? null,
@@ -360,13 +361,15 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
     next.delete("add");
     next.delete("action");
     next.delete("membershipId");
+    next.delete("drawer");
     setSearchParams(next, { replace: true });
     setMenuOpenFor(null);
   };
 
   const openAdd = () => {
     const next = new URLSearchParams(searchParams);
-    next.set("add", "true");
+    next.set("drawer", "add-student");
+    next.delete("add");
     next.delete("action");
     next.delete("membershipId");
     setSearchParams(next);
@@ -385,7 +388,8 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
     }
     const next = new URLSearchParams(searchParams);
     next.delete("add");
-    next.set("action", nextAction);
+    next.delete("action");
+    next.set("drawer", nextAction === "transfer" ? "transfer-student" : "remove-student");
     next.set("membershipId", item.membershipId);
     setSearchParams(next);
     setMenuOpenFor(null);
@@ -1079,6 +1083,8 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
           title="Перевести ученика"
           description={selectedMember ? selectedMember.childName : "Выберите новую группу и дату перевода."}
           onClose={closeAction}
+          placement="right"
+          maxWidthClassName="max-w-lg"
           closeDisabled={saving}
           footer={
             <div className="flex justify-end gap-2">
@@ -1144,6 +1150,8 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
           title="Исключить ученика"
           description={selectedMember ? `${selectedMember.childName} будет выведен из текущего состава. История участия сохранится.` : "Укажите последний день в группе и причину исключения."}
           onClose={closeAction}
+          placement="right"
+          maxWidthClassName="max-w-lg"
           closeDisabled={saving}
           footer={
             <div className="flex justify-end gap-2">
