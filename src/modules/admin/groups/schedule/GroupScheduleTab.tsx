@@ -1,48 +1,46 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../../../shared/AuthContext";
-import { ScheduleApi } from "./schedule.api";
-import { groupSchedulesToBatches } from "./schedule.batch";
-import ScheduleBatchCard from "./ScheduleBatchCard";
-import EditScheduleModal from "./EditScheduleModal";
+import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
+  ArrowPathIcon,
+  CalendarDaysIcon,
+  CheckCircleIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ExclamationTriangleIcon,
+  MapPinIcon,
+  NoSymbolIcon,
+  PencilSquareIcon,
+  PlusIcon,
+  UserCircleIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import { useAuth } from "../../../../shared/AuthContext";
+import { Button, EmptyState, ErrorState, LoadingState } from "../../../../shared/ui";
+import { GroupApi, GroupCoachApiModel } from "../group.api";
+import CoachProfileLink from "../components/CoachProfileLink";
+import { AdminSessionApi, AdminSessionEffectiveStatus, AdminSessionListItem } from "../session.api";
+import EditScheduleModal from "./EditScheduleModal";
+import { groupSchedulesToBatches } from "./schedule.batch";
+import { ScheduleApi } from "./schedule.api";
+import {
+  DayOfWeek,
   GroupScheduleDto,
+  GroupScheduleOverview,
   ScheduleBatch,
   ScheduleValidationResult,
   UpdateScheduleBatchCommand,
 } from "./schedule.types";
-import {
-  GroupApi,
-  GroupCoachApiModel,
-  GroupScheduleRisksResponse,
-} from "../group.api";
-import toast from "react-hot-toast";
-import {
-  Button,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-} from "../../../../shared/ui";
-import {
-  CalendarDaysIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  PlusIcon,
-  UserCircleIcon,
-} from "@heroicons/react/24/outline";
-import { AdminSessionApi, AdminSessionListItem, AdminSessionEffectiveStatus } from "../session.api";
 
-const weekDays = [
-  { key: "MONDAY", label: "Пн" },
-  { key: "TUESDAY", label: "Вт" },
-  { key: "WEDNESDAY", label: "Ср" },
-  { key: "THURSDAY", label: "Чт" },
-  { key: "FRIDAY", label: "Пт" },
-  { key: "SATURDAY", label: "Сб" },
-  { key: "SUNDAY", label: "Вс" },
-] as const;
+type CalendarView = "week" | "month";
 
-const toTime = (value: string) => value.slice(0, 5);
+const dayOrder: DayOfWeek[] = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+const shortDayLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const fullDayLabels: Record<DayOfWeek, string> = {
+  MONDAY: "Пн", TUESDAY: "Вт", WEDNESDAY: "Ср", THURSDAY: "Чт", FRIDAY: "Пт", SATURDAY: "Сб", SUNDAY: "Вс",
+};
 
 const toDateInput = (date: Date) => {
   const year = date.getFullYear();
@@ -51,472 +49,419 @@ const toDateInput = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const getMonthRange = () => {
-  const now = new Date();
-  const from = new Date(now.getFullYear(), now.getMonth(), 1);
-  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return { from: toDateInput(from), to: toDateInput(to) };
+const parseDate = (value: string | null) => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date();
+  const [year, month, day] = value.split("-").map(Number);
+  const result = new Date(year, month - 1, day);
+  return Number.isNaN(result.getTime()) ? new Date() : result;
 };
 
-const sessionStatusLabels: Record<AdminSessionEffectiveStatus, string> = {
-  PLANNED: "Запланировано",
-  IN_PROGRESS: "Идет",
-  COMPLETED: "Завершено",
-  CANCELLED: "Отменено",
-  OVERDUE: "Просрочено",
+const parseMonth = (value: string | null) => {
+  if (!value || !/^\d{4}-\d{2}$/.test(value)) return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const [year, month] = value.split("-").map(Number);
+  return new Date(year, month - 1, 1);
 };
 
-const sessionStatusClasses: Record<AdminSessionEffectiveStatus, string> = {
-  PLANNED: "border-cyan-100 bg-cyan-50 text-cyan-800",
-  IN_PROGRESS: "border-emerald-100 bg-emerald-50 text-emerald-700",
-  COMPLETED: "border-slate-200 bg-slate-50 text-slate-600",
-  CANCELLED: "border-rose-100 bg-rose-50 text-rose-700",
-  OVERDUE: "border-amber-100 bg-amber-50 text-amber-800",
+const addDays = (date: Date, amount: number) => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + amount);
+  return result;
 };
 
-const formatSessionDate = (value: string) => {
-  const [datePart] = value.split("T");
-  const [year, month, day] = datePart.split("-").map(Number);
-  const date = year && month && day ? new Date(year, month - 1, day) : new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "short",
-  }).format(date);
+const startOfWeek = (date: Date) => {
+  const result = new Date(date);
+  const day = result.getDay();
+  result.setDate(result.getDate() - (day === 0 ? 6 : day - 1));
+  return result;
 };
 
-const formatSessionTime = (value: string) => {
-  return value.split("T")[1]?.slice(0, 5) ?? value.slice(11, 16);
+const toMonthParam = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+const formatMonth = (date: Date) => new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(date);
+const formatPeriodDate = (value: string) => new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", year: "numeric" }).format(parseDate(value));
+const formatTime = (value: string) => value.split("T")[1]?.slice(0, 5) ?? value.slice(11, 16);
+const sessionDateKey = (session: AdminSessionListItem) => session.sessionDate || session.startsAt.slice(0, 10);
+
+const formatWeekRange = (start: Date, end: Date) => {
+  const startText = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: start.getMonth() === end.getMonth() ? undefined : "short" }).format(start);
+  const endText = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", year: "numeric" }).format(end);
+  return `${startText} - ${endText}`;
+};
+
+const getRange = (view: CalendarView, anchor: Date) => {
+  if (view === "week") {
+    const from = startOfWeek(anchor);
+    const to = addDays(from, 6);
+    return { from: toDateInput(from), to: toDateInput(to), fromDate: from, toDate: to };
+  }
+  const from = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const to = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+  return { from: toDateInput(from), to: toDateInput(to), fromDate: from, toDate: to };
 };
 
 const GroupScheduleTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   const { user } = useAuth();
   const token = user?.accessToken;
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view: CalendarView = searchParams.get("view") === "month" ? "month" : "week";
+  const anchor = useMemo(
+    () => view === "week" ? parseDate(searchParams.get("date")) : parseMonth(searchParams.get("month")),
+    [searchParams, view],
+  );
+  const range = useMemo(() => getRange(view, anchor), [anchor, view]);
+  const showCancelled = searchParams.get("cancelled") === "true";
+  const overviewMonth = toMonthParam(anchor);
 
   const [schedules, setSchedules] = useState<GroupScheduleDto[]>([]);
+  const [archivedSchedules, setArchivedSchedules] = useState<GroupScheduleDto[]>([]);
   const [sessions, setSessions] = useState<AdminSessionListItem[]>([]);
+  const [overview, setOverview] = useState<GroupScheduleOverview | null>(null);
   const [coaches, setCoaches] = useState<GroupCoachApiModel[]>([]);
-  const [risks, setRisks] = useState<GroupScheduleRisksResponse | null>(null);
   const [editingBatch, setEditingBatch] = useState<ScheduleBatch | null>(null);
+  const [periodsOpen, setPeriodsOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) {
-      toast.error("Нет авторизации");
-      return;
-    }
-    void reload();
-    GroupApi.getCoaches(groupId, token)
-      .then((r) => setCoaches(r.coaches))
-      .catch((e) => {
-        console.error("Failed to load group coaches", e);
-        toast.error("Не удалось загрузить тренеров группы");
-      });
-  }, [groupId, token]);
+    const expected = view === "week" ? toDateInput(anchor) : toMonthParam(anchor);
+    const key = view === "week" ? "date" : "month";
+    if (searchParams.get("view") === view && searchParams.get(key) === expected) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("view", view);
+    next.set(key, expected);
+    next.delete(view === "week" ? "month" : "date");
+    setSearchParams(next, { replace: true });
+  }, [anchor, searchParams, setSearchParams, view]);
 
   const reload = async () => {
     if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const [data, risksData] = await Promise.all([
+      const [scheduleData, allScheduleData, sessionData, overviewData, coachData] = await Promise.all([
         ScheduleApi.listByGroup(groupId, token),
-        GroupApi.getScheduleRisks(groupId, token),
+        ScheduleApi.listAllByGroup(groupId, token),
+        AdminSessionApi.listByGroup(groupId, { from: range.from, to: range.to }, token),
+        ScheduleApi.getOverview(groupId, overviewMonth, token),
+        GroupApi.getCoaches(groupId, token),
       ]);
-      setSchedules(data);
-      setRisks(risksData);
-      const range = getMonthRange();
-      const sessionsData = await AdminSessionApi.listByGroup(groupId, range, token).catch((sessionError) => {
-        console.error("Failed to load materialized group sessions", sessionError);
-        return null;
-      });
-      setSessions(sessionsData?.items ?? []);
+      setSchedules(scheduleData);
+      setArchivedSchedules(allScheduleData.filter((schedule) => schedule.status !== "ACTIVE"));
+      setSessions(sessionData.items);
+      setOverview(overviewData);
+      setCoaches(coachData.coaches);
     } catch (e) {
       console.error("Failed to load group schedule", e);
       setError("Не удалось загрузить расписание группы");
-      setSchedules([]);
-      setSessions([]);
-      setRisks(null);
     } finally {
       setLoading(false);
     }
   };
 
-  /* ===== COACH MAP ===== */
+  useEffect(() => { void reload(); }, [groupId, overviewMonth, range.from, range.to, token]);
 
-  const coachMap = Object.fromEntries(
-    coaches.map((c) => [
-      c.coachId,
-      `${c.coachFirstName} ${c.coachLastName}${
-        c.coachRole === "MAIN" ? " (главный)" : ""
-      }`,
-    ])
-  );
+  const coachMap = useMemo(() => Object.fromEntries(coaches.map((coach) => [
+    coach.coachId,
+    `${coach.coachFirstName} ${coach.coachLastName}${coach.coachRole === "MAIN" ? " · главный" : ""}`,
+  ])), [coaches]);
+  const coachOptions = coaches.map((coach) => ({ id: coach.coachId, name: coachMap[coach.coachId] }));
+  const batches = groupSchedulesToBatches(schedules).map((batch) => ({ ...batch, coachName: coachMap[batch.coachId] }));
+  const archivedBatches = groupSchedulesToBatches(archivedSchedules).map((batch) => ({ ...batch, coachName: coachMap[batch.coachId] }));
+  const visibleSessions = sessions.filter((session) => showCancelled || (session.effectiveStatus ?? session.status) !== "CANCELLED");
 
-  const coachOptions = coaches.map((c) => ({
-    id: c.coachId,
-    name: coachMap[c.coachId],
-  }));
-
-  /* ===== BATCHES ===== */
-
-  const batches = groupSchedulesToBatches(schedules).map((b) => ({
-    ...b,
-    coachName: coachMap[b.coachId],
-  }));
-  const activeSchedules = schedules.filter((schedule) => schedule.status !== "CANCELLED");
-  const upcomingSessions = sessions
-    .slice()
-    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
-    .slice(0, 8);
-  const weeklyScheduleByDay = weekDays.map((day) => ({
-    ...day,
-    items: activeSchedules
-      .filter((schedule) => schedule.dayOfWeek === day.key)
-      .slice()
-      .sort((a, b) => a.startTime.localeCompare(b.startTime)),
-  }));
-
-  if (!token) {
-    return <ErrorState message="Нет авторизации" />;
-  }
-
-  const formatSessionDateTime = (value: string | null) => {
-    if (!value) return "Нет ближайших занятий";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat("ru-RU", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(date);
+  const openNewPeriod = () => {
+    if (!coachOptions.length) {
+      toast.error("Сначала назначьте тренера группе");
+      return;
+    }
+    setEditingBatch({ key: "new", coachId: coachOptions[0].id, type: "REGULAR", startDate: toDateInput(new Date()), endDate: "", schedules: [] });
   };
 
-  const validateAndSaveBatch = async (
-    payload: UpdateScheduleBatchCommand
-  ): Promise<ScheduleValidationResult> => {
-    const validationPayload = {
+  const validateAndSaveBatch = async (payload: UpdateScheduleBatchCommand): Promise<ScheduleValidationResult> => {
+    if (!token) throw new Error("Нет авторизации");
+    const validation = await ScheduleApi.validateGroupSchedule(groupId, {
       ...payload,
-      ...(editingBatch && editingBatch.key !== "new"
-        ? { excludeScheduleIds: editingBatch.schedules.map((schedule) => schedule.scheduleId) }
-        : {}),
-    };
-
-    const validation = await ScheduleApi.validateGroupSchedule(
-      groupId,
-      validationPayload,
-      token
-    );
-
-    if (!validation.valid) {
-      return validation;
-    }
-
-    if (editingBatch?.key === "new") {
-      await ScheduleApi.createGroupSchedule(groupId, payload, token);
-    } else {
-      await ScheduleApi.updateGroupSchedule(groupId, payload, token);
-    }
-    await reload();
+      ...(editingBatch?.key !== "new" ? { excludeScheduleIds: editingBatch?.schedules.map((item) => item.scheduleId) } : {}),
+    }, token);
+    if (!validation.valid) return validation;
+    if (editingBatch?.key === "new") await ScheduleApi.createGroupSchedule(groupId, payload, token);
+    else await ScheduleApi.updateGroupSchedule(groupId, payload, token);
     setEditingBatch(null);
-
+    await reload();
     return validation;
   };
 
+  const finishBatch = async (batch: ScheduleBatch) => {
+    if (!token || !confirm("Завершить период? Будущие занятия по нему будут отменены, прошедшие сохранятся.")) return;
+    await ScheduleApi.deleteBatch(groupId, { coachId: batch.coachId, type: batch.type, startDate: batch.startDate, endDate: batch.endDate }, token);
+    toast.success("Период завершён");
+    await reload();
+  };
+
+  const setView = (nextView: CalendarView) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("view", nextView);
+    if (nextView === "week") {
+      next.set("date", toDateInput(anchor));
+      next.delete("month");
+    } else {
+      next.set("month", toMonthParam(anchor));
+      next.delete("date");
+    }
+    setSearchParams(next);
+  };
+
+  const move = (amount: number) => {
+    const nextAnchor = view === "week" ? addDays(anchor, amount * 7) : new Date(anchor.getFullYear(), anchor.getMonth() + amount, 1);
+    const next = new URLSearchParams(searchParams);
+    next.set(view === "week" ? "date" : "month", view === "week" ? toDateInput(nextAnchor) : toMonthParam(nextAnchor));
+    setSearchParams(next);
+  };
+
+  const goToday = () => {
+    const now = new Date();
+    const next = new URLSearchParams(searchParams);
+    next.set(view === "week" ? "date" : "month", view === "week" ? toDateInput(now) : toMonthParam(now));
+    setSearchParams(next);
+  };
+
+  const toggleCancelled = () => {
+    const next = new URLSearchParams(searchParams);
+    if (showCancelled) next.delete("cancelled"); else next.set("cancelled", "true");
+    setSearchParams(next);
+    setActionsOpen(false);
+  };
+
+  if (!token) return <ErrorState message="Нет авторизации" />;
+  if (loading) return <LoadingState label="Загрузка расписания..." />;
+  if (error) return <ErrorState message={error} onRetry={reload} />;
+
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <div className="text-base font-semibold text-slate-950">Расписание группы</div>
-          <div className="mt-1 max-w-2xl text-sm text-slate-500">
-            Сначала недельная картина для контроля, ниже периоды расписания для редактирования.
+          <div className="flex items-center gap-2 text-base font-semibold text-slate-950">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-50 text-cyan-700"><CalendarDaysIcon className="h-4 w-4" /></span>
+            Расписание
           </div>
+          <div className="mt-1.5 text-sm text-slate-500">Занятия группы и управление регулярными периодами.</div>
         </div>
 
-        <Button
-          type="button"
-          onClick={() => {
-            if (coachOptions.length === 0) {
-              toast.error("Сначала назначьте тренера группе");
-              return;
-            }
-
-            setEditingBatch({
-              key: "new",
-              coachId: coachOptions[0].id,
-              type: "REGULAR",
-              startDate: new Date().toISOString().slice(0, 10),
-              endDate: "",
-              schedules: [],
-            });
-          }}
-        >
-          <PlusIcon className="h-4 w-4" />
-          Добавить период
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex h-10 rounded-lg border border-slate-200 bg-slate-100 p-1">
+            <CalendarViewButton active={view === "week"} onClick={() => setView("week")}>Неделя</CalendarViewButton>
+            <CalendarViewButton active={view === "month"} onClick={() => setView("month")}>Месяц</CalendarViewButton>
+          </div>
+          <Button type="button" onClick={openNewPeriod}><PlusIcon className="h-4 w-4" />Добавить период</Button>
+          <div className="relative">
+            <Button type="button" variant="secondary" onClick={() => setActionsOpen((current) => !current)}>
+              Действия<ChevronDownIcon className="h-4 w-4" />
+            </Button>
+            {actionsOpen ? (
+              <div className="absolute right-0 top-12 z-20 w-64 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl shadow-slate-950/10">
+                <MenuButton icon={<CalendarDaysIcon />} label="Управление периодами" onClick={() => { setPeriodsOpen(true); setActionsOpen(false); }} />
+                <MenuButton icon={<NoSymbolIcon />} label={showCancelled ? "Скрыть отменённые" : "Показать отменённые"} active={showCancelled} onClick={toggleCancelled} />
+                <MenuButton icon={<ArrowPathIcon />} label="Обновить данные" onClick={() => { setActionsOpen(false); void reload(); }} />
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
 
-      {risks ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div
-            className={`rounded-2xl border px-4 py-3 text-sm ${
-              risks.hasConflicts
-                ? "border-rose-200 bg-rose-50 text-rose-800"
-                : "border-emerald-200 bg-emerald-50 text-emerald-800"
-            }`}
-          >
-            <div className="mb-1 flex items-center gap-2 font-semibold">
-              <ExclamationTriangleIcon className="h-4 w-4" />
-              Конфликты расписания
-            </div>
-            <div>
-              {risks.hasConflicts
-                ? `Найдено конфликтов: ${risks.conflictsCount}`
-                : "Конфликтов не обнаружено"}
-            </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" className="h-9 w-9 p-0" title="Назад" onClick={() => move(-1)}><ChevronLeftIcon className="h-4 w-4" /></Button>
+          <div className="min-w-[190px] text-center text-sm font-semibold capitalize text-slate-950">
+            {view === "week" ? formatWeekRange(range.fromDate, range.toDate) : formatMonth(anchor)}
           </div>
+          <Button variant="secondary" size="sm" className="h-9 w-9 p-0" title="Вперёд" onClick={() => move(1)}><ChevronRightIcon className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="sm" onClick={goToday}>Сегодня</Button>
+        </div>
+        <div className="text-xs text-slate-500">
+          {visibleSessions.length} {visibleSessions.length === 1 ? "занятие" : "занятий"}
+          {!showCancelled && sessions.length !== visibleSessions.length ? ` · ${sessions.length - visibleSessions.length} отменённых скрыто` : ""}
+        </div>
+      </div>
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <div className="mb-1 flex items-center gap-2 font-semibold">
-              <CalendarDaysIcon className="h-4 w-4" />
-              Дни без занятий
-            </div>
-            <div>{risks.emptyDaysCount}</div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            <div className="mb-1 font-semibold text-slate-900">Следующее занятие</div>
-            <div>{formatSessionDateTime(risks.nextSessionAt)}</div>
-          </div>
+      {overview?.risk.hasConflicts ? (
+        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <ExclamationTriangleIcon className="h-5 w-5 shrink-0" />
+          В расписании обнаружено конфликтов: {overview.risk.conflictsCount}
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-slate-950">Конкретные занятия</div>
-            <div className="mt-1 text-xs text-slate-500">
-              Материализованные занятия текущего месяца. Клик открывает деталку занятия.
-            </div>
-          </div>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-            {sessions.length} занятий
-          </span>
-        </div>
-
-        {loading ? (
-          <LoadingState label="Загрузка занятий..." />
-        ) : upcomingSessions.length === 0 ? (
-          <EmptyState
-            title="Занятий на месяц нет"
-            description="После материализации расписания конкретные тренировки появятся здесь."
-          />
-        ) : (
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {upcomingSessions.map((session) => {
-              const effectiveStatus = session.effectiveStatus ?? session.status;
-              const mainCoach = session.coaches[0];
-
-              return (
-                <button
-                  key={session.id}
-                  type="button"
-                  onClick={() => navigate(`/admin/groups/${groupId}/sessions/${session.id}`)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-white hover:shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-950">
-                          {formatSessionDate(session.startsAt)} · {formatSessionTime(session.startsAt)}-{formatSessionTime(session.endsAt)}
-                        </span>
-                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${sessionStatusClasses[effectiveStatus]}`}>
-                          {sessionStatusLabels[effectiveStatus]}
-                        </span>
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                        <span>{session.location?.name ?? "Локация не указана"}</span>
-                        <span>{mainCoach?.fullName ?? "Тренер не указан"}</span>
-                      </div>
-                    </div>
-                    <CalendarDaysIcon className="h-5 w-5 shrink-0 text-cyan-800" />
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                    <SessionMiniStat label="Всего" value={session.attendance.total} />
-                    <SessionMiniStat label="Отмечено" value={session.attendance.marked} />
-                    <SessionMiniStat label="Зачтено" value={session.attendance.presentLike} />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-slate-950">Недельная сетка</div>
-            <div className="mt-1 text-xs text-slate-500">
-              Активные слоты по всем периодам расписания.
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-cyan-50 px-2.5 py-1 font-medium text-cyan-800">
-              {activeSchedules.length} слотов
-            </span>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-600">
-              {batches.length} периодов
-            </span>
-          </div>
-        </div>
-
-        {loading ? (
-          <LoadingState label="Загрузка сетки..." />
-        ) : activeSchedules.length === 0 ? (
-          <EmptyState
-            title="Сетка пустая"
-            description="Добавьте период расписания, чтобы увидеть занятия по дням недели."
-          />
-        ) : (
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-            {weeklyScheduleByDay.map((day) => (
-              <div
-                key={day.key}
-                className={`min-h-[142px] rounded-2xl border px-2.5 py-2.5 ${
-                  day.items.length > 0
-                    ? "border-cyan-100 bg-cyan-50/45"
-                    : "border-slate-200 bg-slate-50/70"
-                }`}
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="text-sm font-semibold text-slate-900">{day.label}</div>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
-                    {day.items.length}
-                  </span>
-                </div>
-
-                {day.items.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 px-2 py-5 text-center text-xs text-slate-400">
-                    Свободно
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {day.items.map((item) => (
-                      <div
-                        key={item.scheduleId}
-                        className="rounded-xl border border-white/80 bg-white px-2.5 py-2 shadow-sm"
-                      >
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-950">
-                          <ClockIcon className="h-3.5 w-3.5 text-cyan-800" />
-                          {toTime(item.startTime)}-{toTime(item.endTime)}
-                        </div>
-                        <div className="mt-1 flex items-center gap-1.5 truncate text-[11px] text-slate-500">
-                          <UserCircleIcon className="h-3.5 w-3.5" />
-                          <span className="truncate">{coachMap[item.coachId] ?? "Тренер не указан"}</span>
-                        </div>
-                        <div className="mt-1 truncate text-[11px] text-slate-400">
-                          до {item.endDate || "без даты окончания"}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* BATCH LIST */}
-      {error ? (
-        <ErrorState message={error} onRetry={reload} />
-      ) : loading ? (
-        <LoadingState label="Загрузка периодов..." />
-      ) : batches.length === 0 ? (
-        <EmptyState
-          title="Расписание не создано"
-          description="Добавьте период расписания, чтобы тренировки появились у тренера."
-          action={
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                if (coachOptions.length === 0) {
-                  toast.error("Сначала назначьте тренера группе");
-                  return;
-                }
-                setEditingBatch({
-                  key: "new",
-                  coachId: coachOptions[0].id,
-                  type: "REGULAR",
-                  startDate: new Date().toISOString().slice(0, 10),
-                  endDate: "",
-                  schedules: [],
-                });
-              }}
-            >
-              <PlusIcon className="h-4 w-4" />
-              Добавить период
-            </Button>
-          }
-        />
+      {view === "week" ? (
+        <WeekCalendar start={range.fromDate} sessions={visibleSessions} onOpen={(session) => navigate(`/admin/groups/${groupId}/sessions/${session.id}`)} />
       ) : (
-        <section className="space-y-3">
-          <div>
-            <div className="text-sm font-semibold text-slate-950">Периоды расписания</div>
-            <div className="mt-1 text-xs text-slate-500">
-              Здесь админ редактирует интервалы, тренера и набор дней.
-            </div>
-          </div>
-          {batches.map((batch) => (
-            <ScheduleBatchCard
-              key={batch.key}
-              batch={batch}
-              onEdit={() => setEditingBatch(batch)}
-              onDelete={async () => {
-                if (!confirm("Удалить период расписания?")) return;
-
-                await ScheduleApi.deleteBatch(
-                  groupId,
-                  {
-                    coachId: batch.coachId,
-                    type: batch.type,
-                    startDate: batch.startDate,
-                    endDate: batch.endDate,
-                  },
-                  token
-                );
-
-                await reload();
-              }}
-            />
-          ))}
-        </section>
+        <MonthCalendar month={anchor} sessions={visibleSessions} onOpen={(session) => navigate(`/admin/groups/${groupId}/sessions/${session.id}`)} />
       )}
 
-      {/* MODAL */}
-      {editingBatch && (
-        <EditScheduleModal
-          coaches={coachOptions}
-          initialCoachId={editingBatch.coachId}
-          initialType={editingBatch.type}
-          schedules={editingBatch.schedules}
-          startDate={editingBatch.startDate}
-          endDate={editingBatch.endDate}
-          onClose={() => setEditingBatch(null)}
-          onSave={validateAndSaveBatch}
+      <CalendarLegend showCancelled={showCancelled} />
+
+      {periodsOpen ? (
+        <SchedulePeriodsDrawer
+          batches={batches}
+          archivedBatches={archivedBatches}
+          onClose={() => setPeriodsOpen(false)}
+          onCreate={() => { setPeriodsOpen(false); openNewPeriod(); }}
+          onEdit={(batch) => { setPeriodsOpen(false); setEditingBatch(batch); }}
+          onFinish={finishBatch}
         />
-      )}
+      ) : null}
+
+      {editingBatch ? <EditScheduleModal coaches={coachOptions} initialCoachId={editingBatch.coachId} initialType={editingBatch.type} schedules={editingBatch.schedules} startDate={editingBatch.startDate} endDate={editingBatch.endDate} onClose={() => setEditingBatch(null)} onSave={validateAndSaveBatch} /> : null}
     </div>
   );
 };
 
-const SessionMiniStat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="rounded-xl border border-slate-200 bg-white px-2.5 py-2">
-    <div className="font-semibold text-slate-950">{value}</div>
-    <div className="mt-0.5 text-slate-500">{label}</div>
+const CalendarViewButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
+  <button type="button" onClick={onClick} className={`h-8 rounded-md px-4 text-sm font-semibold transition ${active ? "bg-cyan-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-950"}`}>{children}</button>
+);
+
+const MenuButton: React.FC<{ icon: React.ReactElement; label: string; active?: boolean; onClick: () => void }> = ({ icon, label, active, onClick }) => (
+  <button type="button" onClick={onClick} className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-slate-950">
+    {React.cloneElement(icon, { className: `h-4 w-4 ${active ? "text-cyan-700" : "text-slate-400"}` })}<span className="flex-1">{label}</span>{active ? <CheckCircleIcon className="h-4 w-4 text-cyan-700" /> : null}
+  </button>
+);
+
+const WeekCalendar: React.FC<{ start: Date; sessions: AdminSessionListItem[]; onOpen: (session: AdminSessionListItem) => void }> = ({ start, sessions, onOpen }) => {
+  const today = toDateInput(new Date());
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="grid min-w-[900px] grid-cols-7">
+        {Array.from({ length: 7 }, (_, index) => {
+          const date = addDays(start, index);
+          const key = toDateInput(date);
+          const daySessions = sessions.filter((session) => sessionDateKey(session) === key).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+          const isToday = key === today;
+          return (
+            <section key={key} className={`min-h-[420px] border-r border-slate-200 last:border-r-0 ${isToday ? "bg-cyan-50/30" : "bg-white"}`}>
+              <div className={`border-b border-slate-200 px-3 py-3 text-center ${isToday ? "bg-cyan-50" : "bg-slate-50/70"}`}>
+                <div className={`text-xs font-semibold uppercase ${isToday ? "text-cyan-700" : "text-slate-500"}`}>{shortDayLabels[index]}</div>
+                <div className={`mt-1 text-lg font-semibold ${isToday ? "text-cyan-800" : "text-slate-950"}`}>{date.getDate()}</div>
+              </div>
+              <div className="space-y-2 p-2.5">
+                {daySessions.length ? daySessions.map((session) => <CalendarSessionCard key={session.id} session={session} onOpen={() => onOpen(session)} />) : <div className="py-8 text-center text-xs text-slate-400">Нет занятий</div>}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const MonthCalendar: React.FC<{ month: Date; sessions: AdminSessionListItem[]; onOpen: (session: AdminSessionListItem) => void }> = ({ month, sessions, onOpen }) => {
+  const first = new Date(month.getFullYear(), month.getMonth(), 1);
+  const last = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+  const gridStart = startOfWeek(first);
+  const gridEnd = addDays(startOfWeek(last), 6);
+  const days = Array.from({ length: Math.round((gridEnd.getTime() - gridStart.getTime()) / 86400000) + 1 }, (_, index) => addDays(gridStart, index));
+  const today = toDateInput(new Date());
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="grid min-w-[840px] grid-cols-7 border-b border-slate-200 bg-slate-50/80">
+        {shortDayLabels.map((label) => <div key={label} className="border-r border-slate-200 px-3 py-2.5 text-center text-xs font-semibold uppercase text-slate-500 last:border-r-0">{label}</div>)}
+      </div>
+      <div className="grid min-w-[840px] grid-cols-7">
+        {days.map((date) => {
+          const key = toDateInput(date);
+          const daySessions = sessions.filter((session) => sessionDateKey(session) === key).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+          const outside = date.getMonth() !== month.getMonth();
+          return (
+            <div key={key} className={`min-h-[124px] border-b border-r border-slate-200 p-2 last:border-r-0 ${outside ? "bg-slate-50/60" : key === today ? "bg-cyan-50/30" : "bg-white"}`}>
+              <div className={`mb-2 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${key === today ? "bg-cyan-700 text-white" : outside ? "text-slate-300" : "text-slate-700"}`}>{date.getDate()}</div>
+              {!outside ? (
+                <div className="space-y-1.5">
+                  {daySessions.slice(0, 3).map((session) => <MonthSessionChip key={session.id} session={session} onOpen={() => onOpen(session)} />)}
+                  {daySessions.length > 3 ? <div className="px-1 text-xs font-medium text-slate-500">Ещё {daySessions.length - 3}</div> : null}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const sessionTone = (status: AdminSessionEffectiveStatus) => {
+  if (status === "CANCELLED") return { card: "border-slate-200 bg-slate-50 text-slate-500", dot: "bg-slate-400", chip: "border-slate-200 bg-slate-50 text-slate-500" };
+  if (status === "IN_PROGRESS") return { card: "border-emerald-300 bg-emerald-50 text-emerald-950", dot: "bg-emerald-500", chip: "border-emerald-200 bg-emerald-50 text-emerald-800" };
+  if (status === "COMPLETED" || status === "OVERDUE") return { card: "border-emerald-200 bg-white text-slate-800", dot: "bg-emerald-500", chip: "border-emerald-100 bg-emerald-50/70 text-emerald-800" };
+  return { card: "border-cyan-200 bg-cyan-50/70 text-slate-900", dot: "bg-cyan-600", chip: "border-cyan-200 bg-cyan-50 text-cyan-900" };
+};
+
+const CalendarSessionCard: React.FC<{ session: AdminSessionListItem; onOpen: () => void }> = ({ session, onOpen }) => {
+  const status = session.effectiveStatus ?? session.status;
+  const tone = sessionTone(status);
+  const coach = session.coaches[0];
+  return (
+    <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(); } }} className={`w-full cursor-pointer rounded-lg border p-2.5 text-left transition hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${tone.card}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold">{formatTime(session.startsAt)} - {formatTime(session.endsAt)}</span>
+        <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
+      </div>
+      <div className="mt-2 flex items-center gap-1.5 truncate text-xs"><UserCircleIcon className="h-3.5 w-3.5 shrink-0 opacity-60" />{coach ? <CoachProfileLink coachId={coach.id} className="max-w-full text-xs" showArrow={false}>{coach.fullName}</CoachProfileLink> : <span className="truncate">Тренер не назначен</span>}</div>
+      <div className="mt-1 flex items-center gap-1.5 truncate text-[11px] opacity-70"><MapPinIcon className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{session.location?.name ?? "Место не указано"}</span></div>
+      {status === "CANCELLED" ? <div className="mt-2 text-[11px] font-semibold">Отменено</div> : null}
+    </div>
+  );
+};
+
+const MonthSessionChip: React.FC<{ session: AdminSessionListItem; onOpen: () => void }> = ({ session, onOpen }) => {
+  const status = session.effectiveStatus ?? session.status;
+  const tone = sessionTone(status);
+  const coach = session.coaches[0];
+  return <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(); } }} title={`${formatTime(session.startsAt)} - ${coach?.fullName ?? "Без тренера"}`} className={`flex w-full cursor-pointer items-center gap-1.5 rounded border px-1.5 py-1 text-left text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${tone.chip}`}><span className={`h-1.5 w-1.5 shrink-0 rounded-full ${tone.dot}`} /><span>{formatTime(session.startsAt)}</span>{coach ? <CoachProfileLink coachId={coach.id} className="max-w-full text-[11px] font-normal opacity-75" showArrow={false}>{coach.fullName}</CoachProfileLink> : <span className="truncate font-normal opacity-75">Без тренера</span>}</div>;
+};
+
+const CalendarLegend: React.FC<{ showCancelled: boolean }> = ({ showCancelled }) => (
+  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
+    <Legend color="bg-cyan-600" label="Запланировано" />
+    <Legend color="bg-emerald-500" label="Идёт или завершено" />
+    {showCancelled ? <Legend color="bg-slate-400" label="Отменено" /> : null}
+  </div>
+);
+
+const Legend: React.FC<{ color: string; label: string }> = ({ color, label }) => <span className="flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-sm ${color}`} />{label}</span>;
+
+const SchedulePeriodsDrawer: React.FC<{
+  batches: Array<ScheduleBatch & { coachName?: string }>;
+  archivedBatches: Array<ScheduleBatch & { coachName?: string }>;
+  onClose: () => void;
+  onCreate: () => void;
+  onEdit: (batch: ScheduleBatch) => void;
+  onFinish: (batch: ScheduleBatch) => void;
+}> = ({ batches, archivedBatches, onClose, onCreate, onEdit, onFinish }) => createPortal(
+  <div className="fixed inset-0 z-50">
+    <button type="button" aria-label="Закрыть управление периодами" className="fixed inset-0 bg-slate-950/30" onClick={onClose} />
+    <aside role="dialog" aria-modal="true" aria-label="Управление периодами расписания" className="fixed inset-x-0 bottom-0 flex max-h-[94vh] min-h-0 flex-col rounded-t-xl bg-white shadow-2xl lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:w-[min(560px,100vw)] lg:rounded-none">
+      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div><h2 className="text-lg font-semibold text-slate-950">Периоды расписания</h2><p className="mt-1 text-xs text-slate-500">Правила, по которым создаются будущие занятия.</p></div>
+        <button type="button" onClick={onClose} title="Закрыть" className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"><XMarkIcon className="h-5 w-5" /></button>
+      </div>
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
+        <section>
+          <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold text-slate-950">Активные периоды</h3><span className="text-xs text-slate-500">{batches.length}</span></div>
+          {batches.length ? <div className="space-y-3">{batches.map((batch) => <PeriodRow key={batch.key} batch={batch} onEdit={() => onEdit(batch)} onFinish={() => onFinish(batch)} />)}</div> : <EmptyState title="Активных периодов нет" description="Добавьте период, чтобы автоматически создавать занятия." />}
+        </section>
+        {archivedBatches.length ? <section className="border-t border-slate-200 pt-5"><h3 className="mb-3 text-sm font-semibold text-slate-950">История · {archivedBatches.length}</h3><div className="divide-y divide-slate-100 rounded-lg border border-slate-200 px-3">{archivedBatches.map((batch) => <div key={batch.key} className="py-3 text-sm"><div className="font-medium text-slate-700">{formatPeriodDate(batch.startDate)} - {batch.endDate ? formatPeriodDate(batch.endDate) : "без даты"}</div><div className="mt-1 flex items-center gap-1 text-xs text-slate-500">{batch.coachName ? <CoachProfileLink coachId={batch.coachId} className="text-xs">{batch.coachName}</CoachProfileLink> : "Тренер не указан"}<span>· завершён</span></div></div>)}</div></section> : null}
+      </div>
+      <div className="flex shrink-0 justify-end border-t border-slate-200 px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4"><Button onClick={onCreate}><PlusIcon className="h-4 w-4" />Добавить период</Button></div>
+    </aside>
+  </div>,
+  document.body,
+);
+
+const PeriodRow: React.FC<{ batch: ScheduleBatch & { coachName?: string }; onEdit: () => void; onFinish: () => void }> = ({ batch, onEdit, onFinish }) => (
+  <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="flex items-start justify-between gap-3">
+      <div><div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-slate-950">{batch.type === "REGULAR" ? "Регулярный период" : "Временный период"}</span><span className="rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">Активен</span></div><div className="mt-1 text-xs text-slate-500">{formatPeriodDate(batch.startDate)} - {batch.endDate ? formatPeriodDate(batch.endDate) : "без даты окончания"}</div><div className="mt-2 text-sm text-slate-700">{batch.coachName ? <CoachProfileLink coachId={batch.coachId}>{batch.coachName}</CoachProfileLink> : "Тренер не указан"}</div></div>
+      <div className="flex gap-1"><button type="button" onClick={onEdit} title="Редактировать период" className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"><PencilSquareIcon className="h-4 w-4" /></button><button type="button" onClick={onFinish} title="Завершить период" className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-100 text-rose-600 hover:bg-rose-50"><NoSymbolIcon className="h-4 w-4" /></button></div>
+    </div>
+    <div className="mt-3 flex flex-wrap gap-1.5">{batch.schedules.sort((a, b) => dayOrder.indexOf(a.dayOfWeek) - dayOrder.indexOf(b.dayOfWeek)).map((slot) => <span key={slot.scheduleId} className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">{fullDayLabels[slot.dayOfWeek]} · {slot.startTime.slice(0, 5)}-{slot.endTime.slice(0, 5)}</span>)}</div>
   </div>
 );
 

@@ -44,6 +44,7 @@ const AdminLayout: React.FC = () => {
   const { branchName } = useAdminBranch();
   const branchLabel = branchName === "Main Branch" ? "Главный филиал" : branchName;
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [compactViewport, setCompactViewport] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
@@ -60,6 +61,16 @@ const AdminLayout: React.FC = () => {
     }
   }, [collapsed]);
 
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const sync = () => setCompactViewport(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  const sidebarCollapsed = collapsed || compactViewport;
+
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -67,7 +78,7 @@ const AdminLayout: React.FC = () => {
 
   const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
     `group relative mx-2 flex items-center rounded-xl text-sm font-semibold transition-all duration-200 ${
-      collapsed ? "justify-center px-0 py-3" : "gap-3 px-3 py-2.5"
+      sidebarCollapsed ? "justify-center px-0 py-3" : "gap-3 px-3 py-2.5"
     } ${
       isActive
         ? "bg-cyan-50 text-cyan-900"
@@ -82,7 +93,7 @@ const AdminLayout: React.FC = () => {
         to={item.to}
         className={navLinkClasses}
         end={item.end}
-        title={collapsed ? item.label : undefined}
+        title={sidebarCollapsed ? item.label : undefined}
       >
         {({ isActive }) => (
           <>
@@ -91,7 +102,7 @@ const AdminLayout: React.FC = () => {
                 isActive ? "text-cyan-700" : "text-slate-400 group-hover:text-cyan-700"
               }`}
             />
-            {!collapsed ? <span className="min-w-0 truncate">{item.label}</span> : null}
+            {!sidebarCollapsed ? <span className="min-w-0 truncate">{item.label}</span> : null}
           </>
         )}
       </NavLink>
@@ -102,14 +113,14 @@ const AdminLayout: React.FC = () => {
     <div className="flex h-screen overflow-hidden app-bg-admin">
       <aside
         className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-slate-200 bg-white/92 shadow-sm backdrop-blur transition-[width] duration-300 ${
-          collapsed ? "w-[72px]" : "w-[260px]"
+          sidebarCollapsed ? "w-[72px]" : "w-[260px]"
         }`}
       >
-        <div className={`${collapsed ? "px-3" : "px-5"} pb-4 pt-5`}>
-          <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between gap-3"}`}>
-            <div className={`flex min-w-0 items-center ${collapsed ? "justify-center" : "gap-3"}`}>
+        <div className={`${sidebarCollapsed ? "px-3" : "px-5"} pb-4 pt-5`}>
+          <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "justify-between gap-3"}`}>
+            <div className={`flex min-w-0 items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
               <BrandMark compact />
-              {!collapsed ? (
+              {!sidebarCollapsed ? (
                 <div className="min-w-0">
                   <div className="heading-font truncate text-lg font-semibold tracking-tight text-slate-950">
                     FootballCRM
@@ -124,7 +135,7 @@ const AdminLayout: React.FC = () => {
                 setCollapsed((value) => !value);
                 setProfileMenuOpen(false);
               }}
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-cyan-200 hover:text-cyan-700 ${
+              className={`hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-cyan-200 hover:text-cyan-700 md:flex ${
                 collapsed ? "absolute left-[54px] top-5" : ""
               }`}
               aria-label={collapsed ? "Открыть меню" : "Свернуть меню"}
@@ -137,7 +148,7 @@ const AdminLayout: React.FC = () => {
         </div>
 
         <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-1 pb-4">
-          {!collapsed ? (
+          {!sidebarCollapsed ? (
             <div className="mb-2 px-5 text-[11px] font-semibold uppercase text-slate-300">Меню</div>
           ) : (
             <div className="mb-2 flex justify-center text-slate-300">
@@ -151,7 +162,7 @@ const AdminLayout: React.FC = () => {
           {profileMenuOpen ? (
             <div
               className={`absolute bottom-[74px] z-30 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10 ${
-                collapsed ? "left-3 w-56" : "left-3 right-3"
+                sidebarCollapsed ? "left-3 w-56" : "left-3 right-3"
               }`}
             >
               <button
@@ -184,22 +195,22 @@ const AdminLayout: React.FC = () => {
           <button
             type="button"
             onClick={() => setProfileMenuOpen((value) => !value)}
-            title={collapsed ? "Профиль" : undefined}
+            title={sidebarCollapsed ? "Профиль" : undefined}
             className={`flex w-full items-center rounded-2xl text-left transition ${
-              collapsed ? "justify-center px-0 py-2" : "gap-3 px-1 py-2"
+              sidebarCollapsed ? "justify-center px-0 py-2" : "gap-3 px-1 py-2"
             } ${profileMenuOpen ? "bg-slate-50" : "hover:bg-slate-50"}`}
             aria-expanded={profileMenuOpen}
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-700 text-sm font-semibold text-white">
               {(user?.email?.[0] ?? "A").toUpperCase()}
             </div>
-            {!collapsed ? (
+            {!sidebarCollapsed ? (
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold text-slate-800">Администратор</div>
                 <div className="truncate text-xs text-slate-500">{branchLabel ?? "Филиал не выбран"}</div>
               </div>
             ) : null}
-            {!collapsed ? (
+            {!sidebarCollapsed ? (
               <ChevronRightIcon
                 className={`h-4 w-4 shrink-0 text-slate-400 transition ${profileMenuOpen ? "-rotate-90" : ""}`}
               />
@@ -209,7 +220,7 @@ const AdminLayout: React.FC = () => {
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <main className="min-w-0 flex-1 overflow-y-auto p-5 text-[0.95rem]">
+        <main className="min-w-0 flex-1 overflow-y-auto p-3 text-[0.95rem] sm:p-5">
           <Outlet />
         </main>
       </div>

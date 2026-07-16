@@ -1,4 +1,4 @@
-export type MediaOwnerType = "PLAYER" | "COACH" | "BRANCH" | "CONTRACT" | "PAYMENT";
+export type MediaOwnerType = "PLAYER" | "COACH" | "BRANCH" | "GROUP" | "CONTRACT" | "PAYMENT";
 
 export type MediaKind = "AVATAR" | "DOCUMENT" | "RECEIPT" | "GALLERY";
 

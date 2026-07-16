@@ -1,4 +1,5 @@
 import { apiClient } from "../../../shared/api";
+import { MediaAsset } from "../../../shared/media.types";
 
 export type AdminSessionStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 export type AdminSessionEffectiveStatus = AdminSessionStatus | "OVERDUE";
@@ -13,6 +14,7 @@ export interface AdminSessionCoach {
   id: string;
   fullName: string;
   role: AdminSessionCoachRole;
+  avatar?: MediaAsset | null;
 }
 
 export interface AdminSessionAttendanceSummary {
@@ -98,6 +100,7 @@ export interface AdminSessionAttendanceParticipant {
   fullName: string;
   status: AdminPersistedAttendanceStatus | null;
   comment: string | null;
+  avatar?: MediaAsset | null;
 }
 
 export interface AdminSessionAttendanceOutput {

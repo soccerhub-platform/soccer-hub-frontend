@@ -1,6 +1,8 @@
 import React from "react";
+import { NoSymbolIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import { GroupScheduleDto } from "./schedule.types";
 import ScheduleWeekView from "./ScheduleWeekView";
+import CoachProfileLink from "../components/CoachProfileLink";
 
 interface Props {
   batch: {
@@ -12,14 +14,14 @@ interface Props {
     schedules: GroupScheduleDto[];
   };
   onEdit: () => void;
-  onDelete: () => void;
+  onFinish: () => void;
 }
 
-const ScheduleBatchCard: React.FC<Props> = ({ batch, onEdit, onDelete }) => {
+const ScheduleBatchCard: React.FC<Props> = ({ batch, onEdit, onFinish }) => {
   const sessionsPerWeek = batch.schedules.length;
 
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -39,26 +41,30 @@ const ScheduleBatchCard: React.FC<Props> = ({ batch, onEdit, onDelete }) => {
           </div>
           {batch.coachName ? (
             <div className="mt-1 text-sm text-slate-700">
-              Тренер: <span className="font-medium text-slate-950">{batch.coachName}</span>
+              Тренер: <CoachProfileLink coachId={batch.coachId}>{batch.coachName}</CoachProfileLink>
             </div>
           ) : null}
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-1.5">
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            title="Редактировать период"
+            aria-label="Редактировать период"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
           >
-            Редактировать
+            <PencilSquareIcon className="h-4 w-4" />
           </button>
 
           <button
             type="button"
-            onClick={onDelete}
-            className="rounded-xl border border-rose-100 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50"
+            onClick={onFinish}
+            title="Завершить период"
+            aria-label="Завершить период"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-100 text-rose-600 hover:bg-rose-50"
           >
-            Удалить
+            <NoSymbolIcon className="h-4 w-4" />
           </button>
         </div>
       </div>

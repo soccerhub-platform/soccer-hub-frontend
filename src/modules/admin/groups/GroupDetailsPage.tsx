@@ -1,15 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
-  ChartBarIcon,
   CalendarDaysIcon,
+  CheckCircleIcon,
+  ChevronRightIcon,
   ClockIcon,
+  EllipsisHorizontalIcon,
   ExclamationTriangleIcon,
   PauseIcon,
   PencilSquareIcon,
+  PhotoIcon,
   PlayIcon,
   StopIcon,
+  TrashIcon,
   UserGroupIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
@@ -22,7 +26,10 @@ import {
 import GroupCoachesTab from "./components/GroupCoachesTab";
 import GroupMembersTab from "./components/GroupMembersTab";
 import GroupAttendanceTab from "./components/GroupAttendanceTab";
+import GroupActivityTimeline from "./components/GroupActivityTimeline";
 import GroupScheduleTab from "./schedule/GroupScheduleTab";
+import GroupAvatar from "./components/GroupAvatar";
+import type { MediaAsset } from "../../../shared/media.types";
 import toast from "react-hot-toast";
 import {
   Button,
@@ -68,6 +75,17 @@ const formatGroupAudience = (group: AdminGroupDetailsModel) => {
   return "Возраст не указан";
 };
 
+const humanizeLevel = (level?: string | null) => {
+  const map: Record<string, string> = {
+    BEGINNER: "Начальный",
+    INTERMEDIATE: "Средний",
+    ADVANCED: "Продвинутый",
+    PRO: "PRO",
+  };
+
+  return level ? map[level] ?? level : "Уровень не указан";
+};
+
 const formatDateTime = (value?: string | null) => {
   if (!value) return "Нет";
   const date = new Date(value);
@@ -102,19 +120,21 @@ const getNextSessionId = (group: AdminGroupDetailsModel | null) => {
   return next.id ?? next.sessionId ?? null;
 };
 
-const SummaryPill: React.FC<{ icon: React.ReactNode; label: string; value: string | number; hint?: string }> = ({
+const GroupMetricCard: React.FC<{ icon: React.ReactNode; label: string; value: string | number; hint?: string }> = ({
   icon,
   label,
   value,
   hint,
 }) => (
-  <div className="rounded-xl border border-white/80 bg-white/85 px-3 py-2 shadow-sm">
-    <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+  <div className="group flex min-h-[104px] items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-[0_10px_26px_-24px_rgba(15,23,42,0.45)] transition hover:border-admin-200 hover:bg-admin-50/20">
+    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-admin-50 text-admin-700 [&>svg]:h-6 [&>svg]:w-6">
       {icon}
-      {label}
+    </span>
+    <div className="min-w-0">
+      <div className="text-sm font-medium text-slate-600">{label}</div>
+      <div className="mt-1 truncate text-[26px] font-semibold leading-none text-slate-950">{value}</div>
+      {hint ? <div className="mt-1.5 truncate text-sm text-slate-500">{hint}</div> : null}
     </div>
-    <div className="mt-1 truncate text-sm font-semibold text-slate-950">{value}</div>
-    {hint ? <div className="mt-0.5 truncate text-[11px] text-slate-400">{hint}</div> : null}
   </div>
 );
 
@@ -144,6 +164,7 @@ const GroupDetailsPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /* ================= LOAD ================= */
@@ -212,37 +233,11 @@ const GroupDetailsPage: React.FC = () => {
     navigate(sectionPath(nextSection, action));
   };
 
-  const mapRecommendedAction = (action: string) => {
-    switch (action) {
-      case "ASSIGN_MAIN_COACH":
-        return {
-          label: "Назначить главного тренера",
-          hint: "Откроется окно назначения тренера с ролью MAIN по умолчанию.",
-          onClick: () => openSection("coaches", "assign-main"),
-        };
-      case "CHECK_SCHEDULE":
-        return {
-          label: "Проверить расписание",
-          hint: "Откроется расписание группы для проверки конфликтов и пустых дней.",
-          onClick: () => openSection("schedule"),
-        };
-      case "OPEN_MEMBERS":
-        return {
-          label: "Открыть состав группы",
-          hint: "Откроется список учеников и статусы их контрактов.",
-          onClick: () => openSection("students"),
-        };
-      default:
-        return null;
-    }
-  };
-
   const detailsGroupId = getGroupId(group, groupId);
   const detailsBranchId = getBranchId(group);
   const summary = group?.summary ?? null;
   const health = group?.health ?? null;
   const healthIssues = Array.isArray(health?.issues) ? health.issues : [];
-  const recommendedActions = Array.isArray(health?.recommendedActions) ? health.recommendedActions : [];
   const capabilities = group?.capabilities ?? {};
   const canEdit = capabilities.canEdit ?? true;
   const canPause = capabilities.canPause ?? group?.status === "ACTIVE";
@@ -252,7 +247,8 @@ const GroupDetailsPage: React.FC = () => {
   const displayStudentsCount = summary?.studentsCount ?? 0;
   const nextSessionStart = getNextSessionStart(group);
   const nextSessionId = getNextSessionId(group);
-  const editOpen = activeSection === "overview" && searchParams.get("edit") === "true";
+  const editOpen = searchParams.get("edit") === "true";
+  const branchName = group?.branch?.name;
 
   const openEdit = () => {
     const next = new URLSearchParams(searchParams);
@@ -332,119 +328,101 @@ const GroupDetailsPage: React.FC = () => {
   }
 
   return (
-    <PageShell className="space-y-5">
+    <PageShell className="max-w-none space-y-5 px-0 pb-4">
       <button
         type="button"
         onClick={() => navigate("/admin/groups")}
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-admin-700"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-admin-700"
       >
         <ArrowLeftIcon className="h-4 w-4" />
-        Назад к группам
+        Все группы
       </button>
 
       <section
         id="group-details-overview"
-        className="scroll-mt-20 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_44px_-34px_rgba(15,23,42,0.45)]"
+        className="scroll-mt-20 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_28px_-24px_rgba(15,23,42,0.5)] sm:p-5"
       >
-        <div className="bg-[radial-gradient(circle_at_top_left,rgba(204,251,241,0.85),rgba(255,255,255,0.96)_42%,rgba(248,250,252,0.96))] p-5">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex min-w-0 gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-admin-700 shadow-sm ring-1 ring-admin-100">
-                <UserGroupIcon className="h-8 w-8" />
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 gap-4">
+            <GroupAvatar name={group.name} avatar={group.avatar} size="lg" className="h-16 w-16 sm:h-20 sm:w-20" />
+
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-[28px] font-semibold leading-tight tracking-tight text-slate-950">{group.name}</h1>
+                <StatusBadge status={group.status} />
               </div>
-
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-semibold tracking-tight text-slate-950">{group.name}</h1>
-                  <StatusBadge status={group.status} />
-                </div>
-                <div className="mt-1 text-sm text-slate-500">
-                  {formatGroupAudience(group)} · {group.level}
-                </div>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  {group.description || "Описание группы пока не добавлено."}
-                </p>
-                {group.status === "STOPPED" ? (
-                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-                    <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                    Группа остановлена. Расписание и новые занятия для нее недоступны.
-                  </div>
-                ) : null}
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+                <span>{formatGroupAudience(group)}</span><span aria-hidden="true">·</span>
+                <span>{humanizeLevel(group.level)}</span>
+                {branchName ? <><span aria-hidden="true">·</span><span>{branchName}</span></> : null}
+                <span aria-hidden="true">·</span><span>{displayStudentsCount} из {capacity} учеников</span>
               </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 lg:justify-end">
-              {canEdit ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={openEdit}
-                >
-                  <PencilSquareIcon className="h-4 w-4" />
-                  Редактировать
-                </Button>
-              ) : null}
-
-              {canResume ? (
-                <Button
-                  type="button"
-                  variant="soft"
-                  isLoading={updating}
-                  onClick={() => changeStatus("ACTIVE")}
-                >
-                  <PlayIcon className="h-4 w-4" />
-                  Активировать
-                </Button>
-              ) : null}
-
-              {canPause ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  isLoading={updating}
-                  onClick={() => changeStatus("PAUSED")}
-                >
-                  <PauseIcon className="h-4 w-4" />
-                  Пауза
-                </Button>
-              ) : null}
-
-              {canStop ? (
-                <Button
-                  type="button"
-                  variant="softDanger"
-                  isLoading={updating}
-                  onClick={() => changeStatus("STOPPED")}
-                >
-                  <StopIcon className="h-4 w-4" />
-                  Остановить
-                </Button>
+              {group.description ? (
+                <p className="mt-2 max-w-3xl text-sm leading-5 text-slate-500">{group.description}</p>
               ) : null}
             </div>
           </div>
 
-          {summary ? (
-            <div className="mt-5 grid grid-cols-2 gap-2 lg:grid-cols-4">
-              {overviewCards.map((card) => (
-                <NavLink key={card.label} to={card.to} className="block rounded-xl transition hover:-translate-y-0.5 hover:ring-2 hover:ring-cyan-100">
-                  <SummaryPill icon={card.icon} label={card.label} value={card.value} hint={card.hint} />
-                </NavLink>
-              ))}
-            </div>
-          ) : null}
+          <div className="relative flex flex-wrap gap-2 lg:justify-end">
+            {canEdit ? (
+              <Button type="button" variant="secondary" onClick={openEdit}>
+                <PencilSquareIcon className="h-4 w-4" />
+                Редактировать
+              </Button>
+            ) : null}
+
+            {canResume || canPause || canStop ? (
+              <button
+                type="button"
+                aria-label="Действия с группой"
+                onClick={() => setActionsOpen((value) => !value)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+              >
+                <EllipsisHorizontalIcon className="h-5 w-5" />
+              </button>
+            ) : null}
+
+            {actionsOpen ? (
+              <div className="absolute right-0 top-11 z-30 min-w-52 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg">
+                {canResume ? (
+                  <button type="button" disabled={updating} onClick={() => { setActionsOpen(false); void changeStatus("ACTIVE"); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                    <PlayIcon className="h-4 w-4" /> Активировать
+                  </button>
+                ) : null}
+                {canPause ? (
+                  <button type="button" disabled={updating} onClick={() => { setActionsOpen(false); void changeStatus("PAUSED"); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                    <PauseIcon className="h-4 w-4" /> Поставить на паузу
+                  </button>
+                ) : null}
+                {canStop ? (
+                  <button type="button" disabled={updating} onClick={() => { setActionsOpen(false); void changeStatus("STOPPED"); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-rose-700 hover:bg-rose-50">
+                    <StopIcon className="h-4 w-4" /> Остановить группу
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
+
+        {group.status === "STOPPED" ? (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            Группа остановлена. Расписание и новые занятия для нее недоступны.
+          </div>
+        ) : null}
+
       </section>
 
-      <nav className="sticky top-3 z-10 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white/90 p-2 shadow-sm backdrop-blur">
+      <nav className="sticky top-2 z-10 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_10px_24px_-24px_rgba(15,23,42,0.55)]">
         {groupSections.map((item) => (
           <NavLink
             key={item.key}
             to={sectionPath(item.key)}
             className={({ isActive }) =>
-              `shrink-0 rounded-xl px-3 py-2 text-sm font-medium transition ${
+              `shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition ${
                 isActive
-                  ? "bg-cyan-50 text-cyan-900 ring-1 ring-cyan-100"
-                  : "text-slate-600 hover:bg-cyan-50 hover:text-cyan-800"
+                  ? "bg-admin-50 text-admin-800"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
               }`
             }
           >
@@ -453,125 +431,83 @@ const GroupDetailsPage: React.FC = () => {
         ))}
       </nav>
 
-      {activeSection === "overview" && healthIssues.length > 0 ? (
-        <SectionCard
-          id="group-details-attention"
-          title="Требует внимания"
-          description="Проблемы, которые важно закрыть по этой группе"
-          className="scroll-mt-20"
-        >
-          <div className="space-y-2">
-            {healthIssues.map((issue) => (
-              <div
-                key={issue.code}
-                className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-800"
-              >
-                <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                <div>
-                  <div className="font-medium">{issue.message}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {recommendedActions.length > 0 ? (
-            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {recommendedActions
-                .map((action) => mapRecommendedAction(action))
-                .filter((action): action is { label: string; hint: string; onClick: () => void } => Boolean(action))
-                .map((action) => (
-                  <div key={action.label} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <Button type="button" size="sm" variant="secondary" onClick={action.onClick}>
-                      {action.label}
-                    </Button>
-                    <p className="mt-2 text-xs text-slate-600">{action.hint}</p>
-                  </div>
-                ))}
+      {activeSection === "overview" ? (
+        <div className="space-y-3">
+          {summary ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {overviewCards.map((card) => (
+                <NavLink key={card.label} to={card.to} className="block rounded-2xl focus:outline-none focus:ring-2 focus:ring-admin-200">
+                  <GroupMetricCard icon={card.icon} label={card.label} value={card.value} hint={card.hint} />
+                </NavLink>
+              ))}
             </div>
           ) : null}
-        </SectionCard>
-      ) : null}
 
-      {activeSection === "overview" ? (
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
           <SectionCard
-            title="Состояние группы"
-            description="Основные операционные показатели из новой admin-деталки."
-          >
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <OverviewMetric label="Заполненность" value={`${displayStudentsCount}/${capacity}`} hint={`${summary?.occupancyPercent ?? 0}% мест занято`} />
-              <OverviewMetric label="Средняя посещаемость" value={`${summary?.averageAttendancePercent ?? 0}%`} hint="по активным занятиям группы" />
-              <OverviewMetric label="Тренеры" value={summary?.coachesCount ?? 0} hint="назначены на группу" />
-              <OverviewMetric label="Занятий в неделю" value={getSessionsPerWeek(group)} hint="по активному расписанию" />
-            </div>
-          </SectionCard>
-
-          <SectionCard
+            icon={<CalendarDaysIcon className="h-4 w-4" />}
             title="Следующее занятие"
-            description="Ближайшая тренировка группы."
+            description="Ближайшая тренировка группы"
           >
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800">
-                  <CalendarDaysIcon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-slate-950">{formatDateTime(nextSessionStart)}</div>
-                  <div className="mt-1 text-sm text-slate-500">
-                    {nextSessionStart ? "Откройте занятие, чтобы управлять переносом, заменой тренера или отменой." : "Ближайших занятий пока нет."}
-                  </div>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                className="mt-4 w-full justify-center"
-                onClick={() => {
-                  if (nextSessionId) {
-                    navigate(`/admin/groups/${detailsGroupId}/sessions/${nextSessionId}`);
-                    return;
-                  }
-                  openSection("schedule");
-                }}
-              >
-                <CalendarDaysIcon className="h-4 w-4" />
-                {nextSessionId ? "Открыть занятие" : "Открыть расписание"}
-              </Button>
-            </div>
+            <button
+              type="button"
+              className="group flex w-full items-center gap-4 rounded-xl p-2 text-left transition hover:bg-slate-50"
+              onClick={() => {
+                if (nextSessionId) {
+                  navigate(`/admin/groups/${detailsGroupId}/sessions/${nextSessionId}`);
+                  return;
+                }
+                openSection("schedule");
+              }}
+            >
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-admin-50 text-admin-700">
+                <CalendarDaysIcon className="h-6 w-6" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-semibold text-slate-950">{formatDateTime(nextSessionStart)}</span>
+                <span className="mt-1 block text-sm text-slate-500">
+                  {nextSessionStart ? "Откройте занятие для управления и посещаемости" : "Откройте расписание, чтобы запланировать занятие"}
+                </span>
+              </span>
+              <ChevronRightIcon className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-admin-700" />
+            </button>
           </SectionCard>
 
           <SectionCard
-            title="Быстрые переходы"
-            description="Ключевые разделы группы открываются отдельными ссылками."
-            className="xl:col-span-2"
+            icon={<ExclamationTriangleIcon className="h-4 w-4" />}
+            title="Требует внимания"
+            description="Проблемы, которые важно закрыть по этой группе"
           >
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <OverviewAction
-                title="Ученики"
-                description="Состав группы, договоры и посещаемость по ученикам."
-                to={sectionPath("students")}
-              />
-              <OverviewAction
-                title="Посещаемость"
-                description="Журналы занятий, сводка по группе и незаполненные отметки."
-                to={sectionPath("attendance")}
-              />
-              <OverviewAction
-                title="Тренеры"
-                description="Назначенные тренеры, роли и действия по группе."
-                to={sectionPath("coaches")}
-              />
-              <OverviewAction
-                title="Расписание"
-                description="Недельная сетка, периоды и конфликты расписания."
-                to={sectionPath("schedule")}
-              />
-            </div>
+            {healthIssues.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {healthIssues.slice(0, 3).map((issue) => (
+                  <div key={issue.code} className="flex items-start gap-3 py-3 text-sm text-slate-700 first:pt-0 last:pb-0">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                      <ExclamationTriangleIcon className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="leading-5">{issue.message}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 py-2 text-sm text-slate-600">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                  <CheckCircleIcon className="h-5 w-5" />
+                </span>
+                <span><strong className="block font-semibold text-slate-900">Всё в порядке</strong>Нет активных рисков по группе.</span>
+              </div>
+            )}
           </SectionCard>
+
+          <SectionCard icon={<ClockIcon className="h-4 w-4" />} title="Последняя активность" description="Недавние изменения по группе и рабочим действиям" className="xl:col-span-2">
+            <GroupActivityTimeline groupId={detailsGroupId} limit={5} />
+          </SectionCard>
+          </div>
         </div>
       ) : null}
 
       {activeSection === "students" ? (
-        <SectionCard title="Ученики" description="Состав группы, участие учеников и действия по переводу или исключению.">
+        <SectionCard className="p-0" bodyClassName="p-4">
           <GroupMembersTab
             groupId={detailsGroupId}
             groupName={group.name}
@@ -584,19 +520,19 @@ const GroupDetailsPage: React.FC = () => {
       ) : null}
 
       {activeSection === "attendance" ? (
-        <SectionCard title="Посещаемость" description="Сводка по занятиям группы и заполненности журналов.">
+        <SectionCard className="p-0" bodyClassName="p-4">
           <GroupAttendanceTab groupId={detailsGroupId} />
         </SectionCard>
       ) : null}
 
       {activeSection === "coaches" ? (
-        <SectionCard title="Тренеры" description="Назначенные тренеры и их роли.">
+        <SectionCard className="p-0" bodyClassName="p-4">
           <GroupCoachesTab groupId={detailsGroupId} branchId={detailsBranchId} />
         </SectionCard>
       ) : null}
 
       {activeSection === "schedule" ? (
-        <SectionCard title="Расписание" description="Недельная сетка и периоды занятий.">
+        <SectionCard className="p-0" bodyClassName="p-4">
           <GroupScheduleTab groupId={detailsGroupId} />
         </SectionCard>
       ) : null}
@@ -610,40 +546,14 @@ const GroupDetailsPage: React.FC = () => {
             closeEdit();
             await loadGroup();
           }}
+          onAvatarChanged={(avatar) => {
+            setGroup((current) => current ? { ...current, avatar } : current);
+          }}
         />
       ) : null}
     </PageShell>
   );
 };
-
-const OverviewMetric: React.FC<{ label: string; value: string | number; hint: string }> = ({
-  label,
-  value,
-  hint,
-}) => (
-  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-    <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-      <ChartBarIcon className="h-4 w-4" />
-      {label}
-    </div>
-    <div className="mt-2 text-xl font-semibold text-slate-950">{value}</div>
-    <div className="mt-1 text-xs text-slate-500">{hint}</div>
-  </div>
-);
-
-const OverviewAction: React.FC<{ title: string; description: string; to: string }> = ({
-  title,
-  description,
-  to,
-}) => (
-  <NavLink
-    to={to}
-    className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-sm"
-  >
-    <div className="text-sm font-semibold text-slate-950">{title}</div>
-    <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
-  </NavLink>
-);
 
 const LEVELS = [
   { value: "BEGINNER", label: "Начальный" },
@@ -661,7 +571,8 @@ const EditGroupModal: React.FC<{
   token: string;
   onClose: () => void;
   onSaved: () => void | Promise<void>;
-}> = ({ group, token, onClose, onSaved }) => {
+  onAvatarChanged: (avatar: MediaAsset | null) => void;
+}> = ({ group, token, onClose, onSaved, onAvatarChanged }) => {
   const [form, setForm] = useState({
     name: group.name ?? "",
     description: group.description ?? "",
@@ -672,6 +583,52 @@ const EditGroupModal: React.FC<{
     level: group.level ?? "BEGINNER",
   });
   const [saving, setSaving] = useState(false);
+  const [avatar, setAvatar] = useState<MediaAsset | null>(group.avatar ?? null);
+  const [avatarAction, setAvatarAction] = useState<"upload" | "delete" | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleAvatarFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Выберите изображение");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Фото должно быть не больше 5 МБ");
+      return;
+    }
+
+    setAvatarAction("upload");
+    try {
+      const nextAvatar = await GroupApi.uploadAvatar(getGroupId(group), file, token);
+      setAvatar(nextAvatar);
+      onAvatarChanged(nextAvatar);
+      toast.success("Фото группы обновлено");
+    } catch (error) {
+      console.error("Failed to upload group avatar", error);
+      toast.error("Не удалось загрузить фото группы");
+    } finally {
+      setAvatarAction(null);
+    }
+  };
+
+  const deleteAvatar = async () => {
+    if (!confirm("Удалить фото группы?")) return;
+    setAvatarAction("delete");
+    try {
+      await GroupApi.deleteAvatar(getGroupId(group), token);
+      setAvatar(null);
+      onAvatarChanged(null);
+      toast.success("Фото группы удалено");
+    } catch (error) {
+      console.error("Failed to delete group avatar", error);
+      toast.error("Не удалось удалить фото группы");
+    } finally {
+      setAvatarAction(null);
+    }
+  };
 
   const submit = async () => {
     if (!form.name.trim()) {
@@ -728,7 +685,7 @@ const EditGroupModal: React.FC<{
       title="Редактирование группы"
       description="Основные данные группы и ограничения."
       onClose={onClose}
-      closeDisabled={saving}
+      closeDisabled={saving || avatarAction !== null}
       maxWidthClassName="max-w-2xl"
       footer={
         <div className="flex justify-end gap-2">
@@ -742,6 +699,52 @@ const EditGroupModal: React.FC<{
       }
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <div className="text-sm font-medium text-slate-700">Фото группы</div>
+          <div className="mt-2 flex items-center gap-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <GroupAvatar name={form.name || group.name} avatar={avatar} size="lg" />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-slate-900">
+                {avatar ? "Фото используется в реестре и шапке группы" : "Фото пока не загружено"}
+              </div>
+              <div className="mt-1 text-xs text-slate-500">PNG, JPG или WebP, до 5 МБ.</div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleAvatarFile}
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  isLoading={avatarAction === "upload"}
+                  disabled={avatarAction !== null}
+                  onClick={() => avatarInputRef.current?.click()}
+                >
+                  <PhotoIcon className="h-4 w-4" />
+                  {avatar ? "Заменить" : "Загрузить"}
+                </Button>
+                {avatar ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="softDanger"
+                    isLoading={avatarAction === "delete"}
+                    disabled={avatarAction !== null}
+                    onClick={deleteAvatar}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                    Удалить
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <FormField label="Название" className="sm:col-span-2">
           <input
             value={form.name}

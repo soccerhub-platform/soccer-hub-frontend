@@ -23,7 +23,7 @@ export interface GroupScheduleDto {
   endDate: string;
 
   scheduleType: ScheduleType;
-  status: "ACTIVE" | "CANCELLED";
+  status: "ACTIVE" | "CANCELLED" | "DELETED";
 
   substitution: boolean;
   substitutionCoachId: string | null;
@@ -86,4 +86,32 @@ export interface ScheduleBatch {
   startDate: string;
   endDate: string;
   schedules: GroupScheduleDto[];
+}
+
+export interface GroupScheduleOverview {
+  groupId: string;
+  from: string;
+  to: string;
+  summary: {
+    total: number;
+    planned: number;
+    inProgress: number;
+    completed: number;
+    cancelled: number;
+  };
+  risk: {
+    hasConflicts: boolean;
+    conflictsCount: number;
+    nextSessionAt: string | null;
+  };
+  currentPeriods: Array<{
+    key: string;
+    coachId: string;
+    type: ScheduleType;
+    startDate: string;
+    endDate: string;
+    sessionsPerWeek: number;
+    slots: Array<DayScheduleSlot & { scheduleId: string }>;
+    capabilities: { canEdit: boolean; canFinish: boolean };
+  }>;
 }

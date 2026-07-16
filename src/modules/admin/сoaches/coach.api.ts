@@ -1,4 +1,5 @@
 import { apiClient } from '../../../shared/api';
+import type { MediaAsset } from '../../../shared/media.types';
 
 /* ================= TYPES ================= */
 
@@ -492,6 +493,20 @@ export const CoachApi = {
 
   update(coachId: string, payload: CoachUpdateRequest, _token: string): Promise<void> {
     return apiClient.patch<void>(`/admin/coach/${coachId}`, payload);
+  },
+
+  uploadAvatar(coachId: string, file: File, _token: string): Promise<MediaAsset> {
+    const formData = new FormData();
+    formData.set("file", file);
+    return apiClient.postForm<MediaAsset>(`/admin/coach/${coachId}/avatar`, formData);
+  },
+
+  deleteAvatar(coachId: string, _token: string): Promise<void> {
+    return apiClient.delete<void>(`/admin/coach/${coachId}/avatar`);
+  },
+
+  getAvatarDownloadUrl(coachId: string, _token: string): Promise<{ url: string }> {
+    return apiClient.get<{ url: string }>(`/admin/coach/${coachId}/avatar/download-url`);
   },
 
   resetPassword(coachId: string, _token: string): Promise<CoachResetPasswordOutput> {

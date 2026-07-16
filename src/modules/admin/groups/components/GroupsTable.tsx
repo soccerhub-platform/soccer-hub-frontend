@@ -1,13 +1,16 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  ArrowRightIcon,
   CalendarDaysIcon,
-  ChevronRightIcon,
+  CheckCircleIcon,
   ExclamationTriangleIcon,
+  ShieldCheckIcon,
   UserGroupIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
 import { GroupOverviewItem } from "../group.api";
+import GroupAvatar from "./GroupAvatar";
 
 interface Props {
   groups: GroupOverviewItem[];
@@ -25,128 +28,157 @@ const GroupsTable: React.FC<Props> = ({ groups }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-      {groups.map((group) => {
-        const capacityPercent =
-          group.capacity > 0 ? Math.min(100, Math.round((group.studentsCount / group.capacity) * 100)) : 0;
-        const isRisky = group.health !== "OK";
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_28px_-25px_rgba(15,23,42,0.45)]">
+      <div className="hidden grid-cols-[minmax(260px,1.35fr)_170px_130px_190px_170px_44px] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 lg:grid">
+        <ColumnTitle icon={<UserGroupIcon className="h-3.5 w-3.5" />} label="Группа" />
+        <ColumnTitle icon={<UsersIcon className="h-3.5 w-3.5" />} label="Состав" />
+        <ColumnTitle icon={<UserGroupIcon className="h-3.5 w-3.5" />} label="Тренеры" />
+        <ColumnTitle icon={<CalendarDaysIcon className="h-3.5 w-3.5" />} label="Следующее занятие" />
+        <ColumnTitle icon={<ShieldCheckIcon className="h-3.5 w-3.5" />} label="Состояние" />
+        <div />
+      </div>
 
-        return (
-          <section
+      <div className="divide-y divide-slate-100">
+        {groups.map((group) => (
+          <GroupRow
             key={group.groupId}
-            role="button"
-            tabIndex={0}
-            onClick={() => navigate(`/admin/groups/${group.groupId}/overview`)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                navigate(`/admin/groups/${group.groupId}/overview`);
-              }
+            group={group}
+            onOpen={() => navigate(`/admin/groups/${group.groupId}/overview`)}
+            onOpenStudents={(event) => {
+              event.stopPropagation();
+              navigate(`/admin/groups/${group.groupId}/students`);
             }}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-md"
-          >
-            <div className="w-full text-left">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 gap-3">
-                  <div
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                      isRisky ? "bg-amber-50 text-amber-700" : "bg-cyan-50 text-cyan-800"
-                    }`}
-                  >
-                    {isRisky ? (
-                      <ExclamationTriangleIcon className="h-6 w-6" />
-                    ) : (
-                      <UserGroupIcon className="h-6 w-6" />
-                    )}
-                  </div>
+            onOpenCoaches={(event) => {
+              event.stopPropagation();
+              navigate(`/admin/groups/${group.groupId}/coaches`);
+            }}
+            onOpenSchedule={(event) => {
+              event.stopPropagation();
+              navigate(`/admin/groups/${group.groupId}/schedule`);
+            }}
+          />
+        ))}
+      </div>
+    </section>
+  );
+};
 
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="truncate text-base font-semibold text-slate-950">{group.name}</h3>
-                      <StatusBadge status={group.status} />
-                    </div>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                      <span>{formatAudience(group)}</span>
-                      <span>{humanizeLevel(group.level)}</span>
-                    </div>
-                  </div>
-                </div>
+const GroupRow: React.FC<{
+  group: GroupOverviewItem;
+  onOpen: () => void;
+  onOpenStudents: React.MouseEventHandler<HTMLButtonElement>;
+  onOpenCoaches: React.MouseEventHandler<HTMLButtonElement>;
+  onOpenSchedule: React.MouseEventHandler<HTMLButtonElement>;
+}> = ({ group, onOpen, onOpenStudents, onOpenCoaches, onOpenSchedule }) => {
+  const capacityPercent =
+    group.capacity > 0
+      ? Math.round((group.studentsCount / group.capacity) * 100)
+      : 0;
+  const progressWidth = Math.min(100, capacityPercent);
+  const isRisky = group.health !== "OK";
 
-                <ChevronRightIcon className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
-              </div>
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+      className="group grid cursor-pointer grid-cols-1 gap-3 px-4 py-4 transition hover:bg-cyan-50/40 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cyan-200 lg:grid-cols-[minmax(260px,1.35fr)_170px_130px_190px_170px_44px] lg:items-center lg:gap-4"
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="relative shrink-0">
+          <GroupAvatar name={group.name} avatar={group.avatar} />
+          {isRisky ? (
+            <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-amber-100 text-amber-700">
+              <ExclamationTriangleIcon className="h-3 w-3" />
+            </span>
+          ) : null}
+        </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <MiniStat
-                  icon={<UsersIcon className="h-4 w-4" />}
-                  label="Состав"
-                  value={`${group.studentsCount}/${group.capacity}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    navigate(`/admin/groups/${group.groupId}/students`);
-                  }}
-                />
-                <MiniStat
-                  icon={<UserGroupIcon className="h-4 w-4" />}
-                  label="Тренеры"
-                  value={String(group.coachesCount)}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    navigate(`/admin/groups/${group.groupId}/coaches`);
-                  }}
-                />
-                <MiniStat
-                  icon={<CalendarDaysIcon className="h-4 w-4" />}
-                  label="Следующее"
-                  value={formatNextSession(group.nextSessionAt)}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    navigate(`/admin/groups/${group.groupId}/schedule`);
-                  }}
-                />
-              </div>
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h3 className="truncate text-base font-semibold text-slate-950">{group.name}</h3>
+            <StatusBadge status={group.status} />
+          </div>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+            <span>{formatAudience(group)}</span>
+            <span>{humanizeLevel(group.level)}</span>
+          </div>
+        </div>
+      </div>
 
-              <div className="mt-4">
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="font-medium text-slate-600">Заполненность</span>
-                  <span className="text-slate-500">{capacityPercent}%</span>
-                </div>
-                <div className="h-2 rounded-full bg-slate-100">
-                  <div
-                    className={`h-2 rounded-full ${capacityPercent > 100 ? "bg-rose-500" : "bg-cyan-700"}`}
-                    style={{ width: `${capacityPercent}%` }}
-                  />
-                </div>
-              </div>
+      <button
+        type="button"
+        onClick={onOpenStudents}
+        className="text-left transition hover:text-cyan-800 lg:block"
+      >
+        <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-500">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
+            <UsersIcon className="h-4 w-4" />
+          </span>
+          <span className="lg:hidden">Состав</span>
+        </div>
+        <div className="flex items-baseline justify-between gap-2 lg:block">
+          <span className="text-sm font-semibold text-slate-950">
+            {group.studentsCount} / {group.capacity}
+          </span>
+          <span className="text-xs text-slate-500 lg:ml-1">учеников</span>
+        </div>
+        <div className="mt-2 h-1.5 rounded-full bg-slate-100">
+          <div
+            className={`h-1.5 rounded-full ${capacityPercent > 100 ? "bg-rose-500" : "bg-cyan-700"}`}
+            style={{ width: `${progressWidth}%` }}
+          />
+        </div>
+      </button>
 
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-                <HealthBadge health={group.health} />
-                <span className="text-xs font-medium text-cyan-800">Открыть группу</span>
-              </div>
-            </div>
-          </section>
-        );
-      })}
+      <button
+        type="button"
+        onClick={onOpenCoaches}
+        className="flex items-center justify-between gap-3 text-left transition hover:text-cyan-800 lg:block"
+      >
+        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+            <UserGroupIcon className="h-4 w-4" />
+          </span>
+          <span className="lg:hidden">Тренеры</span>
+        </div>
+        <div className="text-sm font-semibold text-slate-950">{formatCoaches(group.coachesCount)}</div>
+      </button>
+
+      <button
+        type="button"
+        onClick={onOpenSchedule}
+        className="flex items-start justify-between gap-3 text-left transition hover:text-cyan-800 lg:block"
+      >
+        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+            <CalendarDaysIcon className="h-4 w-4" />
+          </span>
+          <span className="lg:hidden">Следующее</span>
+        </div>
+        <div className="text-sm font-semibold text-slate-950">{formatNextSession(group.nextSessionAt)}</div>
+      </button>
+
+      <HealthBadge health={group.health} />
+
+      <div className="hidden justify-end lg:flex">
+        <ArrowRightIcon className="h-5 w-5 text-slate-400 transition group-hover:text-cyan-700" />
+      </div>
     </div>
   );
 };
 
-const MiniStat: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  onClick: React.MouseEventHandler<HTMLButtonElement>;
-}> = ({ icon, label, value, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-cyan-200 hover:bg-cyan-50"
-  >
-    <div className="flex items-center gap-1.5 text-xs text-slate-500">
-      {icon}
-      {label}
-    </div>
-    <div className="mt-1 truncate text-sm font-semibold text-slate-950">{value}</div>
-  </button>
+const ColumnTitle: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
+  <div className="flex items-center gap-1.5">
+    <span className="text-slate-400">{icon}</span>
+    <span>{label}</span>
+  </div>
 );
 
 function formatAudience(group: GroupOverviewItem) {
@@ -158,7 +190,7 @@ function formatAudience(group: GroupOverviewItem) {
 }
 
 function formatNextSession(value: string | null) {
-  if (!value) return "Нет";
+  if (!value) return "Не запланировано";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("ru-RU", {
@@ -167,6 +199,12 @@ function formatNextSession(value: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function formatCoaches(value: number) {
+  if (value === 1) return "1 тренер";
+  if (value > 1 && value < 5) return `${value} тренера`;
+  return `${value} тренеров`;
 }
 
 function humanizeLevel(level: string) {
@@ -182,27 +220,62 @@ function humanizeLevel(level: string) {
 
 const StatusBadge = ({ status }: { status: GroupOverviewItem["status"] }) => {
   const map = {
-    ACTIVE: { label: "Активна", cls: "border border-emerald-100 bg-emerald-50 text-emerald-700" },
-    PAUSED: { label: "На паузе", cls: "border border-amber-100 bg-amber-50 text-amber-700" },
-    STOPPED: { label: "Остановлена", cls: "border border-rose-100 bg-rose-50 text-rose-700" },
+    ACTIVE: { label: "Активна", cls: "border-emerald-100 bg-emerald-50 text-emerald-700" },
+    PAUSED: { label: "На паузе", cls: "border-amber-100 bg-amber-50 text-amber-700" },
+    STOPPED: { label: "Остановлена", cls: "border-rose-100 bg-rose-50 text-rose-700" },
   };
 
   const cfg = map[status];
 
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${cfg.cls}`}>{cfg.label}</span>;
+  return <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${cfg.cls}`}>{cfg.label}</span>;
 };
 
 const HealthBadge = ({ health }: { health: GroupOverviewItem["health"] }) => {
   const map = {
-    OK: { label: "OK", cls: "border border-emerald-100 bg-emerald-50 text-emerald-700" },
-    NO_COACH: { label: "Нет тренера", cls: "border border-amber-100 bg-amber-50 text-amber-700" },
-    NO_SCHEDULE: { label: "Нет расписания", cls: "border border-amber-100 bg-amber-50 text-amber-700" },
-    OVER_CAPACITY: { label: "Переполнена", cls: "border border-rose-100 bg-rose-50 text-rose-700" },
-    PAUSED: { label: "На паузе", cls: "border border-amber-100 bg-amber-50 text-amber-700" },
-    STOPPED: { label: "Остановлена", cls: "border border-rose-100 bg-rose-50 text-rose-700" },
+    OK: {
+      label: "Всё в порядке",
+      icon: <CheckCircleIcon className="h-4 w-4" />,
+      cls: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    },
+    NO_COACH: {
+      label: "Нет тренера",
+      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
+      cls: "border-amber-100 bg-amber-50 text-amber-700",
+    },
+    NO_SCHEDULE: {
+      label: "Нет расписания",
+      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
+      cls: "border-amber-100 bg-amber-50 text-amber-700",
+    },
+    OVER_CAPACITY: {
+      label: "Переполнена",
+      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
+      cls: "border-rose-100 bg-rose-50 text-rose-700",
+    },
+    PAUSED: {
+      label: "На паузе",
+      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
+      cls: "border-amber-100 bg-amber-50 text-amber-700",
+    },
+    STOPPED: {
+      label: "Остановлена",
+      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
+      cls: "border-rose-100 bg-rose-50 text-rose-700",
+    },
   } as const;
-  const cfg = map[health] ?? { label: health, cls: "border border-slate-200 bg-slate-50 text-slate-600" };
-  return <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${cfg.cls}`}>{cfg.label}</span>;
+  const cfg =
+    map[health] ??
+    {
+      label: health,
+      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
+      cls: "border-slate-200 bg-slate-50 text-slate-600",
+    };
+  return (
+    <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-semibold ${cfg.cls}`}>
+      {cfg.icon}
+      {cfg.label}
+    </span>
+  );
 };
 
 export default GroupsTable;

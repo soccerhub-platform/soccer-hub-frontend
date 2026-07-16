@@ -5,7 +5,7 @@ import {
   UserMinusIcon,
   ArrowPathIcon,
   UserPlusIcon,
-  UserCircleIcon,
+  EllipsisHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../../shared/AuthContext";
@@ -18,6 +18,7 @@ import {
   ErrorState,
   LoadingState,
 } from "../../../../shared/ui";
+import CoachProfileLink from "./CoachProfileLink";
 
 interface Props {
   groupId: string;
@@ -33,6 +34,8 @@ const ROLE_STYLES: Record<string, string> = {
   MAIN: "border-cyan-100 bg-cyan-50 text-cyan-800",
   ASSISTANT: "border-slate-200 bg-slate-50 text-slate-600",
 };
+
+const coachInitials = (firstName: string, lastName: string) => `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "ТР";
 
 const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -107,22 +110,36 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
 
   return (
     <div className="space-y-5">
-      {/* HEADER */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="text-sm font-semibold text-slate-900">Тренеры группы</div>
+          <div>
+            <div className="flex items-center gap-2 text-base font-semibold text-slate-950">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-50 text-cyan-700">
+                <UserPlusIcon className="h-4 w-4" />
+              </span>
+              Тренеры
+            </div>
           <div className="text-xs text-slate-500">
-            Назначенные тренеры и их роли
+            {coaches.length > 0 ? `${coaches.length} назначено` : "Пока никого не назначили"}
           </div>
         </div>
 
-        <Button type="button" size="sm" variant="secondary" onClick={loadCoaches} disabled={loading}>
-          <ArrowPathIcon className={`h-4 w-4 ${loading && "animate-spin"}`} />
-          Обновить
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="secondary" onClick={loadCoaches} disabled={loading}>
+            <ArrowPathIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Обновить
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!branchId}
+            onClick={() => setShowAssign(true)}
+          >
+            <UserPlusIcon className="h-4 w-4" />
+            Назначить тренера
+          </Button>
+        </div>
       </div>
 
-      {/* LIST */}
       {error ? (
         <ErrorState message={error} onRetry={loadCoaches} />
       ) : loading ? (
@@ -133,67 +150,74 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
           description="Назначьте главного тренера, чтобы можно было вести расписание и занятия."
         />
       ) : (
-        <div className="space-y-3">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="hidden grid-cols-[minmax(260px,1fr)_160px_220px_120px] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid">
+            <div>Тренер</div>
+            <div>Роль</div>
+            <div>Контакты</div>
+            <div className="text-right">Действие</div>
+          </div>
+          <div className="divide-y divide-slate-100">
           {coaches.map((coach) => (
             <div
               key={coach.groupCoachId}
-              className="flex flex-col gap-3 rounded-xl border border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-[minmax(260px,1fr)_160px_220px_120px] md:items-center md:gap-4"
             >
-              <div className="flex gap-3">
-                <UserCircleIcon className="h-10 w-10 text-slate-300" />
+              <div className="flex min-w-0 gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-cyan-100 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
+                  {coachInitials(coach.coachFirstName, coach.coachLastName)}
+                </div>
 
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-slate-900">
-                      {coach.coachFirstName} {coach.coachLastName}
-                    </span>
-
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-[10px] ${ROLE_STYLES[coach.coachRole]}`}
-                    >
-                      {ROLE_LABELS[coach.coachRole]}
-                    </span>
+                <div className="min-w-0">
+                  <CoachProfileLink coachId={coach.coachId} className="max-w-full">
+                    {coach.coachFirstName} {coach.coachLastName}
+                  </CoachProfileLink>
+                  <div className="mt-1 text-xs text-slate-500 md:hidden">
+                    {ROLE_LABELS[coach.coachRole]}
                   </div>
+                </div>
+              </div>
 
-                  <div className="mt-1 space-y-1 text-xs text-slate-500">
-                    <div className="flex items-center gap-1">
-                      <EnvelopeIcon className="h-4 w-4" />
-                      {coach.email}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <PhoneIcon className="h-4 w-4" />
-                      {coach.phone}
-                    </div>
-                  </div>
+              <div>
+                <span
+                  className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${ROLE_STYLES[coach.coachRole]}`}
+                >
+                  {ROLE_LABELS[coach.coachRole]}
+                </span>
+              </div>
+
+              <div className="space-y-1 text-xs text-slate-500">
+                <div className="flex items-center gap-1.5">
+                  <EnvelopeIcon className="h-4 w-4" />
+                  <span className="truncate">{coach.email}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <PhoneIcon className="h-4 w-4" />
+                  <span>{coach.phone}</span>
                 </div>
               </div>
 
               <Button
                 type="button"
                 size="sm"
-                variant="softDanger"
+                variant="secondary"
                 isLoading={removingId === coach.groupCoachId}
                 onClick={() => removeCoach(coach.groupCoachId)}
+                className="h-9 w-9 justify-center p-0 md:justify-self-end"
+                aria-label={`Убрать тренера ${coach.coachFirstName} ${coach.coachLastName}`}
+                title="Убрать тренера"
               >
-                <UserMinusIcon className="h-4 w-4" />
-                Убрать
+                {removingId === coach.groupCoachId ? (
+                  <UserMinusIcon className="h-4 w-4" />
+                ) : (
+                  <EllipsisHorizontalIcon className="h-4 w-4" />
+                )}
               </Button>
             </div>
           ))}
+          </div>
         </div>
       )}
-
-      {/* ASSIGN */}
-      <Button
-        type="button"
-        variant="secondary"
-        disabled={!branchId}
-        onClick={() => setShowAssign(true)}
-        className="w-full justify-center border-dashed"
-      >
-        <UserPlusIcon className="h-4 w-4" />
-        Назначить тренера
-      </Button>
 
       {showAssign && branchId && (
         <AssignCoachModal

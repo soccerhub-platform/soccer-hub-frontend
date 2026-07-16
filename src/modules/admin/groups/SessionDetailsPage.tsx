@@ -3,7 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
-  ClockIcon,
+  CalendarDaysIcon,
+  ClipboardDocumentCheckIcon,
+  EllipsisHorizontalIcon,
   MapPinIcon,
   UserCircleIcon,
   UserGroupIcon,
@@ -19,19 +21,22 @@ import {
   LoadingState,
   ModalShell,
   PageShell,
-  SectionCard,
 } from "../../../shared/ui";
 import { getApiErrorMessage } from "../../../shared/api";
 import { useAdminBranch } from "../BranchContext";
 import { Coach, CoachApi } from "../сoaches/coach.api";
+import CoachProfileLink from "./components/CoachProfileLink";
 import { AdminGroupDetailsModel, GroupApi } from "./group.api";
 import {
   AdminCancelSessionInput,
   AdminSessionApi,
+  AdminSessionCoach,
   AdminSessionDetailsOutput,
   AdminSessionEffectiveStatus,
   AdminSubstituteCoachInput,
 } from "./session.api";
+import { ScheduleApi } from "./schedule/schedule.api";
+import { GroupScheduleDto } from "./schedule/schedule.types";
 
 const statusLabels: Record<AdminSessionEffectiveStatus, string> = {
   PLANNED: "Запланировано",
@@ -50,6 +55,7 @@ const statusClasses: Record<AdminSessionEffectiveStatus, string> = {
 };
 
 const roleLabel = (role: string) => (role === "MAIN" ? "Главный тренер" : role === "ASSISTANT" ? "Ассистент" : role);
+const getInitials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "Т";
 
 const formatDate = (value: string) => {
   const [datePart] = value.split("T");
@@ -66,6 +72,7 @@ const formatDate = (value: string) => {
 const formatTime = (value: string) => {
   return value.split("T")[1]?.slice(0, 5) ?? value.slice(11, 16);
 };
+const formatScheduleTime = (value: string) => value.slice(0, 5);
 
 const toDateTimeLocal = (value: string) => {
   if (!value) return "";
@@ -83,27 +90,32 @@ const SessionDetailsPage: React.FC = () => {
 
   const [session, setSession] = useState<AdminSessionDetailsOutput | null>(null);
   const [groupDetails, setGroupDetails] = useState<AdminGroupDetailsModel | null>(null);
+  const [scheduleRule, setScheduleRule] = useState<GroupScheduleDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [substituteOpen, setSubstituteOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const load = async () => {
     if (!token || !sessionId) return;
     setLoading(true);
     setError(null);
     try {
-      const [details, groupData] = await Promise.all([
+      const [details, groupData, scheduleData] = await Promise.all([
         AdminSessionApi.getDetails(sessionId, token),
         groupId ? GroupApi.getDetails(groupId, token).catch(() => null) : Promise.resolve(null),
+        groupId ? ScheduleApi.listAllByGroup(groupId, token).catch(() => []) : Promise.resolve([]),
       ]);
       setSession(details);
       setGroupDetails(groupData);
+      setScheduleRule(scheduleData.find((item) => item.scheduleId === details.scheduleId) ?? null);
     } catch (e) {
       console.error("Failed to load session details", e);
       setError("Не удалось загрузить занятие");
       setSession(null);
+      setScheduleRule(null);
     } finally {
       setLoading(false);
     }
@@ -144,158 +156,102 @@ const SessionDetailsPage: React.FC = () => {
   }
 
   const effectiveStatus = session.effectiveStatus ?? session.status;
-  const expected = Math.max(0, session.attendance.total - session.attendance.marked);
-
   const applyUpdatedSession = (next: AdminSessionDetailsOutput) => {
     setSession(next);
   };
 
+  const attendanceComplete = session.attendance.total > 0 && session.attendance.marked >= session.attendance.total;
+  const attendanceLabel = effectiveStatus === "CANCELLED"
+    ? "Для отменённого занятия журнал не требуется"
+    : effectiveStatus === "PLANNED"
+      ? "Журнал откроется после начала занятия"
+      : attendanceComplete
+        ? `${session.attendance.marked} из ${session.attendance.total} учеников отмечено`
+        : `${session.attendance.marked} из ${session.attendance.total} учеников отмечено`;
+
   return (
-    <PageShell className="space-y-5">
-      <button
-        type="button"
-        onClick={() => navigate(backTo)}
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-admin-700"
-      >
-        <ArrowLeftIcon className="h-4 w-4" />
-        Назад к расписанию
+    <PageShell className="space-y-4">
+      <button type="button" onClick={() => navigate(backTo)} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-cyan-800">
+        <ArrowLeftIcon className="h-4 w-4" />Расписание группы
       </button>
 
-      <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
-        <div className="bg-[radial-gradient(circle_at_top_left,rgba(204,251,241,0.8),rgba(255,255,255,0.97)_44%,rgba(248,250,252,0.96))] p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-4 py-5 sm:px-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
-                  {formatDate(session.startsAt)}
-                </h1>
-                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClasses[effectiveStatus]}`}>
-                  {statusLabels[effectiveStatus]}
-                </span>
+                <h1 className="text-2xl font-semibold text-slate-950">{formatDate(session.startsAt)}</h1>
+                <span className={`rounded border px-2 py-1 text-xs font-semibold ${statusClasses[effectiveStatus]}`}>{statusLabels[effectiveStatus]}</span>
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
-                <span className="inline-flex items-center gap-1.5">
-                  <ClockIcon className="h-4 w-4 text-cyan-800" />
-                  {formatTime(session.startsAt)}-{formatTime(session.endsAt)}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <UserGroupIcon className="h-4 w-4 text-cyan-800" />
-                  {session.group.name}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPinIcon className="h-4 w-4 text-cyan-800" />
-                  {session.location?.name ?? "Локация не указана"}
-                </span>
+              <div className="mt-1 text-xl font-semibold text-slate-900">{formatTime(session.startsAt)} - {formatTime(session.endsAt)}</div>
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
+                <span className="inline-flex items-center gap-1.5"><UserGroupIcon className="h-4 w-4" />{session.group.name}</span>
+                <span className="inline-flex items-center gap-1.5"><MapPinIcon className="h-4 w-4" />{session.location?.name ?? "Место не указано"}</span>
+                <span className="inline-flex items-center gap-1.5"><CalendarDaysIcon className="h-4 w-4" />{session.scheduleId ? "Создано расписанием" : "Разовое занятие"}</span>
               </div>
-              {session.cancelReason ? (
-                <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-                  Причина отмены: {session.cancelReason}
-                </div>
-              ) : null}
+              {session.cancelReason ? <div className="mt-3 inline-flex rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">Причина отмены: {session.cancelReason}</div> : null}
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[360px]">
-              <MiniCounter label="Всего" value={session.attendance.total} />
-              <MiniCounter label="Отмечено" value={session.attendance.marked} />
-              <MiniCounter label="Ожидается" value={expected} />
+            <div className="flex flex-wrap items-center gap-2">
+              {session.capabilities.canReschedule ? <Button type="button" variant="secondary" onClick={() => setRescheduleOpen(true)}><ArrowPathIcon className="h-4 w-4" />Перенести</Button> : null}
+              {session.capabilities.canSubstituteCoach ? <Button type="button" variant="secondary" onClick={() => setSubstituteOpen(true)}><UserCircleIcon className="h-4 w-4" />Заменить тренера</Button> : null}
+              <div className="relative">
+                <button type="button" aria-label="Дополнительные действия" title="Дополнительные действия" onClick={() => setMoreOpen((current) => !current)} className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"><EllipsisHorizontalIcon className="h-5 w-5" /></button>
+                {moreOpen ? (
+                  <div className="absolute right-0 top-12 z-20 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl shadow-slate-950/10">
+                    <button type="button" disabled={!session.capabilities.canCancel} onClick={() => { setMoreOpen(false); setCancelOpen(true); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-white"><XCircleIcon className="h-4 w-4" />Отменить занятие</button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
-      </section>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_380px]">
-        <div className="space-y-5">
-          <SectionCard title="Тренеры" description="Назначенные тренеры на это конкретное занятие.">
-            {session.coaches.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                Тренеры не назначены
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
+          <div className="space-y-6 p-4 sm:p-6 lg:border-r lg:border-slate-200">
+            <section>
+              <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-slate-950">Тренеры</h2><span className="text-xs text-slate-500">{session.coaches.length}</span></div>
+              {session.coaches.length ? (
+                <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 px-3">
+                  {session.coaches.map((coach) => <CoachRow key={`${coach.id}-${coach.role}`} coach={coach} />)}
+                </div>
+              ) : <div className="rounded-lg bg-slate-50 px-4 py-5 text-sm text-slate-500">Тренеры не назначены</div>}
+            </section>
+
+            <section className="border-t border-slate-200 pt-5">
+              <h2 className="text-sm font-semibold text-slate-950">Участники</h2>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <Metric label="Ожидается" value={session.participantsCount} />
+                <Metric label="Отмечено" value={session.attendance.marked} />
+                <Metric label="Присутствуют" value={session.attendance.presentLike} />
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {session.coaches.map((coach) => (
-                  <div key={`${coach.id}-${coach.role}`} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-                    <UserCircleIcon className="h-10 w-10 text-slate-300" />
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-slate-950">{coach.fullName}</div>
-                      <div className="mt-1 text-xs text-slate-500">{roleLabel(coach.role)}</div>
-                    </div>
-                  </div>
-                ))}
+            </section>
+          </div>
+
+          <div className="space-y-6 border-t border-slate-200 p-4 sm:p-6 lg:border-t-0">
+            <section>
+              <div className="flex items-start gap-3">
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${attendanceComplete ? "bg-emerald-50 text-emerald-700" : "bg-cyan-50 text-cyan-700"}`}><ClipboardDocumentCheckIcon className="h-5 w-5" /></span>
+                <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold text-slate-950">Посещаемость</h2><p className="mt-1 text-sm text-slate-500">{attendanceLabel}</p></div>
               </div>
-            )}
-          </SectionCard>
-
-          <SectionCard title="Информация" description="Технические данные занятия и связь с расписанием.">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <InfoRow label="Период расписания" value={session.scheduleId} />
-              <InfoRow label="Дата" value={session.sessionDate} />
-              <InfoRow label="Начало" value={formatTime(session.startsAt)} />
-              <InfoRow label="Окончание" value={formatTime(session.endsAt)} />
-              <InfoRow label="Локация" value={session.location?.name ?? "Не указана"} />
-              <InfoRow label="Статус в базе" value={session.status} />
-            </div>
-          </SectionCard>
-        </div>
-
-        <div className="space-y-5">
-          <SectionCard title="Участники" description="Состояние журнала по занятию.">
-            <div className="space-y-3">
-              <ProgressRow label="Отмечено" value={session.attendance.marked} total={session.attendance.total} />
-              <ProgressRow label="Присутствуют/зачтены" value={session.attendance.presentLike} total={session.attendance.total} tone="success" />
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                Участников в группе: <span className="font-semibold text-slate-950">{session.participantsCount}</span>
-              </div>
-            </div>
-          </SectionCard>
-
-          <SectionCard title="Действия" description="Операции применяются только к этому занятию.">
-            <div className="space-y-2">
-              {session.capabilities.canOpenAttendance ? (
-                <Button
-                  type="button"
-                  className="w-full justify-center"
-                  onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/sessions/${session.id}/attendance`)}
-                >
-                  Открыть журнал посещаемости
-                </Button>
+              {effectiveStatus !== "PLANNED" && effectiveStatus !== "CANCELLED" && session.capabilities.canOpenAttendance ? (
+                <Button type="button" className="mt-4 w-full justify-center" onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/sessions/${session.id}/attendance`)}><ClipboardDocumentCheckIcon className="h-4 w-4" />{attendanceComplete ? "Открыть журнал" : "Заполнить журнал"}</Button>
               ) : null}
+            </section>
 
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full justify-center"
-                disabled={!session.capabilities.canSubstituteCoach}
-                onClick={() => setSubstituteOpen(true)}
-              >
-                <UserCircleIcon className="h-4 w-4" />
-                Заменить тренера
-              </Button>
-
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full justify-center"
-                disabled={!session.capabilities.canReschedule}
-                onClick={() => setRescheduleOpen(true)}
-              >
-                <ArrowPathIcon className="h-4 w-4" />
-                Перенести занятие
-              </Button>
-
-              <Button
-                type="button"
-                variant="softDanger"
-                className="w-full justify-center"
-                disabled={!session.capabilities.canCancel}
-                onClick={() => setCancelOpen(true)}
-              >
-                <XCircleIcon className="h-4 w-4" />
-                Отменить занятие
-              </Button>
-            </div>
-          </SectionCard>
+            <section className="border-t border-slate-200 pt-5">
+              <div className="flex items-center gap-2"><CalendarDaysIcon className="h-4 w-4 text-slate-400" /><h2 className="text-sm font-semibold text-slate-950">Регулярное расписание</h2></div>
+              {scheduleRule ? (
+                <div className="mt-3 space-y-2 text-sm">
+                  <InfoLine label="Период" value={`${formatDate(scheduleRule.startDate)} - ${scheduleRule.endDate ? formatDate(scheduleRule.endDate) : "без даты окончания"}`} />
+                  <InfoLine label="Слот" value={`${formatScheduleTime(scheduleRule.startTime)} - ${formatScheduleTime(scheduleRule.endTime)}`} />
+                </div>
+              ) : <p className="mt-2 text-sm text-slate-500">Связанный период не найден</p>}
+              <button type="button" onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/schedule?view=week&date=${session.sessionDate}`)} className="mt-4 text-sm font-semibold text-cyan-800 hover:text-cyan-950">Открыть расписание →</button>
+            </section>
+          </div>
         </div>
-      </div>
+      </section>
 
       {cancelOpen ? (
         <CancelSessionModal
@@ -337,42 +293,19 @@ const SessionDetailsPage: React.FC = () => {
   );
 };
 
-const MiniCounter: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="rounded-2xl border border-white/80 bg-white/85 px-3 py-3 shadow-sm">
-    <div className="text-xl font-semibold text-slate-950">{value}</div>
-    <div className="mt-1 text-xs text-slate-500">{label}</div>
-  </div>
-);
-
-const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-    <div className="text-xs text-slate-500">{label}</div>
-    <div className="mt-1 break-all text-sm font-medium text-slate-900">{value}</div>
-  </div>
-);
-
-const ProgressRow: React.FC<{ label: string; value: number; total: number; tone?: "default" | "success" }> = ({
-  label,
-  value,
-  total,
-  tone = "default",
-}) => {
-  const percent = total > 0 ? Math.round((value / total) * 100) : 0;
+const CoachRow: React.FC<{ coach: AdminSessionCoach }> = ({ coach }) => {
+  const avatarUrl = coach.avatar?.thumbUrl ?? coach.avatar?.mediumUrl ?? coach.avatar?.originalUrl;
   return (
-    <div>
-      <div className="mb-1 flex justify-between text-xs">
-        <span className="font-medium text-slate-600">{label}</span>
-        <span className="text-slate-500">{value}/{total}</span>
-      </div>
-      <div className="h-2 rounded-full bg-slate-100">
-        <div
-          className={`h-2 rounded-full ${tone === "success" ? "bg-emerald-600" : "bg-cyan-700"}`}
-          style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
-        />
-      </div>
+    <div className="flex items-center gap-3 py-3">
+      {avatarUrl ? <img src={avatarUrl} alt={`Фото ${coach.fullName}`} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-xs font-semibold text-cyan-800">{getInitials(coach.fullName)}</div>}
+      <div className="min-w-0"><CoachProfileLink coachId={coach.id} className="max-w-full text-sm font-semibold">{coach.fullName}</CoachProfileLink><div className="mt-0.5 text-xs text-slate-500">{roleLabel(coach.role)}</div></div>
     </div>
   );
 };
+
+const Metric: React.FC<{ label: string; value: number }> = ({ label, value }) => <div className="rounded-lg bg-slate-50 px-3 py-3"><div className="text-lg font-semibold text-slate-950">{value}</div><div className="mt-1 text-xs text-slate-500">{label}</div></div>;
+
+const InfoLine: React.FC<{ label: string; value: string }> = ({ label, value }) => <div className="grid grid-cols-[72px_1fr] gap-3"><span className="text-slate-500">{label}</span><span className="font-medium text-slate-800">{value}</span></div>;
 
 const CancelSessionModal: React.FC<{
   sessionId: string;

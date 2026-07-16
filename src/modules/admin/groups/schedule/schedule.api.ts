@@ -4,14 +4,24 @@ import {
   GroupScheduleValidationCommand,
   ScheduleValidationResult,
   UpdateScheduleBatchCommand,
+  GroupScheduleOverview,
 } from "./schedule.types";
 import { apiClient } from "../../../../shared/api";
 
 export const ScheduleApi = {
+  getOverview(groupId: string, month: string, _token: string) {
+    return apiClient.get<GroupScheduleOverview>(
+      `/admin/groups/${groupId}/schedule/overview?month=${month}`
+    );
+  },
   listByGroup(groupId: string, _token: string) {
     return apiClient.get<GroupScheduleDto[]>(
       `/organization/schedules?group-id=${groupId}&status=ACTIVE`
     );
+  },
+
+  listAllByGroup(groupId: string, _token: string) {
+    return apiClient.get<GroupScheduleDto[]>(`/organization/schedules?group-id=${groupId}`);
   },
 
   listByGroupAndBranch(

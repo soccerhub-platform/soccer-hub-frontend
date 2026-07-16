@@ -2,15 +2,19 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowPathIcon,
+  CakeIcon,
+  CalendarDaysIcon,
+  ChartBarIcon,
   CheckCircleIcon,
   EllipsisHorizontalIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
+  ShieldCheckIcon,
   UserPlusIcon,
-  UserCircleIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
-import { getApiErrorMessage } from "../../../../shared/api";
+import { ApiError, getApiErrorMessage } from "../../../../shared/api";
 import { useAuth } from "../../../../shared/AuthContext";
 import {
   Button,
@@ -28,6 +32,8 @@ import {
   GroupMemberItem,
   GroupMembershipReason,
 } from "../group.api";
+import type { MediaAsset } from "../../../../shared/media.types";
+import { resolveApiUrl } from "../../../../shared/api";
 
 interface Props {
   groupId: string;
@@ -129,6 +135,33 @@ const attendanceBarClassName = (rate: number) => {
   return "bg-rose-500";
 };
 
+const mediaUrl = (avatar?: MediaAsset | null) => {
+  const url = avatar?.thumbUrl || avatar?.mediumUrl || avatar?.originalUrl;
+  return url ? resolveApiUrl(url) : null;
+};
+
+const initials = (name: string) => name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "?";
+
+const MemberAvatar: React.FC<{ name: string; avatar?: MediaAsset | null }> = ({ name, avatar }) => {
+  const src = mediaUrl(avatar);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [src]);
+
+  if (src && !failed) {
+    return <img src={src} alt="" className="h-9 w-9 shrink-0 rounded-full border border-white object-cover shadow-sm ring-1 ring-slate-200" onError={() => setFailed(true)} />;
+  }
+
+  return <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-100 to-emerald-100 text-xs font-bold text-cyan-800 ring-1 ring-cyan-200">{initials(name)}</div>;
+};
+
+const ColumnTitle: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
+  <div className="flex items-center gap-1.5">
+    <span className="text-slate-400">{icon}</span>
+    <span>{label}</span>
+  </div>
+);
+
 const normalizeIsoDate = (value?: string | null) => value?.split("T")[0] ?? null;
 
 const deriveMembershipStatus = (item: GroupMemberItem) => {
@@ -137,12 +170,12 @@ const deriveMembershipStatus = (item: GroupMemberItem) => {
   const joinedAt = normalizeIsoDate(item.joinedAt);
   const leftAt = normalizeIsoDate(item.leftAt);
 
-  if (leftAt && leftAt <= today) {
+  if (leftAt && leftAt < today) {
     if (rawStatus === "TRANSFERRED" || rawStatus === "COMPLETED") return rawStatus;
     return "REMOVED";
   }
 
-  if (rawStatus && rawStatus !== "ACTIVE") {
+  if (rawStatus === "TRANSFERRED" || rawStatus === "COMPLETED" || rawStatus === "REMOVED") {
     return rawStatus;
   }
 
@@ -167,7 +200,6 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
   const [items, setItems] = useState<GroupMemberItem[]>([]);
   const [page, setPage] = useState(0);
   const [size] = useState(20);
-  const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -184,6 +216,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
   const [candidates, setCandidates] = useState<GroupMemberCandidate[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [candidatesError, setCandidatesError] = useState<string | null>(null);
+  const [addDateError, setAddDateError] = useState<string | null>(null);
   const [addMode, setAddMode] = useState<AddScenarioMode>("additional");
   const [selectedCurrentMembershipId, setSelectedCurrentMembershipId] = useState<string>("");
 
@@ -226,6 +259,12 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
       ) ?? null,
     [selectedCandidate, selectedCurrentMembershipId]
   );
+  const earliestAvailableJoinDate = selectedCandidate?.earliestAvailableJoinDate ?? null;
+  const selectedDateError = addDateError ?? (
+    earliestAvailableJoinDate && addForm.joinedAt < earliestAvailableJoinDate
+      ? `Выберите дату не раньше ${formatDate(earliestAvailableJoinDate)}`
+      : null
+  );
 
   const visibleItems = useMemo(() => items.filter(isCurrentMembership), [items]);
   const filteredItems = useMemo(() => {
@@ -245,7 +284,6 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
     try {
       const data = await GroupApi.getMembers(groupId, page, size, token);
       setItems(data.content ?? []);
-      setTotalElements(data.totalElements ?? 0);
       setTotalPages(Math.max(1, data.totalPages ?? 1));
     } catch (e) {
       console.error("Failed to load group members", e);
@@ -335,6 +373,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
     setCandidateSearch("");
     setCandidatePage(0);
     setAddForm({ playerId: "", joinedAt: todayIso(), reason: "NEW_ENROLLMENT", comment: "" });
+    setAddDateError(null);
     setAddMode("additional");
     setSelectedCurrentMembershipId("");
   };
@@ -380,6 +419,10 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
       toast.error("Укажите дату вступления");
       return;
     }
+    if (selectedDateError) {
+      toast.error(selectedDateError);
+      return;
+    }
     if (addMode === "transfer" && !selectedCurrentMembershipId) {
       toast.error("Для перевода нужно выбрать текущее участие ученика");
       return;
@@ -414,6 +457,27 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
       }
     } catch (e) {
       console.error("Failed to add group member", e);
+      if (e instanceof ApiError && e.code === "MEMBERSHIP_DATE_OVERLAP") {
+        const metadata = e.metadata as { earliestAvailableJoinDate?: string } | undefined;
+        const earliestDate = metadata?.earliestAvailableJoinDate;
+        const message = earliestDate
+          ? `Ученик уже состоял в группе на выбранную дату. Выберите дату не раньше ${formatDate(earliestDate)}.`
+          : "Ученик уже состоял в группе на выбранную дату.";
+        setAddDateError(message);
+        setCandidates((current) => current.map((candidate) => candidate.playerId === addForm.playerId
+          ? {
+              ...candidate,
+              eligible: Boolean(earliestDate),
+              earliestAvailableJoinDate: earliestDate ?? candidate.earliestAvailableJoinDate,
+              warnings: [
+                ...(candidate.warnings ?? []).filter((warning) => warning.code !== "MEMBERSHIP_DATE_OVERLAP"),
+                { code: "MEMBERSHIP_DATE_OVERLAP", message },
+              ],
+            }
+          : candidate));
+        toast.error(message);
+        return;
+      }
       toast.error(
         getApiErrorMessage(
           e,
@@ -489,31 +553,36 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
   }
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="text-base font-semibold text-slate-950">Состав группы</div>
-            <div className="mt-1 max-w-2xl text-sm text-slate-500">
-              Управление участниками группы, переводами и исключениями без перехода в отдельные экраны.
+            <div className="flex items-center gap-2 text-base font-semibold text-slate-950">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-50 text-cyan-700">
+                <UsersIcon className="h-4 w-4" />
+              </span>
+              Ученики
             </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-                Активных: <span className="font-semibold text-slate-800">{activeMembersCount}</span>
-              </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-                Свободно мест: <span className="font-semibold text-slate-800">{availablePlaces}</span>
-              </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-                В списке: <span className="font-semibold text-slate-800">{totalElements}</span>
-              </span>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-slate-600">
+              <span>{activeMembersCount} учеников</span>
+              <span className="text-slate-300">·</span>
+              <span>{availablePlaces} свободных мест</span>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="secondary" onClick={loadMembers} disabled={loading}>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              rounded="rounded-lg"
+              className="h-9 w-9 p-0"
+              onClick={loadMembers}
+              disabled={loading}
+              aria-label="Обновить список учеников"
+              title="Обновить список"
+            >
               <ArrowPathIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              Обновить
             </Button>
             <Button type="button" size="sm" onClick={openAdd}>
               <UserPlusIcon className="h-4 w-4" />
@@ -522,8 +591,8 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <FormField label="Быстрый поиск по составу" className="mb-0">
+        <div className="max-w-sm">
+          <FormField label="Поиск по составу" className="mb-0">
             <div className="relative">
               <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -534,12 +603,6 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
               />
             </div>
           </FormField>
-
-          <div className="grid grid-cols-3 gap-3">
-            <MemberStat label="Активные" value={activeMembersCount} />
-            <MemberStat label="Вместимость" value={shownCapacity} />
-            <MemberStat label="Свободно" value={availablePlaces} />
-          </div>
         </div>
       </div>
 
@@ -558,13 +621,13 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
           description="Попробуйте изменить запрос поиска по составу группы."
         />
       ) : (
-        <div className="overflow-visible rounded-2xl border border-slate-200 bg-white">
-          <div className="hidden grid-cols-[minmax(240px,1.5fr)_120px_160px_170px_120px_48px] gap-3 border-b border-slate-200 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:grid">
-            <span>Ученик</span>
-            <span>Возраст</span>
-            <span>В группе</span>
-            <span>Посещаемость</span>
-            <span>Статус</span>
+        <div className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-[0_10px_28px_-28px_rgba(15,23,42,0.45)]">
+          <div className="hidden grid-cols-[minmax(240px,1.5fr)_110px_165px_170px_120px_48px] gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 lg:grid">
+            <ColumnTitle icon={<UsersIcon className="h-3.5 w-3.5" />} label="Ученик" />
+            <ColumnTitle icon={<CakeIcon className="h-3.5 w-3.5" />} label="Возраст" />
+            <ColumnTitle icon={<CalendarDaysIcon className="h-3.5 w-3.5" />} label="В группе" />
+            <ColumnTitle icon={<ChartBarIcon className="h-3.5 w-3.5" />} label="Посещаемость" />
+            <ColumnTitle icon={<ShieldCheckIcon className="h-3.5 w-3.5" />} label="Статус" />
             <span />
           </div>
 
@@ -577,16 +640,16 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
               const menuKey = item.membershipId ?? item.playerId;
 
               return (
-                <div key={menuKey} className="grid grid-cols-1 gap-3 px-4 py-4 lg:grid-cols-[minmax(240px,1.5fr)_120px_160px_170px_120px_48px] lg:items-center">
+                <div key={menuKey} className="grid grid-cols-1 gap-3 px-4 py-3 transition-colors hover:bg-slate-50/70 lg:grid-cols-[minmax(240px,1.5fr)_110px_165px_170px_120px_48px] lg:items-center">
                   <button
                     type="button"
                     onClick={() => navigate(`/admin/students?playerId=${encodeURIComponent(item.playerId)}`)}
                     className="flex min-w-0 items-center gap-3 text-left"
                   >
-                    <UserCircleIcon className="h-10 w-10 shrink-0 text-slate-300" />
+                    <MemberAvatar name={item.childName} avatar={item.avatar} />
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-slate-950">{item.childName}</div>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
                         <span>{displayContractStatus(item.contractStatus)}</span>
                         {item.leftAt ? <span>Последний день: {formatDate(item.leftAt)}</span> : null}
                       </div>
@@ -601,17 +664,16 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                   <div className="text-sm text-slate-700">
                     <span className="lg:hidden text-xs text-slate-400">В группе: </span>
                     <div>{formatDate(item.joinedAt)}</div>
-                    <div className="mt-1 text-xs text-slate-400">
+                    <div className="mt-1 text-xs text-slate-500">
                       {membershipStatus === "UPCOMING" ? "дата будущего вступления" : "дата вступления"}
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between gap-3 text-sm">
+                    <div className="text-sm">
                       <span className="font-semibold text-slate-950">{Math.round(item.attendanceRate ?? 0)}%</span>
-                      <span className="text-xs text-slate-400">посещаемость</span>
                     </div>
-                    <div className="mt-2 h-1.5 rounded-full bg-slate-100">
+                    <div className="mt-1.5 h-1.5 rounded-full bg-slate-100">
                       <div
                         className={`h-1.5 rounded-full ${attendanceBarClassName(item.attendanceRate ?? 0)}`}
                         style={{ width: `${Math.min(100, Math.max(0, item.attendanceRate ?? 0))}%` }}
@@ -630,10 +692,11 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                       type="button"
                       size="sm"
                       variant="ghost"
-                      rounded="rounded-full"
-                      className="h-9 w-9 p-0"
+                      rounded="rounded-lg"
+                      className="h-9 w-9 border border-transparent p-0 text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-900"
                       onClick={() => setMenuOpenFor((prev) => (prev === menuKey ? null : menuKey))}
                       aria-label="Действия с учеником"
+                      title="Действия"
                     >
                       <EllipsisHorizontalIcon className="h-5 w-5" />
                     </Button>
@@ -690,8 +753,10 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
       {addOpen ? (
         <ModalShell
           title="Добавить ученика"
-          description="Найдите ученика из филиала и задайте дату вступления в группу."
-          maxWidthClassName="max-w-3xl"
+          description={`Выберите ученика и настройте его участие в ${groupName ?? "группе"}.`}
+          maxWidthClassName="max-w-xl"
+          placement="right"
+          bodyClassName="p-0"
           onClose={closeAction}
           closeDisabled={saving}
           footer={
@@ -702,7 +767,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
               <Button
                 type="button"
                 isLoading={saving}
-                disabled={addMode === "transfer" && !selectedCurrentMembershipId}
+                disabled={!selectedCandidate || !selectedCandidate.eligible || Boolean(selectedDateError) || (addMode === "transfer" && !selectedCurrentMembershipId)}
                 onClick={submitAdd}
               >
                 {addMode === "transfer" ? "Перевести" : "Добавить"}
@@ -710,9 +775,13 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
             </div>
           }
         >
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_180px]">
-              <FormField label="Поиск">
+          <div>
+            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-5 py-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-slate-900">Выберите ученика</div>
+                {!candidatesLoading ? <div className="text-xs text-slate-500">Найдено: {candidateTotal}</div> : null}
+              </div>
+              <FormField label="Поиск по имени" className="mb-0">
                 <div className="relative">
                   <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
@@ -721,28 +790,14 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                       setCandidateSearch(event.target.value);
                       setCandidatePage(0);
                     }}
-                    placeholder="Имя ученика"
+                    placeholder="Начните вводить имя"
                     className={`${formControlClassName} pl-9`}
                   />
                 </div>
               </FormField>
-              <FormField
-                label={addMode === "transfer" ? "Дата перевода" : "Дата вступления"}
-                hint={
-                  addMode === "transfer"
-                    ? "С этой даты ученик начнет заниматься в новой группе."
-                    : "Ученик попадет в состав и будущие занятия с выбранной даты."
-                }
-              >
-                <input
-                  type="date"
-                  value={addForm.joinedAt}
-                  onChange={(event) => setAddForm((prev) => ({ ...prev, joinedAt: event.target.value }))}
-                  className={formControlClassName}
-                />
-              </FormField>
             </div>
 
+            <div className="space-y-4 px-5 py-4">
             {candidatesError ? (
               <ErrorState message={candidatesError} onRetry={loadCandidates} />
             ) : candidatesLoading ? (
@@ -750,7 +805,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
             ) : candidates.length === 0 ? (
               <EmptyState title="Кандидаты не найдены" description="Попробуйте изменить поисковый запрос." />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {candidates.map((candidate) => {
                   const selected = addForm.playerId === candidate.playerId;
                   return (
@@ -760,26 +815,45 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                       disabled={!candidate.eligible}
                       onClick={() => {
                         const nextMembershipId = candidate.currentMemberships?.[0]?.membershipId ?? "";
+                        const nextJoinedAt = candidate.earliestAvailableJoinDate && candidate.earliestAvailableJoinDate > addForm.joinedAt
+                          ? candidate.earliestAvailableJoinDate
+                          : addForm.joinedAt;
                         setAddForm((prev) => ({
                           ...prev,
                           playerId: candidate.playerId,
+                          joinedAt: nextJoinedAt,
                           reason: candidate.currentMemberships?.length ? "SCHEDULE_CHANGE" : "NEW_ENROLLMENT",
                         }));
+                        setAddDateError(null);
                         setAddMode(candidate.currentMemberships?.length ? "transfer" : "additional");
                         setSelectedCurrentMembershipId(nextMembershipId);
                       }}
-                      className={`w-full rounded-xl border px-4 py-3 text-left transition ${
-                        selected ? "border-cyan-300 bg-cyan-50" : "border-slate-200 bg-white hover:border-cyan-200"
+                      className={`w-full rounded-lg border px-3 py-2.5 text-left transition ${
+                        selected ? "border-cyan-300 bg-cyan-50" : "border-transparent bg-white hover:border-slate-200 hover:bg-slate-50"
                       } disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70`}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-slate-950">{candidate.fullName}</div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {candidate.age != null ? `${candidate.age} лет` : formatDate(candidate.birthDate)}
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+                          {initials(candidate.fullName)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-semibold text-slate-950">{candidate.fullName}</div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                            <span>{candidate.age != null ? `${candidate.age} лет` : formatDate(candidate.birthDate)}</span>
+                            {!candidate.eligible ? (
+                              <span className="font-medium text-rose-700">Недоступен для добавления</span>
+                            ) : candidate.earliestAvailableJoinDate ? (
+                              <span className="font-medium text-amber-700">Доступен с {formatDate(candidate.earliestAvailableJoinDate)}</span>
+                            ) : (candidate.currentMemberships ?? []).length > 0 ? (
+                              <span>Сейчас: {(candidate.currentMemberships ?? []).map((membership) => membership.groupName).join(", ")}</span>
+                            ) : (
+                              <span>Можно добавить</span>
+                            )}
                           </div>
                         </div>
-                        {selected ? <CheckCircleIcon className="h-5 w-5 text-cyan-700" /> : null}
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-cyan-700 bg-cyan-700 text-white" : "border-slate-300 bg-white"}`}>
+                          {selected ? <CheckCircleIcon className="h-4 w-4" /> : null}
+                        </span>
                       </div>
                       {(candidate.warnings ?? []).length > 0 ? (
                         <div className="mt-2 space-y-1">
@@ -789,11 +863,6 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                               {warning.message}
                             </div>
                           ))}
-                        </div>
-                      ) : null}
-                      {(candidate.currentMemberships ?? []).length > 0 ? (
-                        <div className="mt-2 text-xs text-slate-500">
-                          Сейчас занимается: {(candidate.currentMemberships ?? []).map((membership) => membership.groupName).join(", ")}
                         </div>
                       ) : null}
                     </button>
@@ -820,7 +889,29 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
             ) : null}
 
             {selectedCandidate ? (
-              <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+              <div className="space-y-4 border-t border-slate-200 pt-4">
+                <div>
+                  <div className="text-sm font-semibold text-slate-950">Параметры участия</div>
+                  <p className="mt-1 text-xs text-slate-500">Настройки применятся только к выбранному ученику.</p>
+                </div>
+
+                <FormField
+                  label={addMode === "transfer" ? "Дата перевода" : "Дата вступления"}
+                  error={selectedDateError ?? undefined}
+                  hint={addMode === "transfer" ? "С этой даты ученик начнет заниматься в новой группе." : "С этой даты ученик попадет в состав и будущие занятия."}
+                >
+                  <input
+                    type="date"
+                    min={earliestAvailableJoinDate ?? undefined}
+                    value={addForm.joinedAt}
+                    onChange={(event) => {
+                      setAddDateError(null);
+                      setAddForm((prev) => ({ ...prev, joinedAt: event.target.value }));
+                    }}
+                    className={`${formControlClassName} ${selectedDateError ? "border-rose-300 focus:border-rose-500 focus:ring-rose-100" : ""}`}
+                  />
+                </FormField>
+
                 {(selectedCandidate.currentMemberships ?? []).length > 0 ? (
                   <>
                     <div>
@@ -830,22 +921,22 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                       </p>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <button
                         type="button"
                         onClick={() => {
                           setAddMode("additional");
                           setAddForm((prev) => ({ ...prev, reason: "NEW_ENROLLMENT" }));
                         }}
-                        className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
+                        className={`w-full rounded-lg border px-3 py-3 text-left transition ${
                           addMode === "additional"
                             ? "border-cyan-300 bg-cyan-50"
                             : "border-slate-200 bg-white hover:border-cyan-200"
                         }`}
                       >
                         <div className="text-sm font-semibold text-slate-950">Добавить ещё в одну группу</div>
-                        <p className="mt-1 text-sm leading-6 text-slate-500">
-                          Ученик останется в текущих группах и дополнительно будет добавлен в {groupName ?? "эту группу"}.
+                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                          Оставить текущие группы и добавить в {groupName ?? "эту группу"}.
                         </p>
                       </button>
 
@@ -858,15 +949,15 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                             selectedCurrentMembershipId || selectedCandidate.currentMemberships?.[0]?.membershipId || ""
                           );
                         }}
-                        className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
+                        className={`w-full rounded-lg border px-3 py-3 text-left transition ${
                           addMode === "transfer"
                             ? "border-cyan-300 bg-cyan-50"
                             : "border-slate-200 bg-white hover:border-cyan-200"
                         }`}
                       >
                         <div className="text-sm font-semibold text-slate-950">Перевести в эту группу</div>
-                        <p className="mt-1 text-sm leading-6 text-slate-500">
-                          Текущее участие будет закрыто, после чего ученик перейдет в {groupName ?? "эту группу"}.
+                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                          Закрыть выбранное участие и перевести в {groupName ?? "эту группу"}.
                         </p>
                       </button>
                     </div>
@@ -894,10 +985,12 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                 ) : null}
 
                 <div
-                  className={`rounded-2xl border px-4 py-3 text-sm ${
+                  className={`rounded-lg border px-3 py-2.5 text-xs leading-5 ${
                     addMode === "transfer"
                       ? "border-blue-100 bg-blue-50 text-blue-800"
-                      : "border-amber-100 bg-amber-50 text-amber-800"
+                      : (selectedCandidate.currentMemberships ?? []).length > 0
+                      ? "border-amber-100 bg-amber-50 text-amber-800"
+                      : "border-cyan-100 bg-cyan-50 text-cyan-800"
                   }`}
                 >
                   {addMode === "transfer" && selectedCurrentMembership ? (
@@ -915,18 +1008,22 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                         Для перевода backend должен вернуть <code>currentMemberships[].membershipId</code>. Пока он не пришёл, доступно только обычное добавление.
                       </p>
                     </>
-                  ) : (
+                  ) : (selectedCandidate.currentMemberships ?? []).length > 0 ? (
                     <>
                       <div className="font-semibold">Последствия добавления</div>
                       <p className="mt-1">
                         Ученик будет числиться сразу в нескольких группах. Текущие участия останутся без изменений.
                       </p>
                     </>
+                  ) : (
+                    <>
+                      <div className="font-semibold">Добавление в группу</div>
+                      <p className="mt-1">
+                        Ученик вступит в {groupName ?? "группу"} {formatDate(addForm.joinedAt)} и попадет в будущие занятия.
+                      </p>
+                    </>
                   )}
                 </div>
-              </div>
-            ) : null}
-
             <FormField
               label="Причина"
               hint={
@@ -966,6 +1063,13 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                 className={formControlClassName}
               />
             </FormField>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">
+                Выберите ученика, чтобы настроить дату и способ добавления.
+              </div>
+            )}
+            </div>
           </div>
         </ModalShell>
       ) : null}
@@ -1091,12 +1195,5 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
     </div>
   );
 };
-
-const MemberStat: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
-  <div className="rounded-2xl border border-white/80 bg-white px-4 py-3 shadow-sm">
-    <div className="text-xs font-medium text-slate-500">{label}</div>
-    <div className="mt-1 text-lg font-semibold text-slate-950">{value}</div>
-  </div>
-);
 
 export default GroupMembersTab;

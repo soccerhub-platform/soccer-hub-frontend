@@ -1,4 +1,5 @@
 import { apiClient } from "../../../shared/api";
+import type { MediaAsset } from "../../../shared/media.types";
 
 /* ================= TYPES ================= */
 
@@ -13,6 +14,7 @@ export interface GroupApiModel {
   capacity: number;
   description: string;
   status: "ACTIVE" | "PAUSED" | "STOPPED";
+  avatar?: MediaAsset | null;
 }
 
 export interface GroupCreatePayload {
@@ -121,6 +123,7 @@ export interface AdminGroupDetailsModel {
   health?: GroupHealthResponse | null;
   nextSession?: AdminGroupNextSession | string | null;
   capabilities?: AdminGroupCapabilities | null;
+  avatar?: MediaAsset | null;
 }
 
 export type GroupHealth =
@@ -155,6 +158,7 @@ export interface GroupOverviewItem {
   scheduleActive: boolean;
   nextSessionAt: string | null;
   health: GroupHealth;
+  avatar?: MediaAsset | null;
 }
 
 export interface GroupOverviewResponse {
@@ -179,6 +183,7 @@ export interface GroupMemberItem {
   clientId: string;
   playerId: string;
   childName: string;
+  avatar?: MediaAsset | null;
   birthDate: string;
   attendanceRate: number;
   membershipStatus?: "UPCOMING" | "ACTIVE" | "TRANSFERRED" | "COMPLETED" | "REMOVED" | string;
@@ -276,6 +281,7 @@ export interface GroupMemberCandidate {
   birthDate?: string | null;
   age?: number | null;
   eligible: boolean;
+  earliestAvailableJoinDate?: string | null;
   warnings?: GroupMemberCandidateWarning[];
   currentMemberships?: GroupMemberCandidateMembership[];
 }
@@ -286,6 +292,47 @@ export interface GroupMemberCandidatesResponse {
   total: number;
   page: number;
   size: number;
+}
+
+export type GroupActivityType =
+  | "GROUP_UPDATED"
+  | "GROUP_STATUS_CHANGED"
+  | "STUDENT_ADDED"
+  | "STUDENT_TRANSFERRED"
+  | "STUDENT_REMOVED"
+  | "SESSION_CANCELLED"
+  | "SESSION_RESCHEDULED"
+  | "SESSION_COACH_SUBSTITUTED"
+  | "ATTENDANCE_UPDATED"
+  | "COACH_ASSIGNED"
+  | "COACH_UNASSIGNED"
+  | string;
+
+export interface GroupActivityActor {
+  id?: string | null;
+  fullName?: string | null;
+  name?: string | null;
+  email?: string | null;
+}
+
+export interface GroupActivityItem {
+  id: string;
+  type?: GroupActivityType;
+  activityType?: GroupActivityType;
+  occurredAt?: string | null;
+  createdAt?: string | null;
+  actor?: GroupActivityActor | null;
+  actorName?: string | null;
+  payload?: Record<string, unknown> | null;
+}
+
+export interface GroupActivityResponse {
+  content: GroupActivityItem[];
+  totalElements?: number;
+  totalPages?: number;
+  page?: number;
+  size?: number;
+  number?: number;
 }
 
 export interface GroupScheduleRisksResponse {
@@ -345,6 +392,18 @@ export const GroupApi = {
     return apiClient.get<GroupMemberCandidatesResponse>(`/admin/groups/${groupId}/member-candidates?${qs}`);
   },
 
+  getActivity(
+    groupId: string,
+    params: { page?: number; size?: number },
+    _token: string
+  ): Promise<GroupActivityResponse> {
+    const qs = new URLSearchParams({
+      page: String(params.page ?? 0),
+      size: String(params.size ?? 5),
+    });
+    return apiClient.get<GroupActivityResponse>(`/admin/groups/${groupId}/activity?${qs}`);
+  },
+
   getScheduleRisks(groupId: string, _token: string): Promise<GroupScheduleRisksResponse> {
     return apiClient.get<GroupScheduleRisksResponse>(`/admin/groups/${groupId}/schedule/risks`);
   },
@@ -368,6 +427,16 @@ export const GroupApi = {
 
   update(groupId: string, payload: GroupUpdatePayload, _token: string): Promise<AdminGroupDetailsModel> {
     return apiClient.patch<AdminGroupDetailsModel>(`/admin/groups/${groupId}`, payload);
+  },
+
+  uploadAvatar(groupId: string, file: File, _token: string): Promise<MediaAsset> {
+    const formData = new FormData();
+    formData.set("file", file);
+    return apiClient.postForm<MediaAsset>(`/admin/groups/${groupId}/avatar`, formData);
+  },
+
+  deleteAvatar(groupId: string, _token: string): Promise<void> {
+    return apiClient.delete<void>(`/admin/groups/${groupId}/avatar`);
   },
 
   addMember(groupId: string, payload: AddGroupMemberPayload, _token: string): Promise<GroupMemberCommandOutput> {

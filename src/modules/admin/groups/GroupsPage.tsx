@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import GroupFilters from "./components/GroupFilters";
+import GroupFilters, { GroupHealthFilter } from "./components/GroupFilters";
 import GroupsTable from "./components/GroupsTable";
 import { useAuth } from "../../../shared/AuthContext";
 import {
   GroupApi,
   GroupOverviewResponse,
-  GroupHealth,
 } from "./group.api";
 import { useAdminBranch } from "../BranchContext";
 import CreateGroupModal from "./components/CreateGroupModal";
@@ -18,9 +17,13 @@ import {
   PageShell,
   SectionCard,
 } from "../../../shared/ui";
-import { PlusIcon } from "@heroicons/react/24/outline";
-
-type GroupFilter = "all" | GroupHealth;
+import {
+  CheckBadgeIcon,
+  ExclamationTriangleIcon,
+  PauseCircleIcon,
+  PlusIcon,
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
 
 const emptyOverview: GroupOverviewResponse = {
   summary: {
@@ -45,11 +48,11 @@ const GroupsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [showCreate, setShowCreate] = useState(false);
-  const [healthFilter, setHealthFilter] = useState<GroupFilter>("all");
 
   const [filters, setFilters] = useState({
     search: "",
     status: "",
+    health: "all" as GroupHealthFilter,
   });
 
   const loadGroups = async () => {
@@ -89,20 +92,25 @@ const GroupsPage: React.FC = () => {
         return false;
       }
 
-      if (healthFilter !== "all" && g.health !== healthFilter) {
+      if (filters.health !== "all" && g.health !== filters.health) {
         return false;
       }
 
       return true;
     });
-  }, [overview.groups, filters, healthFilter]);
+  }, [overview.groups, filters]);
+
+  const needsAttention =
+    overview.summary.withoutCoach +
+    overview.summary.withoutSchedule +
+    overview.summary.overCapacity;
 
   if (!token) {
     return <ErrorState message="Нет авторизации" />;
   }
 
   return (
-    <PageShell>
+    <PageShell className="max-w-none space-y-5 px-0 pb-4">
       <PageHeader
         title="Группы"
         description="Операционный обзор групп: состояние, риски и действия."
@@ -114,45 +122,39 @@ const GroupsPage: React.FC = () => {
         }
       />
 
-      <SectionCard className="p-3" bodyClassName="space-y-3">
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <Metric label="Всего" value={overview.summary.total} />
-          <Metric label="Активны" value={overview.summary.active} tone="success" />
-          <Metric label="Пауза" value={overview.summary.paused} tone="warning" />
-          <Metric label="Стоп" value={overview.summary.stopped} tone="danger" />
-          <Metric label="Без тренера" value={overview.summary.withoutCoach} tone="warning" />
-          <Metric label="Без расписания" value={overview.summary.withoutSchedule} tone="warning" />
-          <Metric label="Переполнены" value={overview.summary.overCapacity} tone="danger" />
-        </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Metric
+          icon={<UserGroupIcon className="h-6 w-6" />}
+          label="Все группы"
+          value={overview.summary.total}
+          hint="в текущем филиале"
+          tone="info"
+        />
+        <Metric
+          icon={<CheckBadgeIcon className="h-6 w-6" />}
+          label="Активные"
+          value={overview.summary.active}
+          hint="работают по расписанию"
+          tone="success"
+        />
+        <Metric
+          icon={<ExclamationTriangleIcon className="h-6 w-6" />}
+          label="Требуют внимания"
+          value={needsAttention}
+          hint={needsAttention > 0 ? "есть операционные риски" : "рисков не обнаружено"}
+          tone={needsAttention > 0 ? "warning" : "success"}
+        />
+        <Metric
+          icon={<PauseCircleIcon className="h-6 w-6" />}
+          label="Пауза или стоп"
+          value={overview.summary.paused + overview.summary.stopped}
+          hint="неактивные группы"
+          tone="neutral"
+        />
+      </div>
 
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_auto] xl:items-end">
-          <GroupFilters value={filters} onChange={setFilters} />
-
-          <div className="flex flex-wrap gap-2">
-            {[
-              ["all", "Все"],
-              ["NO_COACH", "Нет тренера"],
-              ["NO_SCHEDULE", "Нет расписания"],
-              ["OVER_CAPACITY", "Переполнены"],
-              ["PAUSED", "Пауза"],
-              ["STOPPED", "Стоп"],
-              ["OK", "OK"],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setHealthFilter(key as GroupFilter)}
-                className={`rounded-full border px-3 py-2 text-xs font-medium transition ${
-                  healthFilter === key
-                    ? "border-cyan-200 bg-cyan-50 text-cyan-800"
-                    : "border-slate-200 bg-white text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
+      <SectionCard className="p-4 shadow-[0_10px_28px_-25px_rgba(15,23,42,0.45)]">
+        <GroupFilters value={filters} onChange={setFilters} />
       </SectionCard>
 
       {error ? (
@@ -182,23 +184,32 @@ const GroupsPage: React.FC = () => {
 };
 
 const Metric: React.FC<{
+  icon: React.ReactNode;
   label: string;
   value: number;
-  tone?: "neutral" | "success" | "warning" | "danger";
-}> = ({ label, value, tone = "neutral" }) => {
-  const valueClass =
-    tone === "success"
-      ? "text-emerald-700"
-      : tone === "warning"
-      ? "text-amber-700"
-      : tone === "danger"
-      ? "text-rose-700"
-      : "text-slate-900";
+  hint: string;
+  tone?: "neutral" | "success" | "warning" | "danger" | "info";
+}> = ({ icon, label, value, hint, tone = "neutral" }) => {
+  const toneClassName = {
+    neutral: "bg-slate-100 text-slate-600",
+    success: "bg-emerald-50 text-emerald-700",
+    warning: "bg-amber-50 text-amber-700",
+    danger: "bg-rose-50 text-rose-700",
+    info: "bg-cyan-50 text-cyan-700",
+  }[tone];
 
   return (
-    <div className="flex min-w-[118px] shrink-0 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <div className="text-[11px] font-medium uppercase text-slate-500">{label}</div>
-      <div className={`text-lg font-semibold ${valueClass}`}>{value}</div>
+    <div className="flex min-h-[96px] items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_26px_-24px_rgba(15,23,42,0.45)]">
+      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${toneClassName}`}>
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <div className="text-sm font-medium text-slate-600">{label}</div>
+        <div className="mt-1 flex items-end gap-2">
+          <span className="text-[26px] font-semibold leading-none text-slate-950">{value}</span>
+          <span className="pb-0.5 text-xs text-slate-400">{hint}</span>
+        </div>
+      </div>
     </div>
   );
 };
