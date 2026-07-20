@@ -647,7 +647,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                 <div key={menuKey} className="grid grid-cols-1 gap-3 px-4 py-3 transition-colors hover:bg-slate-50/70 lg:grid-cols-[minmax(240px,1.5fr)_110px_165px_170px_120px_48px] lg:items-center">
                   <button
                     type="button"
-                    onClick={() => navigate(`/admin/students?playerId=${encodeURIComponent(item.playerId)}`)}
+                    onClick={() => navigate(`/admin/students/${encodeURIComponent(item.playerId)}/overview`)}
                     className="flex min-w-0 items-center gap-3 text-left"
                   >
                     <MemberAvatar name={item.childName} avatar={item.avatar} />
@@ -710,7 +710,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                         <button
                           type="button"
                           className="block w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-50"
-                          onClick={() => navigate(`/admin/students?playerId=${encodeURIComponent(item.playerId)}`)}
+                          onClick={() => navigate(`/admin/students/${encodeURIComponent(item.playerId)}/overview`)}
                         >
                           Открыть профиль
                         </button>

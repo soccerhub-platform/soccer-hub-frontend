@@ -558,7 +558,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                               variant="secondary"
                               onClick={() =>
                                 navigate(
-                                  `/admin/students?playerId=${encodeURIComponent(conversionPlayerId)}`
+                                  `/admin/students/${encodeURIComponent(conversionPlayerId)}/overview`
                                 )
                               }
                             >

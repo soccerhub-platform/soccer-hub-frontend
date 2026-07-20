@@ -312,7 +312,7 @@ const StudentsPage: React.FC = () => {
   const [sortOpen, setSortOpen] = useState(false);
   const [sort, setSort] = useState<StudentSortOption>(STUDENT_SORT_OPTIONS[0]);
   const [selectedStudent, setSelectedStudent] = useState<AdminStudentDetails | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
+  const detailsLoading = false;
 
   const loadStudents = async (mode: "initial" | "refresh" = "initial") => {
     if (!token || !branchId) {
@@ -445,23 +445,7 @@ const StudentsPage: React.FC = () => {
   };
 
   const openStudent = async (playerId: string) => {
-    if (!token) return;
-    setDetailsLoading(true);
-    try {
-      const details = await StudentApi.get(playerId);
-      try {
-        const memberships = await StudentApi.getMemberships(playerId);
-        setSelectedStudent({ ...details, memberships: memberships.items ?? [] });
-      } catch (membershipError) {
-        console.error(membershipError);
-        setSelectedStudent({ ...details, memberships: [] });
-      }
-    } catch (err) {
-      console.error(err);
-      setError(getApiErrorMessage(err, "Не удалось открыть карточку ученика"));
-    } finally {
-      setDetailsLoading(false);
-    }
+    navigate(`/admin/students/${encodeURIComponent(playerId)}/overview`);
   };
 
   const closeStudentDetails = () => {

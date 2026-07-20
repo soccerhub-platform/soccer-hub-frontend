@@ -920,7 +920,7 @@ const ContractsPage: React.FC = () => {
                         <ActionButton
                           icon={<UserCircleIcon className="h-4 w-4" />}
                           label="Ученик"
-                          onClick={() => navigate(`/admin/students?playerId=${encodeURIComponent(contract.participant.id)}`)}
+                          onClick={() => navigate(`/admin/students/${encodeURIComponent(contract.participant.id)}/overview`)}
                         />
                       </div>
                     </td>
@@ -963,7 +963,7 @@ const ContractsPage: React.FC = () => {
           onExtendContract={() => void openView(selectedContract.id, "extend")}
           onCancelContract={() => void openView(selectedContract.id, "cancel")}
           onOpenStudent={() =>
-            navigate(`/admin/students?playerId=${encodeURIComponent(selectedContract.participant.id)}`)
+            navigate(`/admin/students/${encodeURIComponent(selectedContract.participant.id)}/overview`)
           }
           onClose={closeDrawer}
         />

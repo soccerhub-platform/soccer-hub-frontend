@@ -32,6 +32,36 @@ const getPayloadString = (
   return null;
 };
 
+const enumLabel = (value?: string | null) => {
+  if (!value) return null;
+  const normalized = value.trim().toUpperCase();
+  const labels: Record<string, string> = {
+    ACTIVE: "Активно",
+    PAUSED: "На паузе",
+    STOPPED: "Остановлена",
+    ARCHIVED: "В архиве",
+    MAIN: "Главный тренер",
+    ASSISTANT: "Ассистент",
+    COACH_UNAVAILABLE: "Тренер недоступен",
+    LOCATION_UNAVAILABLE: "Площадка недоступна",
+    WEATHER: "Погода",
+    HOLIDAY: "Праздник",
+    ADMIN_DECISION: "Решение администратора",
+    SCHEDULE_CHANGE: "Смена расписания",
+    PARENT_REQUEST: "Запрос родителя",
+    MEDICAL: "Медицинская причина",
+    OTHER: "Другое",
+    IN: "В группу",
+    OUT: "Из группы",
+  };
+  return labels[normalized] ?? value;
+};
+
+const payloadLabel = (
+  payload: Record<string, unknown> | null | undefined,
+  keys: string[]
+) => enumLabel(getPayloadString(payload, keys));
+
 const getActivityType = (activity: GroupActivityItem) =>
   (activity.activityType ?? activity.type ?? "").toUpperCase();
 
@@ -130,7 +160,7 @@ const buildActivityText = (activity: GroupActivityItem) => {
   const coachName = getPayloadString(payload, ["coachName", "newCoachName", "substituteCoachName"]);
   const sourceGroup = getPayloadString(payload, ["sourceGroupName", "fromGroupName", "fromGroup"]);
   const targetGroup = getPayloadString(payload, ["targetGroupName", "toGroupName", "toGroup"]);
-  const reason = getPayloadString(payload, ["reason", "reasonCode", "leaveReason"]);
+  const reason = payloadLabel(payload, ["reason", "reasonCode", "leaveReason"]);
 
   switch (type) {
     case "STUDENT_ADDED":
@@ -201,8 +231,8 @@ const buildActivityText = (activity: GroupActivityItem) => {
         detail: null,
       };
     case "GROUP_STATUS_CHANGED": {
-      const from = getPayloadString(payload, ["fromStatus", "previousStatus"]);
-      const to = getPayloadString(payload, ["toStatus", "newStatus", "status"]);
+      const from = payloadLabel(payload, ["fromStatus", "previousStatus"]);
+      const to = payloadLabel(payload, ["toStatus", "newStatus", "status"]);
       return {
         title: "Статус группы изменён",
         detail: from && to ? `${from} → ${to}` : to,
@@ -211,16 +241,28 @@ const buildActivityText = (activity: GroupActivityItem) => {
     case "COACH_ASSIGNED":
       return {
         title: `${coachName ?? "Тренер"} назначен в группу`,
-        detail: getPayloadString(payload, ["role"]) ?? null,
+        detail: payloadLabel(payload, ["role"]) ?? null,
       };
     case "COACH_UNASSIGNED":
       return {
         title: `${coachName ?? "Тренер"} снят с группы`,
         detail: null,
       };
+    case "COACH_ROLE_CHANGED": {
+      const previousRole = payloadLabel(payload, ["previousRole", "oldRole", "fromRole"]);
+      const newRole = payloadLabel(payload, ["newRole", "role", "toRole"]);
+      return {
+        title: "Роль тренера изменена",
+        detail: coachName
+          ? `${coachName}${previousRole && newRole ? ` · ${previousRole} → ${newRole}` : newRole ? ` · ${newRole}` : ""}`
+          : previousRole && newRole
+          ? `${previousRole} → ${newRole}`
+          : newRole,
+      };
+    }
     default:
       return {
-        title: activity.type ?? activity.activityType ?? "Событие группы",
+        title: "Событие группы",
         detail: null,
       };
   }

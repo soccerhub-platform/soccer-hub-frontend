@@ -381,7 +381,7 @@ const PaymentsPage: React.FC = () => {
                     <ActionButton
                       icon={<UserCircleIcon className="h-4 w-4" />}
                       label="Ученик"
-                      onClick={() => navigate(`/admin/students?playerId=${encodeURIComponent(payment.playerId!)}`)}
+                      onClick={() => navigate(`/admin/students/${encodeURIComponent(payment.playerId!)}/overview`)}
                     />
                   ) : null}
                   {payment.status !== "CANCELLED" ? (
@@ -417,7 +417,7 @@ const PaymentsPage: React.FC = () => {
           modalError={modalError}
           onOpenStudent={
             selectedPayment.playerId
-              ? () => navigate(`/admin/students?playerId=${encodeURIComponent(selectedPayment.playerId!)}`)
+              ? () => navigate(`/admin/students/${encodeURIComponent(selectedPayment.playerId!)}/overview`)
               : undefined
           }
           onClose={() => {

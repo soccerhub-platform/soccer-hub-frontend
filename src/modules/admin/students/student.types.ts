@@ -80,9 +80,12 @@ export interface AdminStudentDetails {
   player: {
     id: string;
     fullName: string;
+    firstName?: string | null;
+    lastName?: string | null;
     avatar?: MediaAsset | null;
     birthDate?: string | null;
     age?: number | null;
+    position?: string | null;
   };
   client: {
     id: string;
@@ -94,8 +97,10 @@ export interface AdminStudentDetails {
   currentGroup?: {
     id: string;
     name: string;
+    avatar?: MediaAsset | null;
     coachName?: string | null;
     scheduleLabel?: string | null;
+    nextSessionId?: string | null;
     nextSessionAt?: string | null;
   } | null;
   currentContract?: {
@@ -136,6 +141,17 @@ export interface AdminStudentDetails {
   }>;
   risks: StudentRisk[];
   memberships?: AdminStudentMembershipHistoryItem[];
+  capabilities?: {
+    canEdit: boolean;
+    canManageAvatar: boolean;
+  } | null;
+}
+
+export interface AdminStudentUpdateInput {
+  firstName: string;
+  lastName: string;
+  birthDate?: string | null;
+  position?: string | null;
 }
 
 export interface AdminStudentMembershipHistoryItem {
@@ -143,6 +159,7 @@ export interface AdminStudentMembershipHistoryItem {
   group: {
     id: string;
     name: string;
+    avatar?: MediaAsset | null;
   };
   status: "UPCOMING" | "ACTIVE" | "TRANSFERRED" | "COMPLETED" | "REMOVED" | string;
   joinedAt: string;
@@ -151,6 +168,10 @@ export interface AdminStudentMembershipHistoryItem {
   leaveReason?: string | null;
   comment?: string | null;
   sourceContractId?: string | null;
+  capabilities?: {
+    canTransfer: boolean;
+    canRemove: boolean;
+  } | null;
 }
 
 export interface AdminStudentMembershipHistoryResponse {
@@ -159,4 +180,71 @@ export interface AdminStudentMembershipHistoryResponse {
     fullName: string;
   };
   items: AdminStudentMembershipHistoryItem[];
+}
+
+export type AdminStudentAttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED" | "UNMARKED";
+
+export interface AdminStudentAttendanceResponse {
+  playerId: string;
+  from: string;
+  to: string;
+  summary: {
+    sessionsCount: number;
+    markedCount: number;
+    presentCount: number;
+    absentCount: number;
+    excusedCount: number;
+    lateCount: number;
+    unmarkedCount: number;
+    presentLikeCount: number;
+    attendanceRate: number;
+  };
+  items: Array<{
+    sessionId: string;
+    group: {
+      id: string;
+      name: string;
+      avatar?: MediaAsset | null;
+    };
+    sessionDate: string;
+    startsAt: string;
+    endsAt: string;
+    sessionStatus: string;
+    effectiveSessionStatus: string;
+    attendanceStatus: AdminStudentAttendanceStatus;
+    comment?: string | null;
+  }>;
+}
+
+export interface AdminStudentContractsResponse {
+  playerId: string;
+  summary: {
+    totalCount: number;
+    activeCount: number;
+    upcomingCount: number;
+    endingSoonCount: number;
+    withDebtCount: number;
+  };
+  items: Array<{
+    id: string;
+    contractNumber: string;
+    status: ContractStatus;
+    startDate: string;
+    endDate: string;
+    amount: number;
+    currency: string;
+    group?: {
+      id: string;
+      name: string;
+      avatar?: MediaAsset | null;
+    } | null;
+    coachName?: string | null;
+    paymentStatus?: ContractPaymentStatus | null;
+    paidAmount: number;
+    outstandingAmount: number;
+    overpaidAmount: number;
+    lastPaidAt?: string | null;
+    paymentsCount: number;
+    current: boolean;
+  }>;
 }

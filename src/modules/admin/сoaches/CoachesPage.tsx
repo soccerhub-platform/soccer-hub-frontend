@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  BriefcaseIcon,
   CalendarDaysIcon,
   CheckCircleIcon,
   ChevronDownIcon,
@@ -14,9 +13,11 @@ import {
   FunnelIcon,
   MagnifyingGlassIcon,
   PhoneIcon,
+  PhotoIcon,
   PencilSquareIcon,
   PlusIcon,
   PowerIcon,
+  TrashIcon,
   UserCircleIcon,
   UserGroupIcon,
   UserIcon,
@@ -44,7 +45,6 @@ import {
   WorkloadStatus,
   ReportStatus,
   TrainerOverview,
-  CoachAvailability,
   TrainerActivityResponse,
 } from "./coach.api";
 import CreateCoachModal from "./CreateCoachModal";
@@ -56,11 +56,12 @@ import {
   FormField,
   LoadingState,
   ModalShell,
+  PageHeader,
   PageShell,
   SectionCard,
   formControlClassName,
 } from "../../../shared/ui";
-import { ApiError } from "../../../shared/api";
+import { ApiError, resolveApiUrl } from "../../../shared/api";
 
 type StatusFilter = CoachOverviewStatus;
 
@@ -187,6 +188,9 @@ const formatDate = (value: string) => {
 };
 
 const timeShort = (value: string) => value.slice(0, 5);
+
+const coachProfileAvatarUrl = (avatar?: CoachProfile["avatar"] | null) =>
+  avatar?.mediumUrl || avatar?.originalUrl || avatar?.thumbUrl || null;
 
 const formatDateLong = (value?: string | null) => {
   if (!value) return "—";
@@ -338,9 +342,14 @@ const riskToneClassName = (severity: string) => {
 export type CoachGroupAssignment = {
   groupId: string;
   groupName: string;
+  avatar?: CoachProfile["groups"][number]["avatar"];
   branchId: string;
   groupCoachId: string | null;
   role: "MAIN" | "ASSISTANT" | null;
+  assignedFrom?: string | null;
+  assignedTo?: string | null;
+  ageFrom?: number | null;
+  ageTo?: number | null;
   studentsCount?: number;
   activeStudentsCount?: number;
   weeklySlotsCount?: number;
@@ -352,6 +361,19 @@ const isOverloaded = (coach: CoachOverviewItem) =>
   coach.load?.status === "OVERLOADED" ||
   coach.load?.status === "HIGH" ||
   (coach.load?.maxSlots > 0 && coach.load.usedSlots > coach.load.maxSlots);
+
+const coachLoadMetrics = (coach: CoachOverviewItem) => {
+  const used = Math.max(
+    coach.load?.used ?? 0,
+    coach.load?.usedSlots ?? 0,
+    coach.weeklySessionsCount ?? 0,
+  );
+  const limit = coach.load?.limit ?? coach.load?.maxSlots ?? 0;
+  const calculatedPercentage = limit > 0 ? Math.round((used / limit) * 100) : 0;
+  const percentage = Math.max(coach.load?.percentage ?? 0, calculatedPercentage);
+
+  return { used, limit, percentage: Math.min(100, percentage) };
+};
 
 const CoachesPage: React.FC = () => {
   const { user } = useAuth();
@@ -605,21 +627,26 @@ const CoachesPage: React.FC = () => {
   }
 
   return (
-    <PageShell className="max-w-none space-y-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="heading-font text-[28px] font-semibold leading-tight text-slate-950">Тренеры</h1>
-          <p className="mt-1.5 text-sm text-slate-500">
-            Управление тренерами, их нагрузкой, группами и отчетностью.
-          </p>
-        </div>
-        <Button type="button" onClick={() => setShowCreate(true)} className="shadow-lg shadow-cyan-900/10">
-          <PlusIcon className="h-4 w-4" />
-          Добавить тренера
-        </Button>
+    <PageShell className="max-w-none space-y-5 px-0 pb-4">
+      <PageHeader
+        title="Тренеры"
+        description="Управление командой тренеров, назначениями, нагрузкой и отчетностью."
+        actions={
+          <Button type="button" onClick={() => setShowCreate(true)}>
+            <PlusIcon className="h-4 w-4" />
+            Добавить тренера
+          </Button>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <CoachMetric icon={<UserGroupIcon className="h-6 w-6" />} label="Все тренеры" value={overview.summary.total} hint="в текущем филиале" tone="info" />
+        <CoachMetric icon={<CheckCircleIcon className="h-6 w-6" />} label="Активные" value={overview.summary.active} hint="готовы к назначениям" tone="success" />
+        <CoachMetric icon={<ExclamationTriangleIcon className="h-6 w-6" />} label="Требуют внимания" value={overview.summary.withoutGroups + overview.summary.overloaded} hint="без групп или перегружены" tone={overview.summary.withoutGroups + overview.summary.overloaded > 0 ? "warning" : "success"} />
+        <CoachMetric icon={<CalendarDaysIcon className="h-6 w-6" />} label="Ведут сегодня" value={overview.summary.withSessionsToday} hint="есть занятия сегодня" tone="neutral" />
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <SectionCard className="p-4 shadow-[0_10px_28px_-25px_rgba(15,23,42,0.45)]">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {statusFilters.map((item) => (
             <button
@@ -686,7 +713,7 @@ const CoachesPage: React.FC = () => {
             <ChevronDownIcon className="pointer-events-none absolute right-2 h-4 w-4" />
           </label>
         </div>
-      </div>
+      </SectionCard>
 
       {activeFilterChips.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 px-1 text-sm">
@@ -719,7 +746,7 @@ const CoachesPage: React.FC = () => {
         />
       ) : (
         <div>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-[0_10px_28px_-25px_rgba(15,23,42,0.45)]">
             <div className="min-w-[1080px]">
               <div className="grid grid-cols-[2fr_0.7fr_0.7fr_1.05fr_1.35fr_0.75fr_64px] border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
                 <SortableHeader label="Тренер" sortKey="lastName" currentSort={sort} onSort={changeSort} />
@@ -728,7 +755,7 @@ const CoachesPage: React.FC = () => {
                 <SortableHeader label="Нагрузка" sortKey="loadPercent" currentSort={sort} onSort={changeSort} />
                 <SortableHeader label="Последний отчет" sortKey="lastReportAt" currentSort={sort} onSort={changeSort} />
                 <SortableHeader label="Статус" sortKey="active" currentSort={sort} onSort={changeSort} />
-                <div className="text-right">Действия</div>
+                <div className="text-right"><span className="sr-only">Действия</span></div>
               </div>
               <div className="divide-y divide-slate-100">
               {coaches.map((coach) => (
@@ -828,6 +855,34 @@ const CoachesPage: React.FC = () => {
         />
       ) : null}
     </PageShell>
+  );
+};
+
+const CoachMetric: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  hint: string;
+  tone: "neutral" | "success" | "warning" | "info";
+}> = ({ icon, label, value, hint, tone }) => {
+  const toneClassName = {
+    neutral: "bg-slate-100 text-slate-600",
+    success: "bg-emerald-50 text-emerald-700",
+    warning: "bg-amber-50 text-amber-700",
+    info: "bg-cyan-50 text-cyan-700",
+  }[tone];
+
+  return (
+    <div className="flex min-h-[96px] items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-[0_10px_26px_-24px_rgba(15,23,42,0.45)]">
+      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${toneClassName}`}>{icon}</span>
+      <div className="min-w-0">
+        <div className="text-sm font-medium text-slate-600">{label}</div>
+        <div className="mt-1 flex items-end gap-2">
+          <span className="text-[26px] font-semibold leading-none text-slate-950">{value}</span>
+          <span className="pb-0.5 text-xs text-slate-400">{hint}</span>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -956,38 +1011,6 @@ const SortableHeader: React.FC<{
   );
 };
 
-const MetricCard: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  tone?: "info" | "success" | "warning" | "danger" | "purple";
-  active: boolean;
-  onClick: () => void;
-}> = ({ icon, label, value, tone = "info", active, onClick }) => {
-  const toneClass =
-    tone === "success"
-      ? "bg-emerald-50 text-emerald-700"
-      : tone === "warning"
-      ? "bg-orange-50 text-orange-700"
-      : tone === "danger"
-      ? "bg-rose-50 text-rose-700"
-      : tone === "purple"
-      ? "bg-violet-50 text-violet-700"
-      : "bg-sky-50 text-sky-700";
-
-  return (
-    <button type="button" aria-pressed={active} onClick={onClick} className={`flex items-center gap-3 border border-transparent px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600 md:border-r last:border-r-0 ${active ? "bg-cyan-50/80 ring-1 ring-inset ring-cyan-200" : "hover:border-slate-200 hover:bg-slate-50"}`}>
-      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${toneClass}`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <div className="text-lg font-semibold leading-tight text-slate-950">{value}</div>
-        <div className="mt-0.5 truncate text-xs text-slate-500">{label}</div>
-      </div>
-    </button>
-  );
-};
-
 const CoachRow: React.FC<{
   coach: CoachOverviewItem;
   isUpdating: boolean;
@@ -1000,19 +1023,27 @@ const CoachRow: React.FC<{
   onToggleStatus: () => void;
   actionLoading: boolean;
 }> = ({ coach, isUpdating, menuOpen, onToggleMenu, onCloseMenu, onOpen, onEdit, onAssign, onToggleStatus, actionLoading }) => {
-  const loadPercent =
-    coach.load?.percentage ?? (coach.load?.maxSlots > 0
-      ? Math.min(100, Math.round((coach.load.usedSlots / coach.load.maxSlots) * 100))
-      : 0);
+  const load = coachLoadMetrics(coach);
   const report = reportState(coach);
 
   return (
-    <div className="relative grid grid-cols-[2fr_0.7fr_0.7fr_1.05fr_1.35fr_0.75fr_64px] items-center px-4 py-3 text-sm transition hover:bg-slate-50/70">
-      <button type="button" onClick={onOpen} className="min-w-0 text-left">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") onOpen();
+      }}
+      className="relative grid cursor-pointer grid-cols-[2fr_0.7fr_0.7fr_1.05fr_1.35fr_0.75fr_64px] items-center px-4 py-3 text-sm transition hover:bg-emerald-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600"
+    >
+      <div className="min-w-0 text-left">
         <div className="flex items-center gap-3">
           <CoachAvatar coach={coach} />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-slate-950">{coachFullName(coach)}</div>
+            <div className="mt-0.5 truncate text-xs text-slate-500">
+              {coach.specialization || "Специализация не указана"}
+            </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
               <EnvelopeIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
               <span className="truncate">{coach.email}</span>
@@ -1023,7 +1054,7 @@ const CoachRow: React.FC<{
             </div>
           </div>
         </div>
-      </button>
+      </div>
 
       <div>
         <div className="font-semibold text-slate-950">{coach.groups.length}</div>
@@ -1037,16 +1068,16 @@ const CoachRow: React.FC<{
 
       <div>
         <div className="font-semibold text-slate-950">
-          {coach.load?.used ?? coach.load?.usedSlots ?? 0} из {coach.load?.limit ?? coach.load?.maxSlots ?? 0} занятий
+          {load.used} из {load.limit} занятий
         </div>
         <div className="mt-3 flex items-center gap-3">
-          <div className="h-1.5 w-28 rounded-full bg-slate-200" title={`Нагрузка за текущую неделю: ${coach.load?.completed ?? 0} проведено, ${coach.load?.planned ?? 0} запланировано, лимит — ${coach.load?.limit ?? coach.load?.maxSlots ?? 0} занятий.`}>
+          <div className="h-1.5 w-28 rounded-full bg-slate-200" title={`Нагрузка за текущую неделю: ${coach.load?.completed ?? 0} проведено, ${coach.load?.planned ?? 0} запланировано, лимит — ${load.limit} занятий.`}>
             <div
               className={`h-1.5 rounded-full ${isOverloaded(coach) ? "bg-rose-500" : "bg-cyan-700"}`}
-              style={{ width: `${loadPercent}%` }}
+              style={{ width: `${load.percentage}%` }}
             />
           </div>
-          <span className="text-xs text-slate-500">{loadPercent}%</span>
+          <span className="text-xs text-slate-500">{load.percentage}%</span>
         </div>
       </div>
 
@@ -1063,11 +1094,11 @@ const CoachRow: React.FC<{
         <StatusBadge active={coach.active} workStatus={coach.workStatus} />
       </div>
 
-      <div className="flex justify-end" data-coach-menu>
+      <div className="flex justify-end" data-coach-menu onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
         <button
           type="button"
           onClick={onToggleMenu}
-          className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700 transition hover:bg-slate-200"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
           aria-label={`Действия для тренера ${coachFullName(coach)}`}
         >
           <EllipsisVerticalIcon className="h-5 w-5" />
@@ -1117,11 +1148,28 @@ const CoachRow: React.FC<{
   );
 };
 
-const CoachAvatar: React.FC<{ coach: CoachOverviewItem }> = ({ coach }) => (
-  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-cyan-700 to-teal-500 text-sm font-semibold text-white shadow-sm">
-    {coachInitials(coach)}
-  </div>
-);
+const CoachAvatar: React.FC<{ coach: CoachOverviewItem }> = ({ coach }) => {
+  const source = coach.avatar?.thumbUrl || coach.avatar?.mediumUrl || coach.avatar?.originalUrl;
+  const resolvedSource = source ? resolveApiUrl(source) : null;
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [resolvedSource]);
+
+  return (
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-emerald-700 text-sm font-semibold text-white shadow-sm">
+      {resolvedSource && !imageFailed ? (
+        <img
+          src={resolvedSource}
+          alt={`Фото тренера ${coachFullName(coach)}`}
+          className="h-full w-full object-cover"
+          onError={() => setImageFailed(true)}
+        />
+      ) : coachInitials(coach)}
+    </div>
+  );
+};
 
 const CoachTableSkeleton: React.FC = () => (
   <div aria-label="Загрузка тренеров" aria-busy="true" className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -1925,7 +1973,8 @@ export const AssignCoachToGroupModal: React.FC<{
   token: string;
   onClose: () => void;
   onAssigned: () => void | Promise<void>;
-}> = ({ coachId, branchId, assignedGroupIds, token, onClose, onAssigned }) => {
+  placement?: "center" | "right";
+}> = ({ coachId, branchId, assignedGroupIds, token, onClose, onAssigned, placement = "center" }) => {
   const [groups, setGroups] = useState<GroupApiModel[]>([]);
   const [groupId, setGroupId] = useState("");
   const [role, setRole] = useState<"MAIN" | "ASSISTANT">("ASSISTANT");
@@ -1997,6 +2046,7 @@ export const AssignCoachToGroupModal: React.FC<{
     <ModalShell
       title="Назначить в группу"
       description="Добавьте тренера в одну из групп текущего филиала."
+      placement={placement}
       onClose={onClose}
       maxWidthClassName="max-w-lg"
       footer={
@@ -2105,7 +2155,9 @@ export const EditCoachModal: React.FC<{
   token: string;
   onClose: () => void;
   onSaved: () => void | Promise<void>;
-}> = ({ profile, token, onClose, onSaved }) => {
+  placement?: "center" | "right";
+  onAvatarChanged?: (avatar: CoachProfile["avatar"]) => void;
+}> = ({ profile, token, onClose, onSaved, placement = "center", onAvatarChanged }) => {
   const initialForm = {
     firstName: profile.firstName,
     lastName: profile.lastName,
@@ -2125,13 +2177,60 @@ export const EditCoachModal: React.FC<{
     description: profile.description ?? "",
   });
   const [loading, setLoading] = useState(false);
+  const [avatar, setAvatar] = useState(profile.avatar ?? null);
+  const [avatarAction, setAvatarAction] = useState<"upload" | "delete" | null>(null);
+  const [deleteAvatarConfirmOpen, setDeleteAvatarConfirmOpen] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const avatarUrl = coachProfileAvatarUrl(avatar);
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
 
   const requestClose = () => {
-    if (loading) return;
+    if (loading || avatarAction !== null) return;
     if (isDirty && !confirm("Есть несохраненные изменения. Закрыть без сохранения?")) return;
     onClose();
+  };
+
+  const uploadAvatar = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Выберите изображение");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Фото должно быть не больше 5 МБ");
+      return;
+    }
+
+    setAvatarAction("upload");
+    try {
+      const nextAvatar = await CoachApi.uploadAvatar(profile.coachId, file, token);
+      setAvatar(nextAvatar);
+      onAvatarChanged?.(nextAvatar);
+      toast.success("Фото тренера обновлено");
+    } catch (error) {
+      console.error("Failed to upload coach avatar", error);
+      toast.error("Не удалось загрузить фото тренера");
+    } finally {
+      setAvatarAction(null);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
+  const deleteAvatar = async () => {
+    setAvatarAction("delete");
+    try {
+      await CoachApi.deleteAvatar(profile.coachId, token);
+      setAvatar(null);
+      setDeleteAvatarConfirmOpen(false);
+      onAvatarChanged?.(null);
+      toast.success("Фото тренера удалено");
+    } catch (error) {
+      console.error("Failed to delete coach avatar", error);
+      toast.error("Не удалось удалить фото тренера");
+    } finally {
+      setAvatarAction(null);
+    }
   };
 
   const submit = async () => {
@@ -2183,21 +2282,86 @@ export const EditCoachModal: React.FC<{
     <ModalShell
       title="Редактировать тренера"
       description={`${profile.firstName} ${profile.lastName}`}
+      placement={placement}
       onClose={requestClose}
       maxWidthClassName="max-w-lg"
-      closeDisabled={loading}
+      closeDisabled={loading || avatarAction !== null}
       footer={
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" disabled={loading} onClick={requestClose}>
+          <Button type="button" variant="secondary" disabled={loading || avatarAction !== null} onClick={requestClose}>
             Отмена
           </Button>
-          <Button type="button" isLoading={loading} disabled={!isDirty || loading} onClick={submit}>
+          <Button type="button" isLoading={loading} disabled={!isDirty || loading || avatarAction !== null} onClick={submit}>
             Сохранить
           </Button>
         </div>
       }
     >
       <div className="space-y-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div className="flex items-center gap-4">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white text-lg font-semibold text-slate-600">
+              {avatarUrl ? (
+                <img src={resolveApiUrl(avatarUrl)} alt={`${profile.firstName} ${profile.lastName}`} className="h-full w-full object-cover" />
+              ) : (
+                `${profile.firstName?.[0] ?? ""}${profile.lastName?.[0] ?? ""}`.toUpperCase() || <UserCircleIcon className="h-7 w-7" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-slate-950">Фото профиля</div>
+              <div className="mt-1 text-xs leading-5 text-slate-500">
+                {avatar ? "Фото используется в списке тренеров и workspace." : "Фото пока не загружено."}
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => void uploadAvatar(event.target.files?.[0])}
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  isLoading={avatarAction === "upload"}
+                  disabled={avatarAction !== null || loading}
+                  onClick={() => avatarInputRef.current?.click()}
+                >
+                  <PhotoIcon className="h-4 w-4" />
+                  {avatar ? "Заменить" : "Загрузить"}
+                </Button>
+                {avatar ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="softDanger"
+                    isLoading={avatarAction === "delete"}
+                    disabled={avatarAction !== null || loading}
+                    onClick={() => setDeleteAvatarConfirmOpen(true)}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                    Удалить
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+          {deleteAvatarConfirmOpen ? (
+            <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3">
+              <div className="text-sm font-semibold text-rose-900">Удалить фото тренера?</div>
+              <p className="mt-1 text-xs leading-5 text-rose-700">Вместо фотографии будут показаны инициалы.</p>
+              <div className="mt-3 flex gap-2">
+                <Button type="button" size="sm" variant="secondary" disabled={avatarAction !== null} onClick={() => setDeleteAvatarConfirmOpen(false)}>
+                  Отмена
+                </Button>
+                <Button type="button" size="sm" variant="danger" isLoading={avatarAction === "delete"} onClick={() => void deleteAvatar()}>
+                  Удалить фото
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
         <FormField label="Имя*">
           <input
             type="text"
@@ -2270,12 +2434,14 @@ export const ResetCoachPasswordModal: React.FC<{
   loading: boolean;
   onReset: () => void | Promise<void>;
   onClose: () => void;
-}> = ({ coachName, password, loading, onReset, onClose }) => {
+  placement?: "center" | "right";
+}> = ({ coachName, password, loading, onReset, onClose, placement = "center" }) => {
   if (password) {
     return (
       <ModalShell
         title="Пароль сброшен"
         description={`Новый временный пароль для тренера ${coachName}`}
+        placement={placement}
         onClose={onClose}
         maxWidthClassName="max-w-md"
         footer={
@@ -2298,6 +2464,7 @@ export const ResetCoachPasswordModal: React.FC<{
     <ModalShell
       title="Сбросить пароль"
       description={`Для тренера ${coachName} будет сгенерирован новый временный пароль.`}
+      placement={placement}
       onClose={onClose}
       maxWidthClassName="max-w-md"
       closeDisabled={loading}

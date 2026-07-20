@@ -1,7 +1,10 @@
 import { apiClient } from "../../../shared/api";
 import type {
   AdminStudentDetails,
+  AdminStudentAttendanceResponse,
+  AdminStudentContractsResponse,
   AdminStudentMembershipHistoryResponse,
+  AdminStudentUpdateInput,
   AdminStudentsPageResponse,
   AdminStudentsQuery,
 } from "./student.types";
@@ -30,8 +33,26 @@ export const StudentApi = {
     return apiClient.get<AdminStudentDetails>(`/admin/students/${playerId}`);
   },
 
+  update(playerId: string, input: AdminStudentUpdateInput): Promise<AdminStudentDetails> {
+    return apiClient.patch<AdminStudentDetails>(`/admin/students/${playerId}`, input);
+  },
+
   getMemberships(playerId: string): Promise<AdminStudentMembershipHistoryResponse> {
     return apiClient.get<AdminStudentMembershipHistoryResponse>(`/admin/students/${playerId}/memberships`);
+  },
+
+  getAttendance(
+    playerId: string,
+    query: { from: string; to: string; groupId?: string; status?: string }
+  ): Promise<AdminStudentAttendanceResponse> {
+    const qs = new URLSearchParams({ from: query.from, to: query.to });
+    if (query.groupId) qs.set("groupId", query.groupId);
+    if (query.status) qs.set("status", query.status);
+    return apiClient.get<AdminStudentAttendanceResponse>(`/admin/students/${playerId}/attendance?${qs}`);
+  },
+
+  getContracts(playerId: string): Promise<AdminStudentContractsResponse> {
+    return apiClient.get<AdminStudentContractsResponse>(`/admin/students/${playerId}/contracts`);
   },
 
   uploadAvatar(playerId: string, file: File): Promise<MediaAsset> {

@@ -8,6 +8,7 @@ import AdminLayout from './AdminLayout';
 import ProtectedRoute from '../../shared/ProtectedRoute';
 import CoachesPage from './сoaches/CoachesPage';
 import StudentsPage from './students/StudentsPage';
+import StudentDetailsPage from './students/StudentDetailsPage';
 import ChangePasswordPage from '../../shared/components/ChangePassword';
 import GroupsPage from './groups/GroupsPage';
 import GroupDetailsPage from './groups/GroupDetailsPage';
@@ -48,9 +49,12 @@ const AdminRoutes: React.FC = () => {
               <Route path="contracts" element={<ContractsPage />} />
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="students" element={<StudentsPage />} />
+              <Route path="students/:playerId" element={<Navigate to="overview" replace />} />
+              <Route path="students/:playerId/:section" element={<StudentDetailsPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="coaches" element={<CoachesPage />} />
-              <Route path="coaches/:coachId" element={<CoachDetailsPage />} />
+              <Route path="coaches/:coachId" element={<Navigate to="overview" replace />} />
+              <Route path="coaches/:coachId/:section" element={<CoachDetailsPage />} />
               <Route path="leads" element={<LeadKanbanPage />} />
               <Route path="groups" element={<GroupsPage />} />
               <Route path="groups/:groupId" element={<Navigate to="overview" replace />} />

@@ -22,7 +22,7 @@ import {
   ModalShell,
   PageShell,
 } from "../../../shared/ui";
-import { getApiErrorMessage } from "../../../shared/api";
+import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import { useAdminBranch } from "../BranchContext";
 import { Coach, CoachApi } from "../сoaches/coach.api";
 import CoachProfileLink from "./components/CoachProfileLink";
@@ -308,7 +308,8 @@ const SessionDetailsPage: React.FC = () => {
 };
 
 const CoachRow: React.FC<{ coach: AdminSessionCoach }> = ({ coach }) => {
-  const avatarUrl = coach.avatar?.thumbUrl ?? coach.avatar?.mediumUrl ?? coach.avatar?.originalUrl;
+  const rawAvatarUrl = coach.avatar?.thumbUrl ?? coach.avatar?.mediumUrl ?? coach.avatar?.originalUrl;
+  const avatarUrl = rawAvatarUrl ? resolveApiUrl(rawAvatarUrl) : null;
   return (
     <div className="flex items-center gap-3 py-3">
       {avatarUrl ? <img src={avatarUrl} alt={`Фото ${coach.fullName}`} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-xs font-semibold text-cyan-800">{getInitials(coach.fullName)}</div>}

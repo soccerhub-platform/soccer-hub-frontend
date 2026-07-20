@@ -17,14 +17,32 @@ export interface Coach {
 export interface CoachGroupRef {
   groupId: string;
   groupName: string;
+  avatar?: MediaAsset | null;
   branchId: string;
   groupCoachId?: string | null;
   role?: "MAIN" | "ASSISTANT" | null;
+  assignedFrom?: string | null;
+  assignedTo?: string | null;
+  ageFrom?: number | null;
+  ageTo?: number | null;
   studentsCount?: number;
   activeStudentsCount?: number;
   weeklySlotsCount?: number;
   nextSession?: CoachGroupNextSession | null;
   riskFlags?: CoachGroupRiskFlag[];
+}
+
+export interface CoachGroupAssignmentHistoryItem {
+  groupCoachId: string;
+  groupId: string;
+  groupName: string;
+  avatar?: MediaAsset | null;
+  role?: "MAIN" | "ASSISTANT" | null;
+  assignedFrom?: string | null;
+  assignedTo?: string | null;
+  removalReason?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface CoachGroupNextSession {
@@ -68,6 +86,7 @@ export interface CoachOverviewItem {
   active: boolean;
   accountStatus?: AccountStatus;
   workStatus?: WorkStatus;
+  avatar?: MediaAsset | null;
   vacationFrom?: string | null;
   vacationTo?: string | null;
   workStatusReason?: string | null;
@@ -171,6 +190,7 @@ interface TrainerListResponse {
   content: Array<{
     id: string; firstName: string; lastName: string; email: string; phone: string;
     specialization?: string | null; accountStatus: AccountStatus; workStatus: WorkStatus;
+    avatar?: MediaAsset | null;
     groupCount: number; todaySessionsCount: number; load: CoachLoad; reports: CoachOverviewReports;
   }>;
   page: number; size: number; totalElements: number; totalPages: number;
@@ -208,6 +228,8 @@ export interface CoachUpcomingSession {
   endTime: string;
   groupId: string;
   groupName: string;
+  scheduleType?: string | null;
+  location?: { id: string; name?: string | null } | null;
   status: string;
   reportDone: boolean;
 }
@@ -248,6 +270,7 @@ export interface CoachProfile {
   specialization?: string | null;
   birthDate?: string | null;
   description?: string | null;
+  avatar?: MediaAsset | null;
   active: boolean;
   accountStatus?: AccountStatus;
   workStatus?: WorkStatus;
@@ -255,6 +278,7 @@ export interface CoachProfile {
   vacationTo?: string | null;
   workStatusReason?: string | null;
   groups: CoachGroupRef[];
+  groupAssignmentHistory?: CoachGroupAssignmentHistoryItem[];
   weeklySchedule: CoachWeeklyScheduleItem[];
   upcomingSessions: CoachUpcomingSession[];
   reports: CoachProfileReports;
@@ -313,9 +337,11 @@ export interface TrainerOverview {
   load: CoachLoad;
   attentionItems: TrainerAttentionItem[];
   groups: TrainerOverviewGroup[];
+  branches: Array<{ id: string; name: string }>;
   availability: CoachAvailability;
   nextSession: TrainerNextSession | null;
   lastReport: TrainerLastReport | null;
+  substitutionsThisWeek: number;
 }
 
 export interface TrainerAttentionItem {
@@ -449,13 +475,29 @@ export const CoachApi = {
       apiClient.get<TrainerListResponse>(`/api/admin/branches/${branchId}/trainers?${qs}`),
       apiClient.get<CoachOverviewSummary>(`/api/admin/branches/${branchId}/trainers/summary`),
     ]);
+
+    const missingAvatarItems = list.content.filter((item) => item.avatar === undefined);
+    const fallbackAvatars = new Map<string, MediaAsset | null>();
+    await Promise.all(
+      missingAvatarItems.map(async (item) => {
+        try {
+          const profile = await apiClient.get<Pick<CoachProfile, "avatar">>(`/admin/coach/${item.id}/profile`);
+          fallbackAvatars.set(item.id, profile.avatar ?? null);
+        } catch {
+          fallbackAvatars.set(item.id, null);
+        }
+      }),
+    );
+
     return {
       summary,
       coaches: {
         content: list.content.map((item) => ({
           coachId: item.id, firstName: item.firstName, lastName: item.lastName, email: item.email,
           phone: item.phone, specialization: item.specialization, active: item.accountStatus === "ACTIVE",
-          accountStatus: item.accountStatus, workStatus: item.workStatus, groups: Array.from({ length: item.groupCount }, (_, index) => ({ groupId: `count-${index}`, groupName: "", branchId })),
+          accountStatus: item.accountStatus, workStatus: item.workStatus,
+          avatar: item.avatar ?? fallbackAvatars.get(item.id) ?? null,
+          groups: Array.from({ length: item.groupCount }, (_, index) => ({ groupId: `count-${index}`, groupName: "", branchId })),
           weeklySessionsCount: item.load.used ?? item.load.completed ?? 0, todaySessionsCount: item.todaySessionsCount,
           load: item.load, reports: item.reports,
         })),
