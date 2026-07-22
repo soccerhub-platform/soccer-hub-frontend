@@ -15,7 +15,7 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 const Button: React.FC<ButtonProps> = ({
   variant = "primary",
   size = "md",
-  rounded = "rounded-xl",
+  rounded = "rounded-lg",
   isLoading = false,
   disabled,
   className,

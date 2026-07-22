@@ -79,7 +79,7 @@ const LoginPage: React.FC = () => {
         <section className="hidden flex-col justify-between px-10 py-10 lg:flex">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-teal-100 bg-white px-3 py-2 text-sm text-teal-900 shadow-sm">
             <BrandMark compact />
-            <span className="font-semibold">Club Hub</span>
+            <span className="font-semibold">Soccer Hub</span>
           </div>
 
           <div className="max-w-xl">
@@ -114,7 +114,7 @@ const LoginPage: React.FC = () => {
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <div className="heading-font text-2xl font-semibold text-teal-950">
-                  Вход в Club Hub
+                  Вход в Soccer Hub
                 </div>
                 <p className="mt-1 text-sm text-teal-900/65">
                   Введите рабочий email и пароль.

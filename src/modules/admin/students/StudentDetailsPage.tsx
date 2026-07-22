@@ -194,7 +194,8 @@ const MembershipRow: React.FC<{
   onOpen: () => void;
   onTransfer?: () => void;
   onRemove?: () => void;
-}> = ({ membership, onOpen, onTransfer, onRemove }) => (
+  onCancelContract?: () => void;
+}> = ({ membership, onOpen, onTransfer, onRemove, onCancelContract }) => (
   <div className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center">
     <div className="flex min-w-0 flex-1 items-center gap-3">
       {getAvatarUrl(membership.group.avatar) ? (
@@ -223,6 +224,7 @@ const MembershipRow: React.FC<{
       </span>
       {onTransfer ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" onClick={onTransfer}><ArrowsRightLeftIcon className="h-4 w-4" /> Перевести</Button> : null}
       {onRemove ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" onClick={onRemove}><TrashIcon className="h-4 w-4" /> Исключить</Button> : null}
+      {onCancelContract ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" onClick={onCancelContract}><DocumentTextIcon className="h-4 w-4" /> Отменить договор</Button> : null}
       <button type="button" onClick={onOpen} aria-label={`Открыть группу ${membership.group.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-admin-700">
         <ChevronRightIcon className="h-4 w-4" />
       </button>
@@ -458,7 +460,7 @@ const StudentDetailsPage: React.FC = () => {
         title: `Платёж ${formatAmount(item.amount, item.currency)}`,
         description: item.comment || "Оплата по договору",
         tone: "bg-cyan-500",
-        to: contract ? `/admin/contracts?contractId=${encodeURIComponent(contract.id)}&mode=view` : sectionPath("contracts"),
+        to: contract ? `/admin/contracts/${encodeURIComponent(contract.id)}/overview` : sectionPath("contracts"),
       })),
       ...memberships.map((item) => ({
         id: `membership-${item.membershipId}`,
@@ -525,7 +527,7 @@ const StudentDetailsPage: React.FC = () => {
               <UserPlusIcon className="h-4 w-4" /> Добавить в группу
             </Button>
             {contract ? (
-              <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => navigate(`/admin/contracts?contractId=${encodeURIComponent(contract.id)}&mode=view`)}>
+              <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(contract.id)}/overview`)}>
                 <DocumentTextIcon className="h-4 w-4" /> Открыть договор
               </Button>
             ) : <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => navigate("/admin/contracts")}><DocumentTextIcon className="h-4 w-4" /> Создать договор</Button>}
@@ -649,7 +651,7 @@ const StudentDetailsPage: React.FC = () => {
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-4">
               <h2 className="text-sm font-semibold text-slate-950">Договор</h2>
-              {contract ? <div className="mt-3 rounded-md border border-slate-200 p-3"><div className="flex items-center gap-2"><span className="text-sm font-semibold text-slate-950">{contract.contractNumber}</span><span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Активен</span></div><div className="mt-1 text-xs text-slate-500">{formatDate(contract.startDate)} — {formatDate(contract.endDate)}</div><div className="mt-4 grid grid-cols-3 gap-3"><FinancialOverview label="Сумма" value={formatAmount(contract.amount, contract.currency)} /><FinancialOverview label="Оплачено" value={formatAmount(contract.paidAmount, contract.currency)} /><FinancialOverview label="Остаток" value={formatAmount(contract.outstandingAmount, contract.currency)} /></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${contract.amount ? Math.min(100, Math.round((contract.paidAmount / contract.amount) * 100)) : 0}%` }} /></div><Button className="mt-3" size="sm" variant="secondary" rounded="rounded-md" onClick={() => navigate(`/admin/contracts?contractId=${encodeURIComponent(contract.id)}&mode=view`)}>Открыть договор</Button></div> : <EmptyState title="Нет активного договора" />}
+              {contract ? <div className="mt-3 rounded-md border border-slate-200 p-3"><div className="flex items-center gap-2"><span className="text-sm font-semibold text-slate-950">{contract.contractNumber}</span><span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Активен</span></div><div className="mt-1 text-xs text-slate-500">{formatDate(contract.startDate)} — {formatDate(contract.endDate)}</div><div className="mt-4 grid grid-cols-3 gap-3"><FinancialOverview label="Сумма" value={formatAmount(contract.amount, contract.currency)} /><FinancialOverview label="Оплачено" value={formatAmount(contract.paidAmount, contract.currency)} /><FinancialOverview label="Остаток" value={formatAmount(contract.outstandingAmount, contract.currency)} /></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${contract.amount ? Math.min(100, Math.round((contract.paidAmount / contract.amount) * 100)) : 0}%` }} /></div><Button className="mt-3" size="sm" variant="secondary" rounded="rounded-md" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(contract.id)}/overview`)}>Открыть договор</Button></div> : <EmptyState title="Нет активного договора" />}
               <NavLink to={sectionPath("contracts")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-admin-700">Все договоры <ChevronRightIcon className="h-4 w-4" /></NavLink>
             </section>
           </div>
@@ -663,7 +665,7 @@ const StudentDetailsPage: React.FC = () => {
             {currentMemberships.length ? <div className="divide-y divide-slate-100">{currentMemberships.map((item) => {
               const canTransfer = item.capabilities?.canTransfer === true;
               const canRemove = item.capabilities?.canRemove === true;
-              return <MembershipRow key={item.membershipId} membership={item} onOpen={() => navigate(`/admin/groups/${item.group.id}/overview`)} onTransfer={canTransfer ? () => openMembershipDrawer("transfer-membership", item.membershipId) : undefined} onRemove={canRemove ? () => openMembershipDrawer("remove-membership", item.membershipId) : undefined} />;
+              return <MembershipRow key={item.membershipId} membership={item} onOpen={() => navigate(`/admin/groups/${item.group.id}/overview`)} onTransfer={canTransfer ? () => openMembershipDrawer("transfer-membership", item.membershipId) : undefined} onRemove={canRemove ? () => openMembershipDrawer("remove-membership", item.membershipId) : undefined} onCancelContract={!canRemove && item.sourceContractId ? () => navigate(`/admin/contracts/${encodeURIComponent(item.sourceContractId!)}/overview?drawer=cancel`) : undefined} />;
             })}</div> : <EmptyState title="Нет активных групп" />}
           </SectionCard>
           <SectionCard title="История участия">

@@ -246,7 +246,7 @@ const LeadKanbanPage: React.FC = () => {
     if (action.type === "OPEN_CONTRACT") {
       const contractId = lead.contractId || lead.contract?.contractId;
       if (contractId) {
-        navigate(`/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view`);
+        navigate(`/admin/contracts/${encodeURIComponent(contractId)}/overview`);
       }
       return;
     }
@@ -255,7 +255,7 @@ const LeadKanbanPage: React.FC = () => {
       const contractId = lead.contractId || lead.contract?.contractId;
       if (contractId) {
         navigate(
-          `/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view&payment=create`
+          `/admin/contracts/${encodeURIComponent(contractId)}/payments?drawer=payment`
         );
       }
       return;

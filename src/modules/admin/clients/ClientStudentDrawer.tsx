@@ -37,6 +37,14 @@ const ClientStudentDrawer: React.FC<{
   const [playerId, setPlayerId] = useState("");
   const [student, setStudent] = useState({ firstName: "", lastName: "", birthDate: "" });
   const [relationshipType, setRelationshipType] = useState<ClientStudentRelationshipType>("MOTHER");
+  const [relationRoles, setRelationRoles] = useState({
+    primaryContact: true,
+    primaryPayer: true,
+    legalRepresentative: true,
+    receivesNotifications: true,
+  });
+  const [existingRelations, setExistingRelations] = useState<Awaited<ReturnType<typeof ClientApi.getStudentClients>>>([]);
+  const [confirmPrimaryTransfer, setConfirmPrimaryTransfer] = useState(false);
 
   useEffect(() => {
     if (mode !== "EXISTING") return;
@@ -55,11 +63,27 @@ const ClientStudentDrawer: React.FC<{
     return () => window.clearTimeout(timer);
   }, [branchId, linkedPlayerIds, mode, search]);
 
+  useEffect(() => {
+    if (mode !== "EXISTING" || !playerId) {
+      setExistingRelations([]);
+      return;
+    }
+    let active = true;
+    ClientApi.getStudentClients(playerId)
+      .then((relations) => { if (active) setExistingRelations(relations.filter((item) => item.active)); })
+      .catch((reason) => { if (active) setError(getApiErrorMessage(reason, "Не удалось проверить текущие связи ученика")); });
+    return () => { active = false; };
+  }, [mode, playerId]);
+
   const chooseMode = (next: StudentMode) => {
     setMode(next);
     setError(null);
     setPlayerId("");
     setRelationshipType(next === "SELF" ? "SELF" : "MOTHER");
+    setRelationRoles(next === "EXISTING"
+      ? { primaryContact: false, primaryPayer: false, legalRepresentative: false, receivesNotifications: true }
+      : { primaryContact: true, primaryPayer: true, legalRepresentative: true, receivesNotifications: true });
+    setConfirmPrimaryTransfer(false);
   };
 
   const submit = async () => {
@@ -72,16 +96,23 @@ const ClientStudentDrawer: React.FC<{
       setError("Укажите дату рождения клиента");
       return;
     }
+    const primaryWillChange = mode === "EXISTING" && existingRelations.some((item) =>
+      (relationRoles.primaryContact && item.primaryContact) || (relationRoles.primaryPayer && item.primaryPayer));
+    if (primaryWillChange && !confirmPrimaryTransfer) {
+      setError("Подтвердите передачу основной роли от текущего клиента");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
       const type = mode === "SELF" ? "SELF" : relationshipType;
       const relation = {
         relationshipType: type,
-        primaryContact: true,
-        primaryPayer: true,
-        legalRepresentative: true,
-        receivesNotifications: true,
+        ...(mode === "SELF"
+          ? { primaryContact: true, primaryPayer: true, legalRepresentative: true, receivesNotifications: true }
+          : relationRoles),
+        replacePrimaryContact: mode === "EXISTING" && relationRoles.primaryContact && confirmPrimaryTransfer,
+        replacePrimaryPayer: mode === "EXISTING" && relationRoles.primaryPayer && confirmPrimaryTransfer,
         startedAt: today(),
       } as const;
       if (mode === "EXISTING") {
@@ -94,7 +125,12 @@ const ClientStudentDrawer: React.FC<{
           firstName,
           lastName: mode === "SELF" ? rest.join(" ") : rest.filter(Boolean).join(" "),
           birthDate: student.birthDate,
-          ...relation,
+          relationshipType: relation.relationshipType,
+          primaryContact: relation.primaryContact,
+          primaryPayer: relation.primaryPayer,
+          legalRepresentative: relation.legalRepresentative,
+          receivesNotifications: relation.receivesNotifications,
+          startedAt: relation.startedAt,
         });
       }
       onCreated();
@@ -136,6 +172,13 @@ const ClientStudentDrawer: React.FC<{
         </div>}
 
         {mode !== "SELF" ? <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Кем клиент приходится ученику *</span><select className={formControlClassName} value={relationshipType} onChange={(event) => setRelationshipType(event.target.value as ClientStudentRelationshipType)}><option value="MOTHER">Мать</option><option value="FATHER">Отец</option><option value="GUARDIAN">Опекун или представитель</option><option value="OTHER">Другое</option></select></label> : null}
+        {mode !== "SELF" ? <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4"><legend className="px-1 text-sm font-semibold text-slate-900">Роли клиента</legend>{([
+          ["primaryContact", "Основной контакт"],
+          ["primaryPayer", "Основной плательщик"],
+          ["legalRepresentative", "Юридический представитель"],
+          ["receivesNotifications", "Получает уведомления"],
+        ] as const).map(([key, label]) => <label key={key} className="flex items-center gap-3 text-sm text-slate-700"><input type="checkbox" checked={relationRoles[key]} onChange={(event) => { setRelationRoles((value) => ({ ...value, [key]: event.target.checked })); setConfirmPrimaryTransfer(false); }} className="h-4 w-4 rounded border-slate-300 text-admin-600 focus:ring-admin-500" />{label}</label>)}</fieldset> : null}
+        {mode === "EXISTING" && existingRelations.some((item) => (relationRoles.primaryContact && item.primaryContact) || (relationRoles.primaryPayer && item.primaryPayer)) ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><div className="text-sm font-semibold text-amber-950">Основная роль уже назначена</div><p className="mt-1 text-xs leading-5 text-amber-800">Текущий контакт или плательщик потеряет основную роль. Остальные свойства связи сохранятся.</p><label className="mt-3 flex items-start gap-3 text-sm text-amber-950"><input type="checkbox" checked={confirmPrimaryTransfer} onChange={(event) => setConfirmPrimaryTransfer(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-amber-300 text-admin-600 focus:ring-admin-500" />Подтверждаю передачу выбранных ролей</label></div> : null}
         {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div> : null}
       </div>
     </ModalShell>

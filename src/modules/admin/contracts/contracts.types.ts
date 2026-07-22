@@ -1,20 +1,26 @@
-export type ContractStatus =
-  | "DRAFT"
-  | "UPCOMING"
-  | "ACTIVE"
-  | "EXPIRED"
-  | "CANCELLED";
-
+export type ContractStatus = "DRAFT" | "UPCOMING" | "ACTIVE" | "EXPIRED" | "CANCELLED";
 export type LeadType = "CHILDREN" | "ADULT";
 export type ContractPaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
 export type PaymentStatus = "PAID" | "CANCELLED";
 export type PaymentMethod = "CASH" | "CARD" | "BANK_TRANSFER" | "KASPI" | "OTHER";
-export type CancelReasonCode =
-  | "CLIENT_REQUEST"
-  | "PAYMENT_ISSUE"
-  | "SCHEDULE_CONFLICT"
-  | "MEDICAL"
-  | "OTHER";
+export type CancelReasonCode = "CLIENT_REQUEST" | "PAYMENT_ISSUE" | "SCHEDULE_CONFLICT" | "MEDICAL" | "OTHER";
+
+export interface ContractParty {
+  id: string;
+  fullName: string;
+  phone?: string | null;
+  email?: string | null;
+  birthDate?: string | null;
+}
+
+export interface ContractCapabilities {
+  canEdit: boolean;
+  canActivate: boolean;
+  canExtend: boolean;
+  canCancel: boolean;
+  canAddPayment: boolean;
+  canEnrollStudent: boolean;
+}
 
 export interface ContractListItem {
   id: string;
@@ -25,28 +31,12 @@ export interface ContractListItem {
   amount: number;
   currency: string;
   startDate: string;
-  endDate: string;
-  notes?: string;
-  participant: {
-    id: string;
-    fullName: string;
-    birthDate?: string;
-  };
-  primaryContact: {
-    id: string;
-    fullName: string;
-    phone: string;
-    email?: string;
-  };
-  group: {
-    id: string;
-    name: string;
-    audienceType: LeadType;
-  };
-  coach?: {
-    id: string;
-    fullName: string;
-  } | null;
+  endDate?: string | null;
+  notes?: string | null;
+  participant: ContractParty;
+  primaryContact: ContractParty;
+  group?: { id: string; name: string; audienceType: LeadType } | null;
+  coach?: { id: string; fullName: string } | null;
   paymentStatus?: ContractPaymentStatus;
   paidAmount?: number;
   outstandingAmount?: number;
@@ -66,6 +56,7 @@ export interface ContractHistoryItem {
 
 export interface ContractDetails extends ContractListItem {
   history: ContractHistoryItem[];
+  capabilities: ContractCapabilities;
 }
 
 export interface ContractsPageResponse {
@@ -74,6 +65,55 @@ export interface ContractsPageResponse {
   totalPages: number;
   number: number;
   size: number;
+}
+
+export interface ContractParticipantOption {
+  id: string;
+  fullName: string;
+  birthDate?: string;
+  leadType: LeadType;
+  primaryContact: ContractParty;
+}
+
+export interface CreateContractRequest {
+  branchId: string;
+  clientId: string;
+  playerId: string;
+  contractNumber?: string;
+  startDate: string;
+  endDate?: string;
+  amount: number;
+  currency: string;
+  notes?: string;
+}
+
+export interface UpdateContractRequest {
+  startDate: string;
+  endDate?: string;
+  amount: number;
+  currency: string;
+  notes?: string;
+}
+
+export interface ExtendContractRequest {
+  endDate: string;
+  amount?: number;
+  notes?: string;
+}
+
+export interface CancelContractRequest {
+  reasonCode: CancelReasonCode;
+  comment?: string;
+}
+
+export interface ContractsListQuery {
+  branchId?: string;
+  clientId?: string;
+  status?: ContractStatus | "all";
+  leadType?: LeadType | "all";
+  search?: string;
+  page?: number;
+  size?: number;
 }
 
 export interface ContractPaymentSummary {
@@ -147,102 +187,4 @@ export interface AdminPaymentsPageResponse {
   totalPages: number;
   number: number;
   size: number;
-}
-
-export interface ContractParticipantOption {
-  id: string;
-  fullName: string;
-  birthDate?: string;
-  leadType: LeadType;
-  primaryContact: {
-    id: string;
-    fullName: string;
-    phone: string;
-    email?: string;
-  };
-}
-
-export interface ContractGroupOption {
-  id: string;
-  branchId: string;
-  name: string;
-  audienceType: LeadType;
-  coach?: {
-    id: string;
-    fullName: string;
-  } | null;
-}
-
-export interface ContractValidationError {
-  code: string;
-  field: string;
-  message: string;
-}
-
-export interface ContractValidationResult {
-  valid: boolean;
-  errors: ContractValidationError[];
-}
-
-export interface CreateContractRequest {
-  branchId: string;
-  leadType: LeadType;
-  participantId?: string;
-  primaryContactId?: string;
-  participantDraft?: {
-    fullName: string;
-    birthDate?: string;
-  };
-  primaryContactDraft?: {
-    fullName: string;
-    phone: string;
-    email?: string;
-    source?: string;
-    comments?: string;
-  };
-  relationshipType?: "SELF" | "MOTHER" | "FATHER" | "GUARDIAN" | "OTHER";
-  groupId: string;
-  coachId?: string | null;
-  contractNumber?: string;
-  startDate: string;
-  endDate: string;
-  amount: number;
-  currency: string;
-  notes?: string;
-}
-
-export interface UpdateContractRequest {
-  branchId: string;
-  leadType: LeadType;
-  participantId: string;
-  primaryContactId: string;
-  groupId: string;
-  coachId?: string | null;
-  contractNumber?: string;
-  startDate: string;
-  endDate: string;
-  amount: number;
-  currency: string;
-  notes?: string;
-}
-
-export interface ExtendContractRequest {
-  endDate: string;
-  amount?: number;
-  notes?: string;
-}
-
-export interface CancelContractRequest {
-  reasonCode: CancelReasonCode;
-  comment?: string;
-}
-
-export interface ContractsListQuery {
-  branchId?: string;
-  clientId?: string;
-  status?: ContractStatus | "all";
-  leadType?: LeadType | "all";
-  search?: string;
-  page?: number;
-  size?: number;
 }

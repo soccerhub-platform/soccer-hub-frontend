@@ -688,7 +688,7 @@ const StudentsPage: React.FC = () => {
                 onAvatarExpired={() => void refreshStudentAvatar(student.playerId)}
                 onOpenContract={() =>
                   student.contractId
-                    ? navigate(`/admin/contracts?contractId=${encodeURIComponent(student.contractId)}&mode=view`)
+                    ? navigate(`/admin/contracts/${encodeURIComponent(student.contractId)}/overview`)
                     : undefined
                 }
                 onOpenGroup={() => (student.groupId ? navigate(`/admin/groups/${student.groupId}/overview`) : undefined)}
@@ -740,10 +740,10 @@ const StudentsPage: React.FC = () => {
           loading={detailsLoading}
           onClose={closeStudentDetails}
           onOpenContract={(contractId) =>
-            navigate(`/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view`)
+            navigate(`/admin/contracts/${encodeURIComponent(contractId)}/overview`)
           }
           onAddPayment={(contractId) =>
-            navigate(`/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view&payment=create`)
+            navigate(`/admin/contracts/${encodeURIComponent(contractId)}/payments?drawer=payment`)
           }
           onOpenGroup={(groupId) => navigate(`/admin/groups/${groupId}/overview`)}
           onUploadAvatar={uploadStudentAvatar}

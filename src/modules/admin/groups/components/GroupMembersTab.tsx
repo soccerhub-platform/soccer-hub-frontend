@@ -8,6 +8,7 @@ import {
   CheckCircleIcon,
   EllipsisHorizontalIcon,
   ExclamationTriangleIcon,
+  DocumentTextIcon,
   MagnifyingGlassIcon,
   ShieldCheckIcon,
   UserPlusIcon,
@@ -722,14 +723,11 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                         >
                           Перевести
                         </button>
-                        <button
-                          type="button"
-                          disabled={!canRemove}
-                          className="block w-full px-3 py-2 text-left text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300"
-                          onClick={() => openMemberAction("remove", item)}
-                        >
-                          Исключить
-                        </button>
+                        {item.contract?.id && !canRemove ? (
+                          <button type="button" className="block w-full px-3 py-2 text-left text-rose-700 hover:bg-rose-50" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(item.contract!.id!)}/overview?drawer=cancel`)}>Отменить договор</button>
+                        ) : (
+                          <button type="button" disabled={!canRemove} className="block w-full px-3 py-2 text-left text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300" onClick={() => openMemberAction("remove", item)}>Исключить</button>
+                        )}
                       </div>
                     ) : null}
                   </div>
@@ -1147,8 +1145,8 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
 
       {removeOpen ? (
         <ModalShell
-          title="Исключить ученика"
-          description={selectedMember ? `${selectedMember.childName} будет выведен из текущего состава. История участия сохранится.` : "Укажите последний день в группе и причину исключения."}
+          title={selectedMember?.contract?.id ? "Завершить обучение" : "Исключить ученика"}
+          description={selectedMember?.contract?.id ? `${selectedMember.childName} связан с действующим договором.` : selectedMember ? `${selectedMember.childName} будет выведен из текущего состава. История участия сохранится.` : "Укажите последний день в группе и причину исключения."}
           onClose={closeAction}
           placement="right"
           maxWidthClassName="max-w-lg"
@@ -1158,13 +1156,11 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
               <Button type="button" variant="secondary" disabled={saving} onClick={closeAction}>
                 Отмена
               </Button>
-              <Button type="button" variant="danger" isLoading={saving} onClick={submitRemove}>
-                Исключить
-              </Button>
+              {selectedMember?.contract?.id ? <Button type="button" variant="danger" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(selectedMember.contract!.id!)}/overview?drawer=cancel`)}><DocumentTextIcon className="h-4 w-4" /> Перейти к договору</Button> : <Button type="button" variant="danger" isLoading={saving} onClick={submitRemove}>Исключить</Button>}
             </div>
           }
         >
-          <div className="space-y-4">
+          {selectedMember?.contract?.id ? <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"><ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><div><div className="text-sm font-semibold text-amber-950">Сначала отмените договор</div><p className="mt-1 text-sm leading-6 text-amber-800">После отмены договора участие ученика завершится автоматически, а история группы сохранится.</p></div></div> : <div className="space-y-4">
             <FormField
               label="Последний день в группе"
               hint="Со следующего дня ученик больше не будет считаться участником группы."
@@ -1197,7 +1193,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                 className={formControlClassName}
               />
             </FormField>
-          </div>
+          </div>}
         </ModalShell>
       ) : null}
     </div>

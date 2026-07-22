@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useSearchParams } from "react-router-dom";
-import { ExclamationTriangleIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { DocumentTextIcon, ExclamationTriangleIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { getApiErrorMessage } from "../../../shared/api";
 import { useAuth } from "../../../shared/AuthContext";
 import {
@@ -73,6 +73,7 @@ interface Props {
 
 const StudentMembershipDrawers: React.FC<Props> = ({ playerId, playerName, memberships, onChanged }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const token = user?.accessToken;
   const { branchId } = useAdminBranch();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -89,6 +90,7 @@ const StudentMembershipDrawers: React.FC<Props> = ({ playerId, playerName, membe
     () => memberships.find((item) => item.membershipId === membershipId) ?? null,
     [membershipId, memberships]
   );
+  const linkedContractId = selectedMembership?.sourceContractId ?? null;
 
   const [addForm, setAddForm] = useState({
     groupId: "",
@@ -264,16 +266,18 @@ const StudentMembershipDrawers: React.FC<Props> = ({ playerId, playerName, membe
 
       {removeOpen ? (
         <ModalShell
-          title="Исключить из группы"
+          title={linkedContractId ? "Завершить обучение" : "Исключить из группы"}
           description={selectedMembership ? `${playerName} · ${selectedMembership.group.name}` : "Участие не найдено"}
           eyebrow="Завершение участия"
           placement="right"
           maxWidthClassName="max-w-lg"
           closeDisabled={saving}
           onClose={close}
-          footer={<div className="flex justify-end gap-2"><Button variant="secondary" disabled={saving} onClick={close}>Отмена</Button><Button variant="danger" disabled={!selectedMembership || !removeForm.leftAt} isLoading={saving} onClick={() => void submitRemove()}>Исключить</Button></div>}
+          footer={<div className="flex justify-end gap-2"><Button variant="secondary" disabled={saving} onClick={close}>Отмена</Button>{linkedContractId ? <Button variant="danger" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(linkedContractId)}/overview?drawer=cancel`)}><DocumentTextIcon className="h-4 w-4" /> Перейти к договору</Button> : <Button variant="danger" disabled={!selectedMembership || !removeForm.leftAt} isLoading={saving} onClick={() => void submitRemove()}>Исключить</Button>}</div>}
         >
-          {!selectedMembership ? <EmptyState title="Участие не найдено" description="Закройте окно и обновите страницу." /> : (
+          {!selectedMembership ? <EmptyState title="Участие не найдено" description="Закройте окно и обновите страницу." /> : linkedContractId ? (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"><ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><div><div className="text-sm font-semibold text-amber-950">Участие связано с действующим договором</div><p className="mt-1 text-sm leading-6 text-amber-800">Чтобы завершить обучение без рассинхронизации данных, отмените договор. Система автоматически завершит участие ученика в группе.</p></div></div>
+          ) : (
             <div className="space-y-4">
               <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4"><ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><div><div className="text-sm font-semibold text-amber-950">История будет сохранена</div><p className="mt-1 text-xs leading-5 text-amber-800">Ученик исчезнет из активного состава после выбранной даты, но membership останется в истории.</p></div></div>
               <FormField label="Последний день в группе"><input type="date" value={removeForm.leftAt} min={selectedMembership.joinedAt} onChange={(event) => setRemoveForm((current) => ({ ...current, leftAt: event.target.value }))} className={formControlClassName} /></FormField>

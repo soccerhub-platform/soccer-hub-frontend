@@ -258,6 +258,13 @@ export interface GroupMemberItem {
   contractStatus: "ACTIVE" | "UPCOMING" | "EXPIRED" | string;
   joinedAt: string;
   leftAt?: string | null;
+  contract?: {
+    id?: string | null;
+    number?: string | null;
+    status?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+  } | null;
   capabilities?: {
     canTransfer?: boolean;
     canRemove?: boolean;

@@ -45,7 +45,7 @@ const DispatcherLayout: React.FC = () => {
             <BrandMark compact />
             <div>
               <div className="heading-font text-dispatcher-700 font-semibold text-lg tracking-tight">
-                Club Hub
+                Soccer Hub
               </div>
               <div className="text-xs text-slate-500 mt-1">
                 Dispatcher Desk

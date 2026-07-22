@@ -374,7 +374,7 @@ const PaymentsPage: React.FC = () => {
                     icon={<CreditCardIcon className="h-4 w-4" />}
                     label="Договор"
                     onClick={() =>
-                      navigate(`/admin/contracts?contractId=${encodeURIComponent(payment.contractId)}&mode=view`)
+                      navigate(`/admin/contracts/${encodeURIComponent(payment.contractId)}/payments`)
                     }
                   />
                   {payment.playerId ? (

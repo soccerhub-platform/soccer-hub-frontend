@@ -357,7 +357,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     if (action.type === "OPEN_CONTRACT") {
       const contractId = lead.contractId || lead.contract?.contractId;
       if (contractId) {
-        navigate(`/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view`);
+        navigate(`/admin/contracts/${encodeURIComponent(contractId)}/overview`);
       }
       return;
     }
@@ -366,7 +366,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
       const contractId = lead.contractId || lead.contract?.contractId;
       if (contractId) {
         navigate(
-          `/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view&payment=create`
+          `/admin/contracts/${encodeURIComponent(contractId)}/payments?drawer=payment`
         );
       }
       return;
@@ -534,7 +534,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                                 variant="secondary"
                                 onClick={() =>
                                   navigate(
-                                    `/admin/contracts?contractId=${encodeURIComponent(conversionContractId)}&mode=view`
+                                    `/admin/contracts/${encodeURIComponent(conversionContractId)}/overview`
                                   )
                                 }
                               >
@@ -544,7 +544,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                                 type="button"
                                 onClick={() =>
                                   navigate(
-                                    `/admin/contracts?contractId=${encodeURIComponent(conversionContractId)}&mode=view&payment=create`
+                                    `/admin/contracts/${encodeURIComponent(conversionContractId)}/payments?drawer=payment`
                                   )
                                 }
                               >

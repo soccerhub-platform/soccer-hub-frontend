@@ -101,10 +101,10 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
   const history = useMemo(() => (data?.items ?? []).filter((item) => !item.current), [data]);
 
   const openContract = (contractId: string, mode = "view") =>
-    navigate(`/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=${mode}`);
+    navigate(`/admin/contracts/${encodeURIComponent(contractId)}/overview${mode === "view" ? "" : `?drawer=${mode}`}`);
 
   const addPayment = (contractId: string) =>
-    navigate(`/admin/contracts?contractId=${encodeURIComponent(contractId)}&mode=view&payment=create`);
+    navigate(`/admin/contracts/${encodeURIComponent(contractId)}/payments?drawer=payment`);
 
   if (loading) {
     return <div className="h-72 animate-pulse rounded-lg border border-slate-200 bg-white" />;

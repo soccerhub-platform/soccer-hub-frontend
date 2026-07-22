@@ -23,6 +23,7 @@ import SchedulePage from './SchedulePage';
 import CoachDetailsPage from './сoaches/CoachDetailsPage';
 import ClientsPage from './clients/ClientsPage';
 import ClientDetailsPage from './clients/ClientDetailsPage';
+import ContractDetailsPage from './contracts/ContractDetailsPage';
 
 /**
  * Defines routes for the admin module.  Admins have access to
@@ -49,6 +50,8 @@ const AdminRoutes: React.FC = () => {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="schedule" element={<SchedulePage />} />
               <Route path="contracts" element={<ContractsPage />} />
+              <Route path="contracts/:contractId" element={<Navigate to="overview" replace />} />
+              <Route path="contracts/:contractId/:section" element={<ContractDetailsPage />} />
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="students" element={<StudentsPage />} />
               <Route path="students/:playerId" element={<Navigate to="overview" replace />} />

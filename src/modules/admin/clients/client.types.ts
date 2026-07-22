@@ -143,6 +143,8 @@ export interface ClientRelationInput {
   relationshipType: ClientStudentRelationshipType;
   primaryContact: boolean;
   primaryPayer: boolean;
+  replacePrimaryContact: boolean;
+  replacePrimaryPayer: boolean;
   legalRepresentative: boolean;
   receivesNotifications: boolean;
   startedAt: string;
