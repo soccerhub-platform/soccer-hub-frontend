@@ -6,3 +6,4 @@ export { default as SectionCard } from "./SectionCard";
 export { default as ModalShell } from "./ModalShell";
 export { EmptyState, ErrorState, LoadingState } from "./StateBlocks";
 export { buttonStyles } from "./buttonStyles";
+export { WorkspaceBreadcrumbs, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs } from "./Workspace";

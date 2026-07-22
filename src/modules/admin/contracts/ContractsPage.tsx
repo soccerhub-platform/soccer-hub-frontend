@@ -214,6 +214,10 @@ const ContractsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const autoOpenedContractIdRef = useRef<string | null>(null);
   const autoOpenedPaymentRef = useRef<string | null>(null);
+  const autoOpenedCreateRef = useRef(false);
+  const contextClientId = searchParams.get("clientId")?.trim() || undefined;
+  const returnToParam = searchParams.get("returnTo");
+  const returnTo = returnToParam?.startsWith("/admin/") ? returnToParam : null;
 
   const [contracts, setContracts] = useState<ContractListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -237,7 +241,6 @@ const ContractsPage: React.FC = () => {
   const [extendAmount, setExtendAmount] = useState("");
   const [extendNotes, setExtendNotes] = useState("");
   const [contractPayments, setContractPayments] = useState<ContractPaymentItem[]>([]);
-  const [contractPaymentsLoading, setContractPaymentsLoading] = useState(false);
   const [paymentModalMode, setPaymentModalMode] = useState<PaymentModalMode | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<ContractPaymentItem | null>(null);
   const [paymentModalError, setPaymentModalError] = useState<string | null>(null);
@@ -262,7 +265,7 @@ const ContractsPage: React.FC = () => {
     setError(null);
 
     try {
-      const query: ContractsListQuery = { branchId: branchId ?? undefined };
+      const query: ContractsListQuery = { branchId: branchId ?? undefined, clientId: contextClientId };
       const response = await ContractsApi.list(query, token);
       setContracts(response.content);
     } catch (err) {
@@ -272,21 +275,6 @@ const ContractsPage: React.FC = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  };
-
-  const loadContractPayments = async (contractId: string) => {
-    if (!token) return;
-    setContractPaymentsLoading(true);
-    try {
-      const payments = await ContractsApi.listPayments(contractId, token);
-      setContractPayments(payments);
-    } catch (err) {
-      console.error(err);
-      toast.error(getApiErrorMessage(err, "Не удалось загрузить платежи"));
-      setContractPayments([]);
-    } finally {
-      setContractPaymentsLoading(false);
     }
   };
 
@@ -305,7 +293,7 @@ const ContractsPage: React.FC = () => {
     if (!token || !branchId) return;
     setParticipantsLoading(true);
     try {
-      const result = await ContractsApi.listParticipants(branchId, token);
+      const result = await ContractsApi.listParticipants(branchId, token, contextClientId);
       setParticipants(result);
     } catch (err) {
       console.error(err);
@@ -331,7 +319,14 @@ const ContractsPage: React.FC = () => {
 
   useEffect(() => {
     void loadContracts();
-  }, [branchId, token]);
+  }, [branchId, contextClientId, token]);
+
+  useEffect(() => {
+    if (searchParams.get("create") !== "true" || !token || !branchId) return;
+    if (autoOpenedCreateRef.current) return;
+    autoOpenedCreateRef.current = true;
+    void openCreate();
+  }, [branchId, searchParams, token]);
 
   useEffect(() => {
     const contractIdFromQuery = searchParams.get("contractId");
@@ -602,8 +597,13 @@ const ContractsPage: React.FC = () => {
         toast.success("Контракт обновлен");
       }
 
+      const createdFromClientContext = drawerMode === "create" && returnTo;
       setDrawerMode(null);
-      await loadContracts("refresh");
+      if (createdFromClientContext) {
+        navigate(returnTo);
+      } else {
+        await loadContracts("refresh");
+      }
     } catch (err) {
       console.error(err);
       setModalError(getApiErrorMessage(err, "Не удалось сохранить контракт"));
@@ -682,6 +682,10 @@ const ContractsPage: React.FC = () => {
     setPaymentModalMode(null);
     setSelectedPayment(null);
     setPaymentModalError(null);
+    if (returnTo) {
+      navigate(returnTo);
+      return;
+    }
     if (searchParams.get("contractId")) {
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete("contractId");
@@ -724,7 +728,11 @@ const ContractsPage: React.FC = () => {
       await ContractsApi.createPayment(payload, token);
       toast.success("Платеж добавлен");
       setPaymentModalMode(null);
-      await Promise.all([loadContracts("refresh"), refreshSelectedContract(selectedContract.id)]);
+      if (returnTo) {
+        navigate(returnTo);
+      } else {
+        await Promise.all([loadContracts("refresh"), refreshSelectedContract(selectedContract.id)]);
+      }
     } catch (err) {
       console.error(err);
       setPaymentModalError(getApiErrorMessage(err, "Не удалось добавить платеж"));
@@ -946,6 +954,7 @@ const ContractsPage: React.FC = () => {
           errors={formErrors}
           submitLoading={submitLoading}
           modalError={modalError}
+          clientContext={Boolean(contextClientId)}
           onClose={closeDrawer}
           onSubmit={() => void saveContract()}
         />
@@ -955,7 +964,7 @@ const ContractsPage: React.FC = () => {
         <ContractDetailsModal
           contract={selectedContract}
           payments={contractPayments}
-          paymentsLoading={contractPaymentsLoading}
+          paymentsLoading={false}
           onRefresh={() => void refreshSelectedContract(selectedContract.id)}
           onCreatePayment={openCreatePayment}
           onCancelPayment={openCancelPayment}
@@ -1089,6 +1098,7 @@ const ContractFormModal: React.FC<{
   errors: Record<string, string>;
   submitLoading: boolean;
   modalError: string | null;
+  clientContext: boolean;
   onClose: () => void;
   onSubmit: () => void;
 }> = ({
@@ -1104,12 +1114,13 @@ const ContractFormModal: React.FC<{
   errors,
   submitLoading,
   modalError,
+  clientContext,
   onClose,
   onSubmit,
 }) => {
   const isCreate = mode === "create";
   const [setupLeadType, setSetupLeadType] = useState<LeadType | null>(null);
-  const [setupCreateMode, setSetupCreateMode] = useState<"existing" | "new" | null>(null);
+  const [setupCreateMode, setSetupCreateMode] = useState<"existing" | "new" | null>(clientContext ? "existing" : null);
   const [setupConfirmed, setSetupConfirmed] = useState(false);
   const isNewParticipant = isCreate && form.createMode === "new";
   const isAdultNewParticipant = isNewParticipant && form.leadType === "ADULT";
@@ -1207,7 +1218,7 @@ const ContractFormModal: React.FC<{
                   {[
                     { value: "existing" as const, label: "Существующий клиент", hint: "Выберем участника из базы" },
                     { value: "new" as const, label: "Новый клиент", hint: "Создадим нового участника в процессе" },
-                  ].map((option) => (
+                  ].filter((option) => !clientContext || option.value === "existing").map((option) => (
                     <button
                       key={option.value}
                       type="button"

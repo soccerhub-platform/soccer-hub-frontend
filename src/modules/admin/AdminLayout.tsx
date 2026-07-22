@@ -34,6 +34,7 @@ const MAIN_NAV_ITEMS: AdminNavItem[] = [
   { to: "/admin/groups", label: "Группы", icon: UserGroupIcon },
   { to: "/admin/schedule", label: "Расписание", icon: CalendarDaysIcon },
   { to: "/admin/students", label: "Ученики", icon: UserCircleIcon },
+  { to: "/admin/clients", label: "Клиенты", icon: UserIcon },
   { to: "/admin/contracts", label: "Контракты", icon: DocumentTextIcon },
   { to: "/admin/payments", label: "Платежи", icon: CreditCardIcon },
 ];

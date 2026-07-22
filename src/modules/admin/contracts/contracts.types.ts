@@ -197,7 +197,10 @@ export interface CreateContractRequest {
     fullName: string;
     phone: string;
     email?: string;
+    source?: string;
+    comments?: string;
   };
+  relationshipType?: "SELF" | "MOTHER" | "FATHER" | "GUARDIAN" | "OTHER";
   groupId: string;
   coachId?: string | null;
   contractNumber?: string;
@@ -236,6 +239,7 @@ export interface CancelContractRequest {
 
 export interface ContractsListQuery {
   branchId?: string;
+  clientId?: string;
   status?: ContractStatus | "all";
   leadType?: LeadType | "all";
   search?: string;

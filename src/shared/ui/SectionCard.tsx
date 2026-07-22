@@ -21,7 +21,7 @@ const SectionCard: React.FC<SectionCardProps> = ({
   bodyClassName,
 }) => {
   return (
-    <section id={id} className={classNames("rounded-2xl border border-slate-200 bg-white p-4 shadow-sm", className)}>
+    <section id={id} className={classNames("rounded-lg border border-slate-200 bg-white p-4 shadow-sm", className)}>
       {title ? (
         <div className="mb-4 flex items-start gap-2">
           {icon ? <div className="mt-0.5 shrink-0 text-slate-500">{icon}</div> : null}

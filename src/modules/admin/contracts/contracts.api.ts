@@ -21,6 +21,7 @@ import {
 const buildQueryString = (query: ContractsListQuery) => {
   const qs = new URLSearchParams();
   if (query.branchId) qs.set("branchId", query.branchId);
+  if (query.clientId) qs.set("clientId", query.clientId);
   if (query.status && query.status !== "all") qs.set("status", query.status);
   if (query.leadType && query.leadType !== "all") qs.set("leadType", query.leadType);
   if (query.search?.trim()) qs.set("search", query.search.trim());
@@ -55,8 +56,9 @@ export const ContractsApi = {
     return apiClient.get<ContractDetails>(`/admin/contracts/${contractId}`);
   },
 
-  async listParticipants(branchId: string, _token: string): Promise<ContractParticipantOption[]> {
+  async listParticipants(branchId: string, _token: string, clientId?: string): Promise<ContractParticipantOption[]> {
     const qs = new URLSearchParams({ branchId });
+    if (clientId) qs.set("clientId", clientId);
     const data = await apiClient.get<{ content?: ContractParticipantOption[] } | ContractParticipantOption[]>(
       `/admin/contracts/lookups/participants?${qs.toString()}`
     );

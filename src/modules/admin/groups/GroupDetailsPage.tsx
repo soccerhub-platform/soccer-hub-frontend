@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeftIcon,
   CalendarDaysIcon,
   CheckCircleIcon,
   ChevronRightIcon,
@@ -40,6 +39,10 @@ import {
   ModalShell,
   PageShell,
   SectionCard,
+  WorkspaceBreadcrumbs,
+  WorkspaceHeader,
+  WorkspaceMetric,
+  WorkspaceTabs,
 } from "../../../shared/ui";
 
 /* ================= STATUS BADGE ================= */
@@ -119,24 +122,6 @@ const getNextSessionId = (group: AdminGroupDetailsModel | null) => {
   if (!next || typeof next === "string") return null;
   return next.id ?? next.sessionId ?? null;
 };
-
-const GroupMetricCard: React.FC<{ icon: React.ReactNode; label: string; value: string | number; hint?: string }> = ({
-  icon,
-  label,
-  value,
-  hint,
-}) => (
-  <div className="group flex min-h-[104px] items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-[0_10px_26px_-24px_rgba(15,23,42,0.45)] transition hover:border-admin-200 hover:bg-admin-50/20">
-    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-admin-50 text-admin-700 [&>svg]:h-6 [&>svg]:w-6">
-      {icon}
-    </span>
-    <div className="min-w-0">
-      <div className="text-sm font-medium text-slate-600">{label}</div>
-      <div className="mt-1 truncate text-[26px] font-semibold leading-none text-slate-950">{value}</div>
-      {hint ? <div className="mt-1.5 truncate text-sm text-slate-500">{hint}</div> : null}
-    </div>
-  </div>
-);
 
 const groupSections = [
   { key: "overview", label: "Обзор", enabled: true },
@@ -348,40 +333,12 @@ const GroupDetailsPage: React.FC = () => {
 
   return (
     <PageShell className="max-w-none space-y-5 px-0 pb-4">
-      <button
-        type="button"
-        onClick={() => navigate("/admin/groups")}
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-admin-700"
-      >
-        <ArrowLeftIcon className="h-4 w-4" />
-        Все группы
-      </button>
+      <WorkspaceBreadcrumbs items={[{ label: "Группы", to: "/admin/groups" }, { label: group.name }]} />
 
-      <section
+      <WorkspaceHeader
         id="group-details-overview"
-        className="scroll-mt-20 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_28px_-24px_rgba(15,23,42,0.5)] sm:p-5"
-      >
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 gap-4">
-            <GroupAvatar name={group.name} avatar={group.avatar} size="lg" className="h-16 w-16 sm:h-20 sm:w-20" />
-
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-[28px] font-semibold leading-tight tracking-tight text-slate-950">{group.name}</h1>
-                <StatusBadge status={group.status} />
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
-                <span>{formatGroupAudience(group)}</span><span aria-hidden="true">·</span>
-                <span>{humanizeLevel(group.level)}</span>
-                {branchName ? <><span aria-hidden="true">·</span><span>{branchName}</span></> : null}
-                <span aria-hidden="true">·</span><span>{displayStudentsCount} из {capacity} учеников</span>
-              </div>
-              {group.description ? (
-                <p className="mt-2 max-w-3xl text-sm leading-5 text-slate-500">{group.description}</p>
-              ) : null}
-            </div>
-          </div>
-
+        className="scroll-mt-20"
+        actions={(
           <div className="relative flex flex-wrap gap-2 lg:justify-end">
             {canEdit ? (
               <Button type="button" variant="secondary" onClick={openEdit}>
@@ -421,43 +378,43 @@ const GroupDetailsPage: React.FC = () => {
               </div>
             ) : null}
           </div>
-        </div>
-
-        {group.status === "STOPPED" ? (
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        )}
+        alert={group.status === "STOPPED" ? (
+          <div className="flex items-start gap-2 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
             Группа остановлена. Расписание и новые занятия для нее недоступны.
           </div>
         ) : null}
+      >
+          <div className="flex min-w-0 gap-4">
+            <GroupAvatar name={group.name} avatar={group.avatar} size="lg" className="h-16 w-16 sm:h-20 sm:w-20" />
 
-      </section>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-[28px] font-semibold leading-tight tracking-tight text-slate-950">{group.name}</h1>
+                <StatusBadge status={group.status} />
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+                <span>{formatGroupAudience(group)}</span><span aria-hidden="true">·</span>
+                <span>{humanizeLevel(group.level)}</span>
+                {branchName ? <><span aria-hidden="true">·</span><span>{branchName}</span></> : null}
+                <span aria-hidden="true">·</span><span>{displayStudentsCount} из {capacity} учеников</span>
+              </div>
+              {group.description ? (
+                <p className="mt-2 max-w-3xl text-sm leading-5 text-slate-500">{group.description}</p>
+              ) : null}
+            </div>
+          </div>
+      </WorkspaceHeader>
 
-      <nav className="sticky top-2 z-10 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_10px_24px_-24px_rgba(15,23,42,0.55)]">
-        {groupSections.map((item) => (
-          <NavLink
-            key={item.key}
-            to={sectionPath(item.key)}
-            className={({ isActive }) =>
-              `shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                isActive
-                  ? "bg-admin-50 text-admin-800"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-              }`
-            }
-          >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+      <WorkspaceTabs items={groupSections.map((item) => ({ ...item, to: sectionPath(item.key) }))} />
 
       {activeSection === "overview" ? (
         <div className="space-y-3">
           {summary ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {overviewCards.map((card) => (
-                <NavLink key={card.label} to={card.to} className="block rounded-2xl focus:outline-none focus:ring-2 focus:ring-admin-200">
-                  <GroupMetricCard icon={card.icon} label={card.label} value={card.value} hint={card.hint} />
-                </NavLink>
+                <WorkspaceMetric key={card.label} icon={card.icon} label={card.label} value={card.value} note={card.hint} onClick={() => navigate(card.to)} />
               ))}
             </div>
           ) : null}

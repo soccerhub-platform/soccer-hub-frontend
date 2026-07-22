@@ -16,13 +16,13 @@ import {
   UserGroupIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
-import { NavLink, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import { useAuth } from "../../../shared/AuthContext";
 import { resolveApiUrl } from "../../../shared/api";
 import { useAdminBranch } from "../BranchContext";
-import { Button, EmptyState, ErrorState, FormField, LoadingState, ModalShell, PageShell, SectionCard, formControlClassName } from "../../../shared/ui";
+import { Button, EmptyState, ErrorState, FormField, LoadingState, ModalShell, PageShell, SectionCard, WorkspaceBreadcrumbs, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs, formControlClassName } from "../../../shared/ui";
 import { CoachApi, CoachAvailability, CoachGroupAssignmentHistoryItem, CoachProfile, CoachStatus, TrainerActivityResponse, TrainerOverview } from "./coach.api";
 import { GroupApi } from "../groups/group.api";
 import CoachScheduleTab from "./CoachScheduleTab";
@@ -380,11 +380,7 @@ const CoachDetailsPage: React.FC = () => {
 
   return (
     <PageShell className="max-w-none space-y-5">
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        <button type="button" onClick={() => navigate("/admin/coaches")} className="font-medium transition hover:text-admin-700">Тренеры</button>
-        <ChevronRightIcon className="h-4 w-4" />
-        <span className="font-medium text-slate-900">{profile ? `${profile.firstName} ${profile.lastName}` : "Профиль"}</span>
-      </div>
+      <WorkspaceBreadcrumbs items={[{ label: "Тренеры", to: "/admin/coaches" }, { label: profile ? `${profile.firstName} ${profile.lastName}` : "Профиль" }]} />
 
       {error ? (
         <ErrorState message={error} onRetry={loadProfile} />
@@ -392,7 +388,7 @@ const CoachDetailsPage: React.FC = () => {
         <LoadingState label="Загрузка профиля тренера..." />
       ) : profile ? (
         <>
-          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <WorkspaceHeader>
             <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex min-w-0 gap-4">
                 <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-admin-100 bg-admin-50 text-2xl font-semibold text-admin-800 sm:h-28 sm:w-28">
@@ -488,19 +484,9 @@ const CoachDetailsPage: React.FC = () => {
                   </Button>
               </div>
             </div>
-          </section>
+          </WorkspaceHeader>
 
-          <nav className="flex gap-1 overflow-x-auto border-b border-slate-200">
-            {sections.map((item) => (
-              <NavLink
-                key={item.key}
-                to={`/admin/coaches/${profile.coachId}/${item.key}`}
-                className={({ isActive }) => `shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition ${isActive ? "border-admin-700 text-admin-800" : "border-transparent text-slate-500 hover:text-slate-900"}`}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+          <WorkspaceTabs items={sections.map((item) => ({ ...item, to: `/admin/coaches/${profile.coachId}/${item.key}` }))} />
 
           {activeSection === "overview" ? <CoachOverviewTab profile={profile} overview={trainerOverview} loadPercent={loadPercent} attentionItems={attentionItems} onNavigate={navigate} onAssign={() => openDrawer("assign-group")} onAvailability={() => openDrawer("availability")} onEdit={() => openDrawer("edit-coach")} /> : null}
           {activeSection === "groups" ? <CoachGroupsTab profile={profile} assignments={assignments} updating={updating} onNavigate={navigate} onAssign={() => openDrawer("assign-group")} onChangeRole={(assignment) => void changeGroupRole(assignment)} onRemove={(assignment) => openDrawer("remove-group", { groupCoachId: assignment.groupCoachId ?? "" })} /> : null}
@@ -593,28 +579,6 @@ const CoachDetailsPage: React.FC = () => {
   );
 };
 
-const CoachMetricCard: React.FC<{
-  icon: React.ReactNode;
-  iconClassName: string;
-  label: string;
-  value: string;
-  note?: string;
-  progress?: number;
-  onClick?: () => void;
-}> = ({ icon, iconClassName, label, value, note, progress, onClick }) => {
-  const content = (
-    <>
-      <div className="flex items-start gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${iconClassName}`}>{icon}</span>
-        <span className="min-w-0"><span className="block text-xl font-semibold text-slate-950">{value}</span><span className="mt-0.5 block text-sm text-slate-500">{label}</span></span>
-      </div>
-      {progress !== undefined ? <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.min(progress, 100)}%` }} /></div> : null}
-      {note ? <div className="mt-3 flex items-center gap-2 text-xs font-medium text-admin-700">{note}{onClick ? <ArrowRightIcon className="h-3.5 w-3.5" /> : null}</div> : null}
-    </>
-  );
-  return onClick ? <button type="button" onClick={onClick} className="min-h-28 rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-admin-200 hover:shadow">{content}</button> : <div className="min-h-28 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">{content}</div>;
-};
-
 const CoachOverviewTab: React.FC<{
   profile: CoachProfile;
   overview: TrainerOverview | null;
@@ -636,11 +600,11 @@ const CoachOverviewTab: React.FC<{
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <CoachMetricCard icon={<UserGroupIcon className="h-5 w-5" />} iconClassName="bg-emerald-50 text-emerald-700" label="Активные группы" value={String(profile.groups.length)} note="Смотреть группы" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/groups`)} />
-        <CoachMetricCard icon={<CalendarDaysIcon className="h-5 w-5" />} iconClassName="bg-sky-50 text-sky-700" label="Занятия сегодня" value={String(todaySessions.length)} note="Смотреть расписание" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/schedule`)} />
-        <CoachMetricCard icon={<ChartBarIcon className="h-5 w-5" />} iconClassName="bg-violet-50 text-violet-700" label="Загрузка на неделю" value={`${loadPercent}%`} progress={loadPercent} />
-        <CoachMetricCard icon={<CalendarDaysIcon className="h-5 w-5" />} iconClassName="bg-amber-50 text-amber-700" label="Начало отпуска" value={profile.vacationFrom ? formatDate(profile.vacationFrom) : "Не задан"} note={profile.vacationTo ? `до ${formatDate(profile.vacationTo)}` : undefined} />
-        <CoachMetricCard icon={<ArrowPathIcon className="h-5 w-5" />} iconClassName={overview?.substitutionsThisWeek ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"} label="Замены на этой неделе" value={String(overview?.substitutionsThisWeek ?? 0)} />
+        <WorkspaceMetric icon={<UserGroupIcon />} iconClassName="bg-emerald-50 text-emerald-700" label="Активные группы" value={String(profile.groups.length)} note="Смотреть группы" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/groups`)} />
+        <WorkspaceMetric icon={<CalendarDaysIcon />} iconClassName="bg-sky-50 text-sky-700" label="Занятия сегодня" value={String(todaySessions.length)} note="Смотреть расписание" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/schedule`)} />
+        <WorkspaceMetric icon={<ChartBarIcon />} iconClassName="bg-violet-50 text-violet-700" label="Загрузка на неделю" value={`${loadPercent}%`} progress={loadPercent} />
+        <WorkspaceMetric icon={<CalendarDaysIcon />} iconClassName="bg-amber-50 text-amber-700" label="Начало отпуска" value={profile.vacationFrom ? formatDate(profile.vacationFrom) : "Не задан"} note={profile.vacationTo ? `до ${formatDate(profile.vacationTo)}` : undefined} />
+        <WorkspaceMetric icon={<ArrowPathIcon />} iconClassName={overview?.substitutionsThisWeek ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"} label="Замены на этой неделе" value={String(overview?.substitutionsThisWeek ?? 0)} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.95fr_0.85fr]">

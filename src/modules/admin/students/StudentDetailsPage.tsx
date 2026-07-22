@@ -24,6 +24,9 @@ import {
   ModalShell,
   PageShell,
   SectionCard,
+  WorkspaceBreadcrumbs,
+  WorkspaceHeader,
+  WorkspaceTabs,
   formControlClassName,
 } from "../../../shared/ui";
 import { StudentApi } from "./student.api";
@@ -36,12 +39,15 @@ import type {
   AdminStudentMembershipHistoryItem,
   StudentRisk,
 } from "./student.types";
+import { ClientApi } from "../clients/client.api";
+import type { ClientStudentRelation } from "../clients/client.types";
 
 const sections = [
   { key: "overview", label: "Обзор" },
   { key: "groups", label: "Группы" },
   { key: "attendance", label: "Посещаемость" },
   { key: "contracts", label: "Договоры" },
+  { key: "clients", label: "Клиенты" },
   { key: "activity", label: "Активность" },
 ] as const;
 
@@ -106,6 +112,18 @@ const membershipClassName = (status: string) => {
   if (status === "UPCOMING") return "border-cyan-100 bg-cyan-50 text-cyan-700";
   if (status === "REMOVED") return "border-rose-100 bg-rose-50 text-rose-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
+};
+
+const clientRelationshipLabel = (relationship: ClientStudentRelation["relationshipType"]) => {
+  const labels: Record<ClientStudentRelation["relationshipType"], string> = {
+    SELF: "Сам клиент",
+    MOTHER: "Мать",
+    FATHER: "Отец",
+    GUARDIAN: "Представитель",
+    OTHER: "Другое",
+    LEGACY_PARENT: "Родитель (старые данные)",
+  };
+  return labels[relationship];
 };
 
 const attendanceLabel = (status: AdminStudentDetails["recentAttendance"][number]["status"]) => {
@@ -262,6 +280,7 @@ const StudentDetailsPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [student, setStudent] = useState<AdminStudentDetails | null>(null);
   const [overviewAttendance, setOverviewAttendance] = useState<AdminStudentAttendanceResponse | null>(null);
+  const [clientRelations, setClientRelations] = useState<ClientStudentRelation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [avatarSaving, setAvatarSaving] = useState(false);
@@ -275,18 +294,21 @@ const StudentDetailsPage: React.FC = () => {
     setError(null);
     try {
       const attendanceRange = lastThirtyDays();
-      const [details, memberships, attendance] = await Promise.all([
+      const [details, memberships, attendance, clients] = await Promise.all([
         StudentApi.get(playerId),
         StudentApi.getMemberships(playerId).catch(() => null),
         StudentApi.getAttendance(playerId, attendanceRange).catch(() => null),
+        ClientApi.getStudentClients(playerId).catch(() => []),
       ]);
       setStudent({ ...details, memberships: memberships?.items ?? [] });
       setOverviewAttendance(attendance);
+      setClientRelations(clients);
     } catch (err) {
       console.error(err);
       setError(getApiErrorMessage(err, "Не удалось загрузить данные ученика"));
       setStudent(null);
       setOverviewAttendance(null);
+      setClientRelations([]);
     } finally {
       setLoading(false);
     }
@@ -321,6 +343,9 @@ const StudentDetailsPage: React.FC = () => {
   const deleteConfirmOpen = drawerOpen && searchParams.get("confirm") === "delete-avatar";
   const canEditStudent = student?.capabilities?.canEdit ?? true;
   const canManageAvatar = student?.capabilities?.canManageAvatar ?? true;
+  const activeClientRelations = clientRelations.filter((relation) => relation.active);
+  const primaryClientRelation = activeClientRelations.find((relation) => relation.primaryContact)
+    ?? activeClientRelations[0];
 
   const openDrawer = () => {
     const next = new URLSearchParams(searchParams);
@@ -480,20 +505,34 @@ const StudentDetailsPage: React.FC = () => {
 
   return (
     <PageShell className="max-w-none space-y-5 px-0 pb-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm">
-          <button type="button" onClick={() => navigate("/admin/students")} className="font-medium text-slate-500 transition hover:text-admin-700">Ученики</button>
-          <ChevronRightIcon className="h-4 w-4 text-slate-300" />
-          <span className="font-semibold text-slate-950">{student.player.fullName}</span>
-        </div>
-        <Button type="button" variant="secondary" rounded="rounded-md" onClick={() => void loadStudent()}>
-          <ArrowPathIcon className="h-4 w-4" /> Обновить данные
-        </Button>
-      </div>
+      <WorkspaceBreadcrumbs
+        items={[{ label: "Ученики", to: "/admin/students" }, { label: student.player.fullName }]}
+        actions={(
+          <Button type="button" variant="secondary" rounded="rounded-md" onClick={() => void loadStudent()}>
+            <ArrowPathIcon className="h-4 w-4" /> Обновить данные
+          </Button>
+        )}
+      />
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_220px] xl:divide-x xl:divide-slate-200">
-          <div className="flex min-w-0 gap-4 xl:pr-5">
+      <WorkspaceHeader
+        actionsClassName="flex-col items-stretch lg:w-[220px] lg:border-l lg:border-slate-200 lg:pl-5"
+        actions={(
+          <>
+            {canEditStudent ? <Button type="button" rounded="rounded-md" onClick={openEditDrawer}>
+              <UserIcon className="h-4 w-4" /> Редактировать ученика
+            </Button> : null}
+            <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => openMembershipDrawer("add-to-group")}>
+              <UserPlusIcon className="h-4 w-4" /> Добавить в группу
+            </Button>
+            {contract ? (
+              <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => navigate(`/admin/contracts?contractId=${encodeURIComponent(contract.id)}&mode=view`)}>
+                <DocumentTextIcon className="h-4 w-4" /> Открыть договор
+              </Button>
+            ) : <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => navigate("/admin/contracts")}><DocumentTextIcon className="h-4 w-4" /> Создать договор</Button>}
+          </>
+        )}
+      >
+          <div className="flex min-w-0 gap-4">
             <button
               type="button"
               onClick={canManageAvatar ? openDrawer : undefined}
@@ -520,36 +559,16 @@ const StudentDetailsPage: React.FC = () => {
                 <span>{currentMemberships.length} активных групп</span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <span className="inline-flex items-center gap-2 text-slate-700"><UserIcon className="h-4 w-4 text-slate-400" />{student.client.fullName}</span>
+                <button type="button" disabled={!primaryClientRelation} onClick={() => primaryClientRelation && navigate(`/admin/clients/${primaryClientRelation.clientId}/overview`)} className="inline-flex items-center gap-2 font-medium text-slate-700 transition hover:text-admin-700 disabled:cursor-default disabled:hover:text-slate-700"><UserIcon className="h-4 w-4 text-slate-400" />{primaryClientRelation?.clientName ?? student.client.fullName}</button>
+                {activeClientRelations.length > 1 ? <NavLink to={sectionPath("clients")} className="text-xs font-semibold text-admin-700">Ещё {activeClientRelations.length - 1}</NavLink> : null}
                 {phoneHref ? <a href={phoneHref} className="inline-flex items-center gap-2 font-medium text-admin-700 hover:text-admin-900"><PhoneIcon className="h-4 w-4" />{student.client.phone}</a> : null}
               </div>
               {student.client.email ? <div className="mt-2 truncate text-sm text-slate-500">Email: <span className="font-medium text-slate-700">{student.client.email}</span></div> : null}
             </div>
           </div>
+      </WorkspaceHeader>
 
-          <div className="flex flex-col gap-2 border-t border-slate-100 pt-4 xl:border-t-0 xl:pl-5 xl:pt-0">
-            {canEditStudent ? <Button type="button" rounded="rounded-md" onClick={openEditDrawer}>
-              <UserIcon className="h-4 w-4" /> Редактировать ученика
-            </Button> : null}
-            <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => openMembershipDrawer("add-to-group")}>
-              <UserPlusIcon className="h-4 w-4" /> Добавить в группу
-            </Button>
-            {contract ? (
-              <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => navigate(`/admin/contracts?contractId=${encodeURIComponent(contract.id)}&mode=view`)}>
-                <DocumentTextIcon className="h-4 w-4" /> Открыть договор
-              </Button>
-            ) : <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => navigate("/admin/contracts")}><DocumentTextIcon className="h-4 w-4" /> Создать договор</Button>}
-          </div>
-        </div>
-      </section>
-
-      <nav className="sticky top-0 z-10 flex gap-6 overflow-x-auto border-b border-slate-200 bg-slate-50/95 px-1 backdrop-blur">
-        {sections.map((item) => (
-          <NavLink key={item.key} to={sectionPath(item.key)} className={({ isActive }) => `shrink-0 border-b-2 px-3 py-3 text-sm font-medium transition ${isActive ? "border-admin-700 text-slate-950" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+      <WorkspaceTabs items={sections.map((item) => ({ ...item, to: sectionPath(item.key) }))} />
 
       {activeSection === "overview" ? (
         <div className="space-y-4">
@@ -661,6 +680,29 @@ const StudentDetailsPage: React.FC = () => {
         <StudentContractsTab playerId={student.player.id} />
       ) : null}
 
+      {activeSection === "clients" ? (
+        <div className="space-y-4">
+          <SectionCard title="Активные клиенты" description="Плательщики, представители и контакты ученика">
+            {activeClientRelations.length ? (
+              <div className="divide-y divide-slate-100">
+                {activeClientRelations.map((relation) => (
+                  <button key={relation.id} type="button" onClick={() => navigate(`/admin/clients/${relation.clientId}/overview`)} className="flex w-full flex-col gap-3 py-4 text-left first:pt-0 last:pb-0 sm:flex-row sm:items-center">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-cyan-50 text-sm font-semibold text-cyan-800">{getInitials(relation.clientName)}</span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-950">{relation.clientName}</span><span className="mt-1 block text-xs text-slate-500">{clientRelationshipLabel(relation.relationshipType)} · с {formatDate(relation.startedAt)}</span></span>
+                    <span className="flex flex-wrap items-center gap-2">{relation.primaryContact ? <span className="rounded-full border border-cyan-100 bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">Основной контакт</span> : null}{relation.primaryPayer ? <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Плательщик</span> : null}{relation.legalRepresentative ? <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">Представитель</span> : null}<ChevronRightIcon className="h-4 w-4 text-slate-400" /></span>
+                  </button>
+                ))}
+              </div>
+            ) : <EmptyState title="Активных клиентов нет" description="Связь можно создать из Client Workspace." />}
+          </SectionCard>
+          <SectionCard title="История связей">
+            {clientRelations.some((relation) => !relation.active) ? (
+              <div className="divide-y divide-slate-100">{clientRelations.filter((relation) => !relation.active).map((relation) => <div key={relation.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-800">{relation.clientName}</span><span className="mt-1 block text-xs text-slate-500">{clientRelationshipLabel(relation.relationshipType)} · {formatDate(relation.startedAt)} — {formatDate(relation.endedAt)}</span></span><span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500">Завершена</span></div>)}</div>
+            ) : <EmptyState title="История пока пуста" />}
+          </SectionCard>
+        </div>
+      ) : null}
+
       {activeSection === "activity" ? (
         <SectionCard title="Активность ученика">
           {activityItems.length ? <ActivityTimeline items={activityItems} onNavigate={navigate} /> : <EmptyState title="Активность пока пуста" />}
@@ -701,10 +743,11 @@ const StudentDetailsPage: React.FC = () => {
             </section>
 
             <section className="border-t border-slate-200 pt-5">
-              <div className="text-xs font-semibold uppercase text-slate-500">Родитель</div>
-              <div className="mt-3 text-sm font-semibold text-slate-950">{student.client.fullName}</div>
+              <div className="text-xs font-semibold uppercase text-slate-500">Основной клиент</div>
+              <div className="mt-3 text-sm font-semibold text-slate-950">{primaryClientRelation?.clientName ?? student.client.fullName}</div>
               <div className="mt-1 text-sm text-slate-500">{student.client.phone}{student.client.email ? ` · ${student.client.email}` : ""}</div>
-              <p className="mt-2 text-xs leading-5 text-slate-500">Контакты принадлежат профилю родителя и не изменяются вместе с данными ученика.</p>
+              <p className="mt-2 text-xs leading-5 text-slate-500">Контакты принадлежат Client Workspace и не изменяются вместе с данными ученика.</p>
+              <NavLink to={sectionPath("clients")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-admin-700">Все связанные клиенты <ChevronRightIcon className="h-4 w-4" /></NavLink>
             </section>
           </div>
         </ModalShell>
