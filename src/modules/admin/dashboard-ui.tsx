@@ -17,12 +17,10 @@ type LegacyWeeklyTrendItem = {
 
 const STATUS_LABELS: Record<string, string> = {
   NEW: "Новые",
-  CONTACTED: "Связались",
-  QUALIFIED: "Квалифицированы",
+  IN_PROGRESS: "В работе",
   TRIAL_SCHEDULED: "Пробное",
-  TRIAL_DONE: "Проведены",
-  WAITING_PAYMENT: "Ждут оплату",
-  WON: "Клиенты",
+  DECISION_PENDING: "Ожидают решения",
+  CONVERTED: "Клиенты",
   LOST: "Потеряны",
 };
 
@@ -160,14 +158,14 @@ export const KpiCard = ({
 );
 
 export const LeadFunnelCompact = ({ totals }: { totals: Record<string, number> }) => {
-  const order = ["NEW", "CONTACTED", "QUALIFIED", "TRIAL_SCHEDULED", "WON", "LOST"];
+  const order = ["NEW", "IN_PROGRESS", "TRIAL_SCHEDULED", "DECISION_PENDING", "CONVERTED", "LOST"];
   const rows = order
     .map((status) => ({
       status,
       label: STATUS_LABELS[status] ?? status,
       value: Number(totals[status] ?? 0),
     }))
-    .filter((row) => row.value > 0 || row.status === "NEW" || row.status === "WON");
+    .filter((row) => row.value > 0 || row.status === "NEW" || row.status === "CONVERTED");
 
   const max = Math.max(...rows.map((row) => row.value), 1);
 
@@ -188,7 +186,7 @@ export const LeadFunnelCompact = ({ totals }: { totals: Record<string, number> }
           <div className="h-3 rounded-full bg-slate-100 ring-1 ring-slate-200/70">
             <div
               className={`h-3 rounded-full ${
-                row.status === "WON" ? "bg-emerald-600" : row.status === "LOST" ? "bg-rose-500" : "bg-cyan-700"
+                row.status === "CONVERTED" ? "bg-emerald-600" : row.status === "LOST" ? "bg-rose-500" : "bg-cyan-700"
               }`}
               style={{ width: `${Math.max(row.value > 0 ? 10 : 0, (row.value / max) * 100)}%` }}
             />

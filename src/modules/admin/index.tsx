@@ -18,6 +18,7 @@ import { AdminBranchProvider } from './BranchContext';
 import BranchSelectPage from './branches/BranchSelectPage';
 import BranchGuard from './branches/BranchGuard';
 import LeadKanbanPage from './leads/LeadKanbanPage';
+import LeadDetailsPage from './leads/LeadDetailsPage';
 import AdminProfilePage from './ProfilePage';
 import SchedulePage from './SchedulePage';
 import CoachDetailsPage from './сoaches/CoachDetailsPage';
@@ -64,6 +65,7 @@ const AdminRoutes: React.FC = () => {
               <Route path="coaches/:coachId" element={<Navigate to="overview" replace />} />
               <Route path="coaches/:coachId/:section" element={<CoachDetailsPage />} />
               <Route path="leads" element={<LeadKanbanPage />} />
+              <Route path="leads/:leadId" element={<LeadDetailsPage />} />
               <Route path="groups" element={<GroupsPage />} />
               <Route path="groups/:groupId" element={<Navigate to="overview" replace />} />
               <Route path="groups/:groupId/sessions/:sessionId/attendance" element={<SessionAttendancePage />} />

@@ -1,11 +1,9 @@
 export const LEAD_STATUS_LABELS: Record<string, string> = {
   NEW: "Новый",
-  CONTACTED: "Связались",
-  QUALIFIED: "Квалифицирован",
+  IN_PROGRESS: "В работе",
   TRIAL_SCHEDULED: "Пробное назначено",
-  TRIAL_DONE: "Пробное проведено",
-  WAITING_PAYMENT: "Ожидает оплату",
-  WON: "Клиент",
+  DECISION_PENDING: "Ожидает решения",
+  CONVERTED: "Клиент оформлен",
   LOST: "Отказ",
   REJECTED: "Отказ",
 };

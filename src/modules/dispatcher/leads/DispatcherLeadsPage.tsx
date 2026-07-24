@@ -35,17 +35,13 @@ const statusLabel = (status: string) => {
   switch (status) {
     case "NEW":
       return "Новый";
-    case "CONTACTED":
-      return "Связались";
-    case "QUALIFIED":
-      return "Квалифицирован";
+    case "IN_PROGRESS":
+      return "В работе";
     case "TRIAL_SCHEDULED":
       return "Пробное назначено";
-    case "TRIAL_DONE":
-      return "Пробное прошло";
-    case "WAITING_PAYMENT":
-      return "Ожидает оплату";
-    case "WON":
+    case "DECISION_PENDING":
+      return "Ожидает решения";
+    case "CONVERTED":
       return "Клиент";
     case "LOST":
       return "Отказ";

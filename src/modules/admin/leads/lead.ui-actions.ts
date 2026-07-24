@@ -14,10 +14,8 @@ const action = (
 
 const MODERN_ACTION_TYPES = new Set<LeadAction["type"]>([
   "CONTACT_LEAD",
-  "QUALIFY_LEAD",
   "RESCHEDULE_TRIAL",
-  "CONVERT_TO_CONTRACT",
-  "ADD_PAYMENT",
+  "CONVERT_TO_CLIENT",
   "MARK_TRIAL_DONE",
   "MARK_NO_SHOW",
   "CANCEL_TRIAL",
@@ -28,43 +26,25 @@ export const buildLeadUiActions = (
   lead: Lead,
   rawActions: LeadAction[],
   isAlreadyConverted = Boolean(
-    lead.status === "WON" ||
-      lead.clientId ||
-      lead.playerId ||
-      lead.contractId ||
-      lead.contract?.contractId
+    lead.status === "CONVERTED" || lead.clientId || lead.playerId
   )
 ): LeadAction[] => {
-  const actions = rawActions.filter((item) => item.type !== "CONFIRM_PAYMENT");
+  const actions = rawActions;
   const hasModernActions = actions.some((item) => MODERN_ACTION_TYPES.has(item.type));
 
   if (hasModernActions) {
-    return actions.filter((item) => !(isAlreadyConverted && item.type === "CONVERT_TO_CONTRACT"));
+    return actions.filter((item) => !(isAlreadyConverted && item.type === "CONVERT_TO_CLIENT"));
   }
 
-  if (lead.status === "TRIAL_DONE" && !isAlreadyConverted) {
+  if (lead.status === "DECISION_PENDING" && !isAlreadyConverted) {
     return [
-      action("CONVERT", "Оформить договор", true),
-      ...actions.filter((item) => item.type !== "REQUEST_PAYMENT" && item.type !== "CONVERT"),
-    ];
-  }
-
-  if (lead.status === "WAITING_PAYMENT" && (lead.contractId || lead.contract?.contractId)) {
-    return [
-      action("ADD_PAYMENT", "Добавить оплату", true),
-      action("OPEN_CONTRACT", "Открыть договор", false),
-      ...actions.filter(
-        (item) =>
-          item.type !== "REQUEST_PAYMENT" &&
-          item.type !== "CONVERT" &&
-          item.type !== "ADD_PAYMENT" &&
-          item.type !== "OPEN_CONTRACT"
-      ),
+      action("CONVERT", "Оформить клиента", true),
+      ...actions.filter((item) => item.type !== "CONVERT"),
     ];
   }
 
   return isAlreadyConverted
-    ? actions.filter((item) => item.type !== "CONVERT" && item.type !== "REQUEST_PAYMENT")
+    ? actions.filter((item) => item.type !== "CONVERT")
     : actions;
 };
 
@@ -88,13 +68,13 @@ export const getLeadActionEvent = (action: LeadAction) => {
 };
 
 export const isQualifyAction = (action: LeadAction) =>
-  action.type === "QUALIFY" || action.type === "QUALIFY_LEAD";
+  action.type === "QUALIFY";
 
 export const isScheduleTrialAction = (action: LeadAction) =>
   action.type === "SCHEDULE_TRIAL" || action.type === "RESCHEDULE_TRIAL";
 
 export const isConvertAction = (action: LeadAction) =>
-  action.type === "CONVERT" || action.type === "CONVERT_TO_CONTRACT";
+  action.type === "CONVERT" || action.type === "CONVERT_TO_CLIENT";
 
 export const isLossAction = (action: LeadAction) =>
   action.type === "REJECT" ||
@@ -116,11 +96,7 @@ export const getLeadLossStage = (
     return "POST_TRIAL_REJECT";
   }
 
-  if (leadStatus === "WAITING_PAYMENT") {
-    return "PAYMENT_REJECT";
-  }
-
-  if (leadStatus === "TRIAL_DONE") {
+  if (leadStatus === "DECISION_PENDING") {
     return "POST_TRIAL_REJECT";
   }
 

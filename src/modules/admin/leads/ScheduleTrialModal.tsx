@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { Button, ModalShell, formControlClassName } from "../../../shared/ui";
 import { CoachApi, Coach } from "../сoaches/coach.api";
 import { GroupApi, GroupApiModel } from "../groups/group.api";
 import { AvailableSlot, Lead, ScheduleTrialPayload } from "./types";
 import { LeadApi } from "./lead.api";
-import { buttonStyles } from "../../../shared/ui/buttonStyles";
 
 interface ScheduleTrialModalProps {
   lead: Lead;
@@ -13,39 +14,31 @@ interface ScheduleTrialModalProps {
   onSuccess: () => Promise<void> | void;
 }
 
-const fieldClassName =
-  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-50";
-
-const sectionClassName =
-  "rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.45)]";
+type Step = "participant" | "time" | "review";
 
 const getToday = () => new Date().toISOString().slice(0, 10);
 const MAX_COMMENT_LENGTH = 1000;
+const steps: Array<{ id: Step; label: string; hint: string }> = [
+  { id: "participant", label: "Участник", hint: "Кого записываем" },
+  { id: "time", label: "Время", hint: "Свободный слот" },
+  { id: "review", label: "Проверка", hint: "Подтверждение" },
+];
 
-const formatSlotLabel = (slot: AvailableSlot) => {
-  if (slot.endTime) {
-    return `${slot.startTime.slice(0, 5)} - ${slot.endTime.slice(0, 5)}`;
-  }
+const formatSlotLabel = (slot: AvailableSlot) =>
+  slot.endTime ? `${slot.startTime.slice(0, 5)}–${slot.endTime.slice(0, 5)}` : slot.startTime.slice(0, 5);
 
-  return slot.startTime.slice(0, 5);
+const formatDate = (value: string) => {
+  if (!value) return "Дата не выбрана";
+  return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" }).format(new Date(`${value}T00:00:00`));
 };
 
-const formatOptionLabel = (label: string, helper?: string) =>
-  helper ? `${label} - ${helper}` : label;
-
-const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
-  lead,
-  branchId,
-  token,
-  onClose,
-  onSuccess,
-}) => {
+const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({ lead, branchId, token, onClose, onSuccess }) => {
   const isReschedule = lead.trial?.status === "SCHEDULED";
+  const [stepIndex, setStepIndex] = useState(0);
   const [groups, setGroups] = useState<GroupApiModel[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [optionsError, setOptionsError] = useState<string | null>(null);
-
   const [participantIndex, setParticipantIndex] = useState(0);
   const [groupId, setGroupId] = useState(lead.trial?.groupId ?? "");
   const [coachId, setCoachId] = useState(lead.trial?.coachId ?? "");
@@ -58,519 +51,177 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const step = steps[stepIndex];
+  const selectedParticipant = lead.participants[participantIndex] ?? null;
+  const selectedGroup = groups.find((group) => group.groupId === groupId) ?? null;
+  const selectedCoach = coaches.find((coach) => coach.id === coachId) ?? null;
 
+  useEffect(() => {
+    let mounted = true;
     const loadOptions = async () => {
       setOptionsLoading(true);
       setOptionsError(null);
-
       try {
-        const [groupsData, coachesPage] = await Promise.all([
+        const [groupData, coachPage] = await Promise.all([
           GroupApi.listByBranch(branchId, token),
           CoachApi.listByBranch(branchId, token, 0, 100),
         ]);
-
-        if (!isMounted) return;
-
-        setGroups(
-          groupsData.filter(
-            (group) =>
-              group.status === "ACTIVE" &&
-              (!group.audienceType || group.audienceType === lead.leadType)
-          )
-        );
-        setCoaches(coachesPage.content.filter((coach) => coach.active));
-      } catch (err) {
-        if (!isMounted) return;
-        console.error(err);
-        setOptionsError(
-          err instanceof Error
-            ? err.message
-            : "Не удалось загрузить группы и тренеров"
-        );
+        if (!mounted) return;
+        setGroups(groupData.filter((group) => group.status === "ACTIVE" && (!group.audienceType || group.audienceType === lead.leadType)));
+        setCoaches(coachPage.content.filter((coach) => coach.active));
+      } catch (error) {
+        if (!mounted) return;
+        setOptionsError(error instanceof Error ? error.message : "Не удалось загрузить варианты пробного");
       } finally {
-        if (isMounted) {
-          setOptionsLoading(false);
-        }
+        if (mounted) setOptionsLoading(false);
       }
     };
-
-    loadOptions();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [branchId, token]);
-
-  const selectedParticipant = lead.participants[participantIndex] ?? null;
-  const selectedParticipantId = selectedParticipant?.id ?? null;
-  const selectedGroup = groups.find((group) => group.groupId === groupId) ?? null;
-  const selectedCoach = coaches.find((coach) => coach.id === coachId) ?? null;
+    void loadOptions();
+    return () => { mounted = false; };
+  }, [branchId, lead.leadType, token]);
 
   useEffect(() => {
     setSelectedSlot(null);
     setSlots([]);
     setSlotsError(null);
-
-    if (!trialDate || (!groupId && !coachId)) {
-      return;
-    }
-
-    let isMounted = true;
-
+    if (!trialDate || (!groupId && !coachId)) return;
+    let mounted = true;
     const loadSlots = async () => {
       setSlotsLoading(true);
-      setSlotsError(null);
-
       try {
-        const data = groupId
-          ? await LeadApi.getAvailableGroupSlots(groupId, trialDate, token)
-          : await LeadApi.getAvailableCoachSlots(coachId, trialDate, token);
-
-        if (!isMounted) return;
-        setSlots(data);
-      } catch (err) {
-        if (!isMounted) return;
-        console.error(err);
-        setSlotsError(
-          err instanceof Error ? err.message : "Не удалось загрузить доступные слоты"
-        );
+        const data = groupId ? await LeadApi.getAvailableGroupSlots(groupId, trialDate, token) : await LeadApi.getAvailableCoachSlots(coachId, trialDate, token);
+        if (mounted) setSlots(data);
+      } catch (error) {
+        if (mounted) setSlotsError(error instanceof Error ? error.message : "Не удалось загрузить свободное время");
       } finally {
-        if (isMounted) {
-          setSlotsLoading(false);
-        }
+        if (mounted) setSlotsLoading(false);
       }
     };
+    void loadSlots();
+    return () => { mounted = false; };
+  }, [coachId, groupId, token, trialDate]);
 
-    loadSlots();
+  const stepError = useMemo(() => {
+    if (step.id === "participant" && (!selectedParticipant?.id || (!groupId && !coachId))) return "Выберите участника и группу или тренера";
+    if (step.id === "time" && (!trialDate || !selectedSlot)) return "Выберите дату и свободный слот";
+    return null;
+  }, [coachId, groupId, selectedParticipant?.id, selectedSlot, step.id, trialDate]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [trialDate, groupId, coachId, token]);
+  const next = () => {
+    if (stepError) {
+      setSubmitError(stepError);
+      return;
+    }
+    setSubmitError(null);
+    setStepIndex((value) => Math.min(value + 1, steps.length - 1));
+  };
 
-  const isValid = useMemo(() => {
-    if (!selectedParticipant) return false;
-    if (!selectedParticipantId) return false;
-    if (!trialDate) return false;
-    if (!selectedSlot) return false;
-    return Boolean(groupId || coachId);
-  }, [selectedParticipant, selectedParticipantId, trialDate, selectedSlot, groupId, coachId]);
-
-  const handleSubmit = async () => {
-    if (!selectedParticipantId || !selectedSlot || !isValid) return;
-
+  const submit = async () => {
+    if (!selectedParticipant?.id || !selectedSlot || (!groupId && !coachId)) {
+      setSubmitError("Заполните обязательные поля");
+      return;
+    }
     const payload: ScheduleTrialPayload = {
-      participantId: selectedParticipantId,
-      slot: {
-        date: selectedSlot.date,
-        startTime: selectedSlot.startTime,
-      },
+      participantId: selectedParticipant.id,
+      slot: { date: selectedSlot.date, startTime: selectedSlot.startTime },
       ...(groupId ? { groupId } : {}),
       ...(coachId ? { coachId } : {}),
       ...(comment.trim() ? { comment: comment.trim() } : {}),
     };
-
     setSubmitting(true);
     setSubmitError(null);
-
     try {
       await LeadApi.scheduleTrial(lead.id, payload, token);
       await onSuccess();
       onClose();
-    } catch (err) {
-      console.error(err);
-      setSubmitError(
-        err instanceof Error ? err.message : "Не удалось назначить пробное"
-      );
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Не удалось сохранить пробное занятие");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-sm sm:p-4">
-      <div className="flex h-[min(92vh,860px)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        <div className="border-b border-slate-200 bg-white px-6 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-700">
-                {isReschedule ? "Перенос пробного" : "Назначение пробного"}
-              </div>
-              <h3 className="heading-font text-xl font-semibold text-slate-900">
-                {isReschedule ? "Перенести пробное занятие" : "Назначить пробное занятие"}
-              </h3>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
-                {lead.primaryContact.fullName}. Выберите участника, исполнителя и свободный слот.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className={buttonStyles("ghost", "sm", "rounded-full p-2 text-slate-400")}
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="mt-5 hidden grid-cols-3 gap-3 sm:grid">
-            <div className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Шаг 1
-              </div>
-              <div className="mt-1 text-sm font-medium text-slate-700">
-                Ребенок и исполнитель
-              </div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Шаг 2
-              </div>
-              <div className="mt-1 text-sm font-medium text-slate-700">Дата</div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Шаг 3
-              </div>
-              <div className="mt-1 text-sm font-medium text-slate-700">
-                Свободный слот
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-4 sm:px-6 sm:py-6">
-          {optionsLoading ? (
-            <div className="space-y-4">
-              <div className="h-32 animate-pulse rounded-[28px] bg-slate-100" />
-              <div className="h-24 animate-pulse rounded-[28px] bg-slate-100" />
-              <div className="h-40 animate-pulse rounded-[28px] bg-slate-100" />
-            </div>
+    <ModalShell
+      title={isReschedule ? "Перенести пробное занятие" : "Запланировать пробное"}
+      eyebrow="Лид · Пробное занятие"
+      description={`${lead.primaryContact.fullName}. Пробное не создаёт договор и не зачисляет ученика в группу.`}
+      placement="right"
+      maxWidthClassName="max-w-[520px]"
+      heightClassName="h-[100dvh]"
+      bodyClassName="bg-slate-50 px-4 py-4 sm:px-5"
+      closeDisabled={submitting}
+      onClose={onClose}
+      footer={
+        <div className="flex justify-between gap-2">
+          <Button type="button" variant="secondary" rounded="rounded-lg" disabled={submitting} onClick={() => stepIndex ? setStepIndex((value) => value - 1) : onClose()}>
+            <ArrowLeftIcon className="h-4 w-4" /> {stepIndex ? "Назад" : "Отмена"}
+          </Button>
+          {step.id === "review" ? (
+            <Button type="button" rounded="rounded-lg" isLoading={submitting} onClick={() => void submit()}>
+              <CheckIcon className="h-4 w-4" /> {isReschedule ? "Сохранить перенос" : "Запланировать"}
+            </Button>
           ) : (
-            <div className="space-y-5">
-              {optionsError ? (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  {optionsError}
-                </div>
-              ) : null}
-
-              {lead.participants.length === 0 ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  У лида нет участников. Сначала квалифицируйте лид или добавьте данные
-                  участника.
-                </div>
-              ) : null}
-
-              <section className={sectionClassName}>
-                <div className="mb-4">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
-                    Шаг 1
-                  </div>
-                  <h4 className="mt-1 text-base font-semibold text-slate-900">
-                    Кого и с кем записываем
-                  </h4>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <label className="space-y-1.5 text-sm text-slate-600">
-                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Участник
-                    </span>
-                    <select
-                      value={String(participantIndex)}
-                      onChange={(event) => setParticipantIndex(Number(event.target.value))}
-                      disabled={lead.participants.length === 0}
-                      className={fieldClassName}
-                    >
-                      {lead.participants.map((participant, index) => (
-                        <option key={`${participant.fullName}-${index}`} value={index}>
-                          {participant.fullName}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    Выберите либо группу, либо тренера.
-                    <br />
-                    Второе поле остается необязательным.
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <label className="space-y-1.5 text-sm text-slate-600">
-                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Группа
-                    </span>
-                    <select
-                      value={groupId}
-                      onChange={(event) => {
-                        setGroupId(event.target.value);
-                        if (event.target.value) {
-                          setCoachId("");
-                        }
-                      }}
-                      className={fieldClassName}
-                    >
-                      <option value="">Выбрать группу</option>
-                      {groups.map((group) => (
-                        <option key={group.groupId} value={group.groupId}>
-                          {formatOptionLabel(
-                            group.name,
-                            group.audienceType === "ADULT"
-                              ? "взрослая группа"
-                              : `${group.ageFrom}-${group.ageTo} лет`
-                          )}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="space-y-1.5 text-sm text-slate-600">
-                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Тренер
-                    </span>
-                    <select
-                      value={coachId}
-                      onChange={(event) => {
-                        setCoachId(event.target.value);
-                        if (event.target.value) {
-                          setGroupId("");
-                        }
-                      }}
-                      className={fieldClassName}
-                    >
-                      <option value="">Выбрать тренера</option>
-                      {coaches.map((coach) => (
-                        <option key={coach.id} value={coach.id}>
-                          {formatOptionLabel(
-                            `${coach.firstName} ${coach.lastName}`.trim(),
-                            coach.phone
-                          )}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-
-                {(selectedGroup || selectedCoach) ? (
-                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {selectedGroup ? (
-                      <div className="rounded-2xl border border-admin-100 bg-admin-50 px-4 py-3 text-sm text-admin-900">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
-                          Выбрана группа
-                        </div>
-                        <div className="mt-1 font-semibold">{selectedGroup.name}</div>
-                        <div className="mt-1 text-admin-700/80">
-                          {selectedGroup.audienceType === "ADULT"
-                            ? "Формат: взрослая группа"
-                            : `Возраст: ${selectedGroup.ageFrom}-${selectedGroup.ageTo}`}
-                        </div>
-                      </div>
-                    ) : null}
-                    {selectedCoach ? (
-                      <div className="rounded-2xl border border-admin-100 bg-admin-50 px-4 py-3 text-sm text-admin-900">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
-                          Выбран тренер
-                        </div>
-                        <div className="mt-1 font-semibold">
-                          {selectedCoach.firstName} {selectedCoach.lastName}
-                        </div>
-                        <div className="mt-1 text-admin-700/80">
-                          {selectedCoach.phone || selectedCoach.email || "Контакт не указан"}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-              </section>
-
-              <section className={sectionClassName}>
-                <div className="mb-4">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
-                    Шаг 2
-                  </div>
-                  <h4 className="mt-1 text-base font-semibold text-slate-900">
-                    Когда провести занятие
-                  </h4>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
-                  <label className="space-y-1.5 text-sm text-slate-600">
-                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Дата
-                    </span>
-                    <input
-                      type="date"
-                      value={trialDate}
-                      onChange={(event) => setTrialDate(event.target.value)}
-                      min={getToday()}
-                      className={fieldClassName}
-                    />
-                  </label>
-
-                  <div className="rounded-2xl border border-admin-100 bg-admin-50/70 px-4 py-3 text-sm text-admin-900">
-                    После выбора даты система загрузит только свободные слоты по
-                    выбранной группе или тренеру. Ручной ввод времени отключен, чтобы
-                    избежать конфликтов расписания.
-                  </div>
-                </div>
-              </section>
-
-              <section className={sectionClassName}>
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
-                      Шаг 3
-                    </div>
-                    <h4 className="mt-1 text-base font-semibold text-slate-900">
-                      Выберите свободный слот
-                    </h4>
-                  </div>
-                  {selectedSlot ? (
-                    <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      Выбрано: {formatSlotLabel(selectedSlot)}
-                    </div>
-                  ) : null}
-                </div>
-
-                {slotsLoading ? (
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                    {Array.from({ length: 6 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="h-12 animate-pulse rounded-2xl bg-slate-100"
-                      />
-                    ))}
-                  </div>
-                ) : slotsError ? (
-                  <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                    {slotsError}
-                  </div>
-                ) : !groupId && !coachId ? (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                    Сначала выберите группу или тренера.
-                  </div>
-                ) : slots.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                    На выбранную дату свободных слотов нет.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                    {slots.map((slot) => {
-                      const isSelected =
-                        selectedSlot?.date === slot.date &&
-                        selectedSlot?.startTime === slot.startTime;
-
-                      return (
-                        <button
-                          key={`${slot.date}-${slot.startTime}`}
-                          type="button"
-                          onClick={() => setSelectedSlot(slot)}
-                          className={`rounded-2xl border px-3 py-3 text-sm font-semibold transition ${
-                            isSelected
-                              ? "border-admin-700 bg-admin-600 text-white shadow-[0_12px_28px_-16px_rgba(14,116,144,0.65)]"
-                              : "border-slate-200 bg-white text-slate-700 hover:border-admin-200 hover:bg-admin-50 hover:text-admin-800"
-                          }`}
-                        >
-                          {formatSlotLabel(slot)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-
-              <section className={sectionClassName}>
-                <div className="mb-4">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-600">
-                    Комментарий
-                  </div>
-                  <h4 className="mt-1 text-base font-semibold text-slate-900">
-                    Дополнительная информация
-                  </h4>
-                </div>
-
-                <label className="space-y-1.5 text-sm text-slate-600">
-                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Комментарий
-                  </span>
-                  <textarea
-                    value={comment}
-                    onChange={(event) => setComment(event.target.value)}
-                    rows={4}
-                    maxLength={MAX_COMMENT_LENGTH}
-                    className={`${fieldClassName} min-h-[120px] resize-none`}
-                    placeholder="Например: родителю удобно после школы, нужен пробный с акцентом на адаптацию."
-                  />
-                  <div className="text-right text-xs text-slate-400">
-                    {comment.length}/{MAX_COMMENT_LENGTH}
-                  </div>
-                </label>
-              </section>
-
-              {!groupId && !coachId ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Нужно выбрать либо группу, либо тренера.
-                </div>
-              ) : null}
-
-              {(groupId || coachId) && !selectedSlot && !slotsLoading && !slotsError ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Выберите свободный слот, чтобы сохранить пробное занятие.
-                </div>
-              ) : null}
-
-              {!selectedParticipantId && selectedParticipant ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Бэк еще не возвращает `participantId` в `lead.participants`, поэтому пробное
-                  занятие нельзя сохранить корректно.
-                </div>
-              ) : null}
-
-              {submitError ? (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  {submitError}
-                </div>
-              ) : null}
-            </div>
+            <Button type="button" rounded="rounded-lg" disabled={Boolean(stepError) || optionsLoading} onClick={next}>
+              Далее <ArrowRightIcon className="h-4 w-4" />
+            </Button>
           )}
         </div>
+      }
+    >
+      <div className="space-y-5">
+        <ol className="grid grid-cols-3 gap-2">
+          {steps.map((item, index) => (
+            <li key={item.id}>
+              <div className={`h-1 rounded-full ${index <= stepIndex ? "bg-admin-700" : "bg-slate-200"}`} />
+              <span className={`mt-2 block text-xs ${index === stepIndex ? "font-semibold text-slate-900" : "text-slate-500"}`}>{item.label}</span>
+            </li>
+          ))}
+        </ol>
 
-        <div className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-slate-500">
-            {selectedSlot
-              ? `Слот выбран: ${formatSlotLabel(selectedSlot)}`
-              : "Выберите свободный слот для сохранения"}
-          </div>
-          <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className={buttonStyles("secondary", "md", "rounded-2xl")}
-            >
-              Отмена
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!isValid || optionsLoading || submitting || Boolean(optionsError)}
-              className={buttonStyles("primary", "md", "rounded-2xl px-5")}
-            >
-              {submitting
-                ? "Сохранение..."
-                : isReschedule
-                  ? "Перенести пробное"
-                  : "Назначить пробное"}
-            </button>
-          </div>
-          </div>
+        <div className="rounded-lg border border-admin-100 bg-admin-50 px-3 py-2.5 text-xs leading-5 text-admin-900">
+          <span className="font-semibold">Контекст заявки:</span> {selectedParticipant?.fullName || "участник не выбран"}{selectedParticipant?.birthDate ? ` · ${new Date(selectedParticipant.birthDate).getFullYear()} г.` : ""}
+          {lead.preferredDays ? ` · желаемые дни: ${lead.preferredDays}` : ""}
         </div>
+
+        {optionsError ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">{optionsError}</div> : null}
+        {optionsLoading ? <div className="space-y-3"><div className="h-24 animate-pulse rounded-lg bg-slate-100" /><div className="h-32 animate-pulse rounded-lg bg-slate-100" /></div> : null}
+
+        {!optionsLoading && step.id === "participant" ? (
+          <div className="space-y-4">
+            <div><h3 className="text-sm font-semibold text-slate-900">Кого записываем?</h3><p className="mt-1 text-xs leading-5 text-slate-500">Сначала выберите ученика и место, где пройдёт пробное.</p></div>
+            <label><span className="mb-1.5 block text-xs font-medium text-slate-500">Участник <b className="text-rose-500">*</b></span><select className={formControlClassName} value={String(participantIndex)} onChange={(event) => setParticipantIndex(Number(event.target.value))}>{lead.participants.map((participant, index) => <option key={participant.id || index} value={index}>{participant.fullName}</option>)}</select></label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label><span className="mb-1.5 block text-xs font-medium text-slate-500">Группа</span><select className={formControlClassName} value={groupId} onChange={(event) => { setGroupId(event.target.value); if (event.target.value) setCoachId(""); }}><option value="">Выбрать группу</option>{groups.map((group) => <option key={group.groupId} value={group.groupId}>{group.name}</option>)}</select></label>
+              <label><span className="mb-1.5 block text-xs font-medium text-slate-500">Тренер</span><select className={formControlClassName} value={coachId} onChange={(event) => { setCoachId(event.target.value); if (event.target.value) setGroupId(""); }}><option value="">Выбрать тренера</option>{coaches.map((coach) => <option key={coach.id} value={coach.id}>{`${coach.firstName} ${coach.lastName}`.trim()}</option>)}</select></label>
+            </div>
+            <p className="text-xs text-slate-500">Выберите группу или тренера. Свободное время будет загружено автоматически.</p>
+          </div>
+        ) : null}
+
+        {!optionsLoading && step.id === "time" ? (
+          <div className="space-y-4">
+            <div><h3 className="text-sm font-semibold text-slate-900">Когда провести?</h3><p className="mt-1 text-xs leading-5 text-slate-500">Показываем только слоты без конфликтов по выбранной группе или тренеру.</p></div>
+            <label><span className="mb-1.5 block text-xs font-medium text-slate-500">Дата <b className="text-rose-500">*</b></span><input type="date" min={getToday()} className={formControlClassName} value={trialDate} onChange={(event) => setTrialDate(event.target.value)} /></label>
+            <div><div className="mb-2 text-xs font-medium text-slate-500">Свободное время <b className="text-rose-500">*</b></div>{slotsLoading ? <div className="grid grid-cols-2 gap-2"><div className="h-10 animate-pulse rounded-lg bg-slate-100" /><div className="h-10 animate-pulse rounded-lg bg-slate-100" /></div> : slotsError ? <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{slotsError}</div> : slots.length ? <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{slots.map((slot) => <button key={`${slot.date}-${slot.startTime}`} type="button" onClick={() => setSelectedSlot(slot)} className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${selectedSlot?.date === slot.date && selectedSlot?.startTime === slot.startTime ? "border-admin-700 bg-admin-700 text-white" : "border-slate-200 bg-white text-slate-700 hover:border-admin-300 hover:bg-admin-50"}`}>{formatSlotLabel(slot)}</button>)}</div> : <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">На эту дату свободных слотов нет.</div>}</div>
+          </div>
+        ) : null}
+
+        {step.id === "review" ? (
+          <div className="space-y-4">
+            <div><h3 className="text-sm font-semibold text-slate-900">Проверьте пробное занятие</h3><p className="mt-1 text-xs leading-5 text-slate-500">После подтверждения лид перейдёт в статус «Пробное назначено».</p></div>
+            <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white px-4"><Review label="Участник" value={selectedParticipant?.fullName || "Не выбран"} note={selectedParticipant?.birthDate ? `${new Date(selectedParticipant.birthDate).getFullYear()} год рождения` : undefined} /><Review label="Место" value={selectedGroup?.name || "Тренер"} note={selectedCoach ? `${selectedCoach.firstName} ${selectedCoach.lastName}` : undefined} /><Review label="Время" value={selectedSlot ? `${formatDate(selectedSlot.date)}, ${formatSlotLabel(selectedSlot)}` : "Не выбрано"} /></div>
+            <label><span className="mb-1.5 block text-xs font-medium text-slate-500">Комментарий</span><textarea className={`${formControlClassName} min-h-24 resize-none`} value={comment} maxLength={MAX_COMMENT_LENGTH} placeholder="Что важно учесть тренеру?" onChange={(event) => setComment(event.target.value)} /><span className="mt-1 block text-right text-xs text-slate-400">{comment.length}/{MAX_COMMENT_LENGTH}</span></label>
+            <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-500">Пробное занятие — это отдельная заявка. Договор, оплата и постоянное зачисление в группу оформляются после решения клиента.</div>
+          </div>
+        ) : null}
+
+        {submitError ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">{submitError}</div> : null}
       </div>
-    </div>
+    </ModalShell>
   );
 };
+
+const Review: React.FC<{ label: string; value: string; note?: string }> = ({ label, value, note }) => <div className="grid gap-1 py-3 sm:grid-cols-[100px_1fr]"><span className="text-xs font-semibold uppercase text-slate-500">{label}</span><span><span className="block text-sm font-semibold text-slate-900">{value}</span>{note ? <span className="mt-1 block text-xs text-slate-500">{note}</span> : null}</span></div>;
 
 export default ScheduleTrialModal;

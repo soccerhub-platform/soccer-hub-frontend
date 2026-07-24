@@ -28,10 +28,10 @@ const LeadKanbanColumn: React.FC<LeadKanbanColumnProps> = ({
 }) => {
   return (
     <section
-      className="flex h-[calc(100vh-16rem)] w-[300px] min-w-[300px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      className="flex h-[calc(100vh-20rem)] w-[280px] min-w-[280px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
     >
       <header
-        className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-3"
+        className="sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-3"
       >
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold tracking-wide text-slate-800">

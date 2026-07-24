@@ -1,135 +1,74 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, ModalShell } from "../../../shared/ui";
-import { GroupApiModel } from "../groups/group.api";
 import { LeadParticipant } from "./types";
 import { formatBirthDate } from "./lead.format";
 
 interface ConvertLeadModalProps {
   isOpen: boolean;
   leadName: string;
+  leadType?: string | null;
   participants: LeadParticipant[];
-  groups: GroupApiModel[];
-  loadingGroups: boolean;
-  groupsError: string | null;
   submitting: boolean;
   onClose: () => void;
   onSubmit: (payload: {
     participantId: string;
-    groupId: string;
     participantBirthDate: string;
-    contractStartDate: string;
-    contractEndDate?: string | null;
-    amount?: number | null;
+    relationshipType: "SELF" | "MOTHER" | "FATHER" | "GUARDIAN" | "OTHER";
+    replacePrimaryContact: boolean;
+    replacePrimaryPayer: boolean;
   }) => Promise<void> | void;
 }
 
-const toIsoDate = (value: Date) => {
-  const y = value.getFullYear();
-  const m = `${value.getMonth() + 1}`.padStart(2, "0");
-  const d = `${value.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${d}`;
-};
-
-const participantDisplayLabel = (participant: LeadParticipant) => {
-  const parts = [participant.fullName];
-  if (participant.birthDate) {
-    parts.push(formatBirthDate(participant.birthDate));
-  }
-  return parts.filter(Boolean).join(" · ");
-};
+const participantLabel = (participant: LeadParticipant) =>
+  [participant.fullName, participant.birthDate ? formatBirthDate(participant.birthDate) : null]
+    .filter(Boolean)
+    .join(" · ");
 
 const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
   isOpen,
   leadName,
+  leadType,
   participants,
-  groups,
-  loadingGroups,
-  groupsError,
   submitting,
   onClose,
   onSubmit,
 }) => {
-  const today = useMemo(() => toIsoDate(new Date()), []);
-  const [participantId, setParticipantId] = useState(
-    participants.length === 1 ? participants[0].id ?? "" : ""
-  );
-  const [groupId, setGroupId] = useState(groups.length === 1 ? groups[0].groupId : "");
-  const [participantBirthDate, setParticipantBirthDate] = useState(
-    participants.length === 1 ? participants[0].birthDate ?? "" : ""
-  );
-  const [contractStartDate, setContractStartDate] = useState(today);
-  const [contractEndDate, setContractEndDate] = useState("");
-  const [amount, setAmount] = useState("");
-  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const isAdult = leadType === "ADULT";
+  const [participantId, setParticipantId] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [relationshipType, setRelationshipType] = useState<
+    "SELF" | "MOTHER" | "FATHER" | "GUARDIAN" | "OTHER"
+  >(isAdult ? "SELF" : "MOTHER");
+  const [replacePrimaryContact, setReplacePrimaryContact] = useState(false);
+  const [replacePrimaryPayer, setReplacePrimaryPayer] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
-    setParticipantId(participants.length === 1 ? participants[0].id ?? "" : "");
-    setGroupId(groups.length === 1 ? groups[0].groupId : "");
-    setParticipantBirthDate(participants.length === 1 ? participants[0].birthDate ?? "" : "");
-    setContractStartDate(today);
-    setContractEndDate("");
-    setAmount("");
-    setSubmitAttempted(false);
-  }, [participants, groups, isOpen, today]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    if (!groupId && groups.length === 1) {
-      setGroupId(groups[0].groupId);
-    }
-  }, [groupId, groups, isOpen]);
-
-  const selectedParticipant = useMemo(
-    () => participants.find((participant) => participant.id === participantId) ?? null,
-    [participants, participantId]
-  );
-
-  const fieldErrors = useMemo(() => {
-    const participantError = participantId ? "" : "Выберите ученика";
-    const groupError = groupId ? "" : "Выберите группу";
-    const birthDateError = participantBirthDate ? "" : "Укажите дату рождения ученика";
-    const startDateError = contractStartDate ? "" : "Укажите дату начала договора";
-    const endDateError =
-      contractEndDate && contractStartDate && contractEndDate < contractStartDate
-        ? "Дата окончания должна быть не раньше даты начала"
-        : "";
-    const amountNumber = amount.trim() ? Number(amount) : null;
-    const amountError =
-      amount.trim().length > 0 && (Number.isNaN(amountNumber) || (amountNumber ?? 0) < 0)
-        ? "Сумма должна быть 0 или больше"
-        : "";
-
-    return {
-      participantError,
-      groupError,
-      birthDateError,
-      startDateError,
-      endDateError,
-      amountError,
-    };
-  }, [
-    amount,
-    participantBirthDate,
-    participantId,
-    contractEndDate,
-    contractStartDate,
-    groupId,
-  ]);
-
-  const hasFieldErrors = Object.values(fieldErrors).some(Boolean);
-  const submitDisabled = submitting || loadingGroups || Boolean(groupsError) || hasFieldErrors;
+    const first = participants.length === 1 ? participants[0] : null;
+    setParticipantId(first?.id ?? "");
+    setBirthDate(first?.birthDate ?? "");
+    setRelationshipType(isAdult ? "SELF" : "MOTHER");
+    setReplacePrimaryContact(false);
+    setReplacePrimaryPayer(false);
+    setAttempted(false);
+  }, [isAdult, isOpen, participants]);
 
   if (!isOpen) return null;
 
+  const invalid = !participantId || !birthDate;
+
   return (
     <ModalShell
-      title="Оформить договор"
-      description={`Выберите ученика, группу и условия договора для ${leadName}.`}
-      eyebrow="Договор"
+      title="Оформить клиента"
+      description={`Создайте роли клиента и ученика для ${leadName}. Договор и зачисление оформляются отдельно.`}
+      eyebrow="Конвертация лида"
       onClose={onClose}
       closeDisabled={submitting}
-      maxWidthClassName="max-w-2xl"
+      placement="right"
+      maxWidthClassName="max-w-[520px]"
+      heightClassName="h-[100dvh]"
+      bodyClassName="bg-slate-50 px-4 py-4 sm:px-5"
       footer={
         <div className="flex items-center justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
@@ -137,172 +76,101 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
           </Button>
           <Button
             type="button"
-            disabled={submitDisabled}
+            disabled={submitting || invalid}
             isLoading={submitting}
-            onClick={async () => {
-              setSubmitAttempted(true);
-              if (submitDisabled) return;
-              await onSubmit({
+            onClick={() => {
+              setAttempted(true);
+              if (invalid) return;
+              void onSubmit({
                 participantId,
-                groupId,
-                participantBirthDate,
-                contractStartDate,
-                contractEndDate: contractEndDate || null,
-                amount: amount.trim().length > 0 ? Number(amount) : null,
+                participantBirthDate: birthDate,
+                relationshipType,
+                replacePrimaryContact,
+                replacePrimaryPayer,
               });
             }}
           >
-            Создать договор
+            Оформить клиента
           </Button>
         </div>
       }
     >
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Ученик / игрок <span className="text-rose-500">*</span>
-          </span>
-          <select
-            value={participantId}
-            onChange={(event) => {
-              const nextId = event.target.value;
-              setParticipantId(nextId);
-              const participant = participants.find((item) => item.id === nextId);
-              if (participant) {
-                setParticipantBirthDate(participant.birthDate ?? "");
-              }
-            }}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-            disabled={submitting}
-          >
-            <option value="">Выберите ученика</option>
-            {participants.map((participant) => (
-              <option key={participant.id} value={participant.id}>
-                {participantDisplayLabel(participant)}
-              </option>
+      <div className="space-y-5">
+        <div className="rounded-lg border border-admin-100 bg-admin-50 p-3 text-sm leading-5 text-admin-900">
+          <div className="font-semibold">Что произойдёт после подтверждения</div>
+          <div className="mt-1 text-xs text-admin-800/80">
+            Будут созданы Client, Student и связь между ними. Договор, оплата и зачисление в группу не создаются автоматически.
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <label className="space-y-1 text-sm text-slate-600">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Ученик <span className="text-rose-500">*</span>
+            </span>
+            <select
+              value={participantId}
+              onChange={(event) => {
+                const nextId = event.target.value;
+                setParticipantId(nextId);
+                setBirthDate(participants.find((item) => item.id === nextId)?.birthDate ?? "");
+              }}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+              disabled={submitting}
+            >
+              <option value="">Выберите ученика</option>
+              {participants.map((participant) => (
+                <option key={participant.id} value={participant.id}>
+                  {participantLabel(participant)}
+                </option>
+              ))}
+            </select>
+            {attempted && !participantId ? <p className="text-xs text-rose-600">Выберите ученика</p> : null}
+          </label>
+
+          <label className="space-y-1 text-sm text-slate-600">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Дата рождения <span className="text-rose-500">*</span>
+            </span>
+            <input
+              type="date"
+              value={birthDate}
+              onChange={(event) => setBirthDate(event.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+              disabled={submitting}
+            />
+            {attempted && !birthDate ? <p className="text-xs text-rose-600">Укажите дату рождения</p> : null}
+          </label>
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Тип связи</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {(isAdult ? ["SELF"] : ["MOTHER", "FATHER", "GUARDIAN", "OTHER"]).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setRelationshipType(type as typeof relationshipType)}
+                className={`rounded-lg border px-3 py-2 text-sm transition ${
+                  relationshipType === type
+                    ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                {{ SELF: "SELF", MOTHER: "Мама", FATHER: "Папа", GUARDIAN: "Опекун", OTHER: "Другое" }[type]}
+              </button>
             ))}
-          </select>
-          {submitAttempted && fieldErrors.participantError ? (
-            <p className="text-xs text-rose-600">{fieldErrors.participantError}</p>
-          ) : null}
-        </label>
+          </div>
+        </div>
 
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Группа для занятий <span className="text-rose-500">*</span>
-          </span>
-          <select
-            value={groupId}
-            onChange={(event) => setGroupId(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-            disabled={loadingGroups || submitting}
-          >
-            <option value="">Выберите группу</option>
-            {groups.map((group) => (
-              <option key={group.groupId} value={group.groupId}>
-                {[
-                  group.name,
-                  group.audienceType === "ADULT"
-                    ? "взрослая группа"
-                    : `${group.ageFrom}-${group.ageTo} лет`,
-                  group.level,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </option>
-            ))}
-          </select>
-          {!loadingGroups && !groupsError && groups.length === 0 ? (
-            <p className="text-xs text-amber-600">Нет доступных групп для этого филиала</p>
-          ) : null}
-          {groupsError ? (
-            <p className="text-xs text-rose-600">Не удалось загрузить группы</p>
-          ) : null}
-          {submitAttempted && fieldErrors.groupError ? (
-            <p className="text-xs text-rose-600">{fieldErrors.groupError}</p>
-          ) : null}
-        </label>
-
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Дата рождения ученика <span className="text-rose-500">*</span>
-          </span>
-          <input
-            type="date"
-            value={participantBirthDate}
-            onChange={(event) => setParticipantBirthDate(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-            disabled={submitting}
-          />
-          {submitAttempted && fieldErrors.birthDateError ? (
-            <p className="text-xs text-rose-600">{fieldErrors.birthDateError}</p>
-          ) : null}
-        </label>
-
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Дата начала договора <span className="text-rose-500">*</span>
-          </span>
-          <input
-            type="date"
-            value={contractStartDate}
-            onChange={(event) => setContractStartDate(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-            disabled={submitting}
-          />
-          {submitAttempted && fieldErrors.startDateError ? (
-            <p className="text-xs text-rose-600">{fieldErrors.startDateError}</p>
-          ) : null}
-        </label>
-
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Дата окончания договора
-          </span>
-          <input
-            type="date"
-            value={contractEndDate}
-            onChange={(event) => setContractEndDate(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-            disabled={submitting}
-          />
-          {submitAttempted && fieldErrors.endDateError ? (
-            <p className="text-xs text-rose-600">{fieldErrors.endDateError}</p>
-          ) : null}
-        </label>
-
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Сумма договора
-          </span>
-          <input
-            type="number"
-            min={0}
-            placeholder="Например, 50000"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-            disabled={submitting}
-          />
-          <p className="text-xs text-slate-400">
-            Можно оставить пустым, если сумма будет указана позже.
-          </p>
-          {submitAttempted && fieldErrors.amountError ? (
-            <p className="text-xs text-rose-600">{fieldErrors.amountError}</p>
-          ) : null}
-        </label>
-
-        {selectedParticipant ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:col-span-2">
-            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              После сохранения
-            </div>
-            <div className="mt-1 font-medium text-slate-900">
-              {selectedParticipant.fullName}
-            </div>
-            <div className="mt-1 text-slate-500">
-              Ученик будет добавлен в выбранную группу, а договор появится в разделе договоров.
-            </div>
+        {!isAdult ? (
+          <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked readOnly /> Основной контакт
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked readOnly /> Основной плательщик
+            </label>
+            <p className="text-xs text-slate-500">Если у ученика уже есть основные роли, система попросит подтвердить замену.</p>
           </div>
         ) : null}
       </div>

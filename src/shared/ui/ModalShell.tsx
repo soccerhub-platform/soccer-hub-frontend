@@ -95,7 +95,7 @@ const ModalShell: React.FC<ModalShellProps> = ({
         </div>
 
         {footer ? (
-          <div className="border-t border-slate-200 bg-white px-5 py-3.5">
+          <div className="shrink-0 border-t border-slate-200 bg-white px-5 py-3.5">
             {footer}
           </div>
         ) : null}

@@ -4,11 +4,10 @@ export type DashboardSeriesCode = "leads" | "trainings" | "payments";
 export type DashboardSeriesUnit = "count" | "amount";
 export type DashboardFunnelStatus =
   | "NEW"
-  | "CONTACTED"
-  | "QUALIFIED"
+  | "IN_PROGRESS"
   | "TRIAL_SCHEDULED"
-  | "WAITING_PAYMENT"
-  | "WON";
+  | "DECISION_PENDING"
+  | "CONVERTED";
 
 export type DashboardMeta = {
   branchId: string;

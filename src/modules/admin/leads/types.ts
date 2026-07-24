@@ -1,15 +1,12 @@
 export const LEAD_COLUMN_ORDER = [
   "NEW",
-  "CONTACTED",
-  "QUALIFIED",
+  "IN_PROGRESS",
   "TRIAL_SCHEDULED",
-  "TRIAL_DONE",
-  "WAITING_PAYMENT",
-  "WON",
-  "LOST",
+  "DECISION_PENDING",
 ] as const;
 
-export type LeadStatus = (typeof LEAD_COLUMN_ORDER)[number];
+export type LeadColumnStatus = (typeof LEAD_COLUMN_ORDER)[number];
+export type LeadStatus = LeadColumnStatus | "CONVERTED" | "LOST";
 
 export type LeadType = "CHILDREN" | "ADULT";
 export type TimePreference = "MORNING" | "AFTERNOON" | "EVENING";
@@ -57,23 +54,18 @@ export interface LeadQualificationData {
 
 export type LeadActionType =
   | "CONTACT_LEAD"
-  | "QUALIFY_LEAD"
   | "SCHEDULE_TRIAL"
   | "RESCHEDULE_TRIAL"
-  | "CONVERT_TO_CONTRACT"
-  | "ADD_PAYMENT"
+  | "CONVERT_TO_CLIENT"
   | "MARK_TRIAL_DONE"
   | "MARK_NO_SHOW"
   | "CANCEL_TRIAL"
   | "CLOSE_LEAD"
-  | "OPEN_CONTRACT"
   | "CONTACT"
   | "QUALIFY"
   | "COMPLETE_TRIAL"
   | "CONVERT"
   | "NO_SHOW"
-  | "REQUEST_PAYMENT"
-  | "CONFIRM_PAYMENT"
   | "POST_TRIAL_REJECT"
   | "LOST"
   | "REJECT";
@@ -85,23 +77,6 @@ export interface LeadAction {
   primary: boolean;
   danger: boolean;
   enabled: boolean;
-}
-
-export interface LeadContractSnapshot {
-  contractId?: string | null;
-  contractNumber?: string | null;
-  status?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
-  amount?: number | null;
-}
-
-export interface LeadPaymentSummary {
-  paymentStatus?: string | null;
-  paidAmount?: number | null;
-  outstandingAmount?: number | null;
-  overpaidAmount?: number | null;
-  lastPaidAt?: string | null;
 }
 
 export interface LeadActivity {
@@ -134,9 +109,6 @@ export interface Lead {
   lostAt?: string | null;
   clientId?: string | null;
   playerId?: string | null;
-  contractId?: string | null;
-  contract?: LeadContractSnapshot | null;
-  paymentSummary?: LeadPaymentSummary | null;
   groupName?: string | null;
   coachName?: string | null;
   trial?: LeadTrial;
@@ -225,25 +197,18 @@ export type LeadEventResponse = {
 
 export type ConvertLeadRequest = {
   participantId: string;
-  groupId: string;
   participantBirthDate: string;
-  contractStartDate: string;
-  contractEndDate?: string | null;
-  amount?: number | null;
+  relationshipType: "SELF" | "MOTHER" | "FATHER" | "GUARDIAN" | "OTHER";
+  replacePrimaryContact: boolean;
+  replacePrimaryPayer: boolean;
 };
 
 export type ConvertLeadResponse = {
   leadId: string;
   clientId: string;
   playerId: string;
-  contractId: string;
   status: string;
   leadStatus?: string | null;
   clientName?: string | null;
   playerName?: string | null;
-  contractNumber?: string | null;
-  contractStatus?: string | null;
-  paymentStatus?: string | null;
-  amount?: number | null;
-  outstandingAmount?: number | null;
 };

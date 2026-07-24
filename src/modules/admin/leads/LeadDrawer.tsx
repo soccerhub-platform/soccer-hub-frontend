@@ -3,7 +3,6 @@ import { jwtDecode } from "jwt-decode";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowPathRoundedSquareIcon,
   IdentificationIcon,
   CalendarDaysIcon,
   ChatBubbleLeftRightIcon,
@@ -51,23 +50,22 @@ interface LeadDrawerProps {
   onClose: () => void;
   onUpdated: () => Promise<void> | void;
   onInitialActionHandled?: () => void;
+  embedded?: boolean;
 }
+
+type LeadDetailTab = "overview" | "communications" | "trial" | "tasks" | "activity";
 
 const statusBadgeClassName = (status?: string) => {
   switch (status) {
     case "NEW":
       return "bg-slate-100 text-slate-700 border-slate-200";
-    case "CONTACTED":
+    case "IN_PROGRESS":
       return "bg-blue-100 text-blue-700 border-blue-200";
-    case "QUALIFIED":
-      return "bg-violet-100 text-violet-700 border-violet-200";
     case "TRIAL_SCHEDULED":
       return "bg-amber-100 text-amber-700 border-amber-200";
-    case "TRIAL_DONE":
+    case "DECISION_PENDING":
       return "bg-orange-100 text-orange-700 border-orange-200";
-    case "WAITING_PAYMENT":
-      return "bg-cyan-100 text-cyan-700 border-cyan-200";
-    case "WON":
+    case "CONVERTED":
       return "bg-emerald-100 text-emerald-700 border-emerald-200";
     case "LOST":
       return "bg-rose-100 text-rose-700 border-rose-200";
@@ -94,6 +92,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   onClose,
   onUpdated,
   onInitialActionHandled,
+  embedded = false,
 }) => {
   const navigate = useNavigate();
   const [lead, setLead] = useState<LeadDetails | null>(null);
@@ -114,15 +113,10 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   const [rejectSubmitLoading, setRejectSubmitLoading] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [convertSubmitting, setConvertSubmitting] = useState(false);
-  const [groupsLoading, setGroupsLoading] = useState(false);
-  const [groupsError, setGroupsError] = useState<string | null>(null);
-  const [groups, setGroups] = useState<Awaited<
-    ReturnType<typeof GroupApi.listByBranch>
-  >>([]);
+  const [activeTab, setActiveTab] = useState<LeadDetailTab>("overview");
   const [conversionResult, setConversionResult] = useState<{
     clientId: string;
     playerId: string;
-    contractId: string;
     status: string;
   } | null>(null);
   const trialParticipant =
@@ -160,52 +154,21 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   }, [leadId, token]);
 
   useEffect(() => {
+    setActiveTab("overview");
+  }, [leadId]);
+
+  useEffect(() => {
     if (!isOpen || loading || !lead || !initialAction) return;
 
     if (isConvertAction(initialAction)) {
-      if (lead.status === "WON" || lead.clientId || lead.playerId || lead.contractId || lead.contract?.contractId) {
-        toast("Договор уже оформлен");
+      if (lead.status === "CONVERTED" || lead.clientId || lead.playerId) {
+        toast("Клиент уже оформлен");
       } else {
         setShowConvertModal(true);
       }
       onInitialActionHandled?.();
     }
   }, [initialAction, isOpen, lead, loading, onInitialActionHandled]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadGroups = async () => {
-      if (!branchId || !token) return;
-      setGroupsLoading(true);
-      setGroupsError(null);
-      try {
-        const list = await GroupApi.listByBranch(branchId, token);
-        if (!isMounted) return;
-        setGroups(
-          list.filter(
-            (item) =>
-              item.status === "ACTIVE" &&
-              (!lead?.leadType || !item.audienceType || item.audienceType === lead.leadType)
-          )
-        );
-      } catch (err) {
-        if (!isMounted) return;
-        console.error(err);
-        setGroupsError("Не удалось загрузить группы");
-        setGroups([]);
-      } finally {
-        if (isMounted) {
-          setGroupsLoading(false);
-        }
-      }
-    };
-
-    void loadGroups();
-    return () => {
-      isMounted = false;
-    };
-  }, [branchId, lead?.leadType, token]);
 
   useEffect(() => {
     let isMounted = true;
@@ -287,15 +250,8 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   const assignedAdminDisplayName = lead?.assignedAdmin?.name?.trim() || null;
   const rawActions = lead?.actions ?? [];
   const isAlreadyConverted = Boolean(
-    lead?.status === "WON" ||
-      lead?.clientId ||
-      lead?.playerId ||
-      lead?.contractId ||
-      lead?.contract?.contractId ||
-      conversionResult?.clientId
+    lead?.status === "CONVERTED" || lead?.clientId || lead?.playerId || conversionResult?.clientId
   );
-  const conversionContractId =
-    lead?.contractId || lead?.contract?.contractId || conversionResult?.contractId || "";
   const conversionPlayerId = lead?.playerId || conversionResult?.playerId || "";
   const actions = lead ? buildLeadUiActions(lead, rawActions, isAlreadyConverted) : [];
   const hasConvertAction = actions.some((action) => isConvertAction(action));
@@ -304,7 +260,9 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     "SUPER_ADMIN",
     "DISPATCHER",
   ]);
-  const canConvertByStatus = Boolean(lead && lead.status === "TRIAL_DONE");
+  const canConvertByStatus = Boolean(
+    lead && !["LOST", "CONVERTED"].includes(lead.status)
+  );
   const canShowConvertButton =
     canUseConvertRole && canConvertByStatus && !hasConvertAction && !isAlreadyConverted;
   const assignedAdminInitials = assignedAdminDisplayName
@@ -347,28 +305,10 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
 
     if (isConvertAction(action)) {
       if (isAlreadyConverted) {
-        toast("Договор уже оформлен");
+        toast("Клиент уже оформлен");
         return;
       }
       setShowConvertModal(true);
-      return;
-    }
-
-    if (action.type === "OPEN_CONTRACT") {
-      const contractId = lead.contractId || lead.contract?.contractId;
-      if (contractId) {
-        navigate(`/admin/contracts/${encodeURIComponent(contractId)}/overview`);
-      }
-      return;
-    }
-
-    if (action.type === "ADD_PAYMENT") {
-      const contractId = lead.contractId || lead.contract?.contractId;
-      if (contractId) {
-        navigate(
-          `/admin/contracts/${encodeURIComponent(contractId)}/payments?drawer=payment`
-        );
-      }
       return;
     }
 
@@ -420,36 +360,119 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[2px] transition-opacity duration-300"
-        onClick={onClose}
-      />
-      <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] translate-x-0 flex-col border-l border-slate-200 bg-slate-50 shadow-[0_0_60px_-24px_rgba(15,23,42,0.45)] transition-transform duration-300 ease-out">
-        <div className="border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur-sm">
-          <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="heading-font text-2xl font-semibold text-slate-900">
-              {loading ? "Загрузка..." : lead?.primaryContact.fullName ?? "Лид"}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">Полная карточка лида</p>
+      {!embedded ? (
+        <div
+          className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[2px] transition-opacity duration-300"
+          onClick={onClose}
+        />
+      ) : null}
+      <aside
+        className={
+          embedded
+            ? "relative flex min-h-[calc(100vh-7rem)] w-full flex-col overflow-visible bg-transparent"
+            : "fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] translate-x-0 flex-col border-l border-slate-200 bg-slate-50 shadow-[0_0_60px_-24px_rgba(15,23,42,0.45)] transition-transform duration-300 ease-out"
+        }
+      >
+        <div className="border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+          <div className="px-5 py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
+                  <button type="button" onClick={onClose} className="hover:text-emerald-700">Лиды</button>
+                  <span>→</span>
+                  <span>Лид #{leadId.slice(0, 8)}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="heading-font text-2xl font-semibold text-slate-900">
+                    {loading ? "Загрузка..." : lead?.primaryContact.fullName ?? "Лид"}
+                  </h2>
+                  {lead ? (
+                    <span className={`rounded-md border px-2 py-1 text-[11px] font-semibold ${statusBadgeClassName(lead.status)}`}>
+                      {LEAD_STATUS_LABELS[lead.status] ?? lead.status}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  {lead?.source ? `${lead.source} · ` : ""}{lead ? `Подана ${formatLeadDateTime(lead.createdAt)}` : "Полная карточка лида"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={embedded ? "Назад к лидам" : "Закрыть карточку лида"}
+                className={embedded ? "text-sm font-medium text-slate-500 transition hover:text-admin-700" : "rounded-lg border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600"}
+              >
+                {embedded ? "← Назад к лидам" : "✕"}
+              </button>
+            </div>
+            {lead ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button type="button" variant="secondary" className="text-xs" onClick={() => window.open(`tel:${lead.primaryContact.phone}`, "_self")}>
+                  <PhoneIcon className="h-3.5 w-3.5" /> Связаться
+                </Button>
+                {lead.status === "NEW" || lead.status === "IN_PROGRESS" ? (
+                  <Button type="button" className="text-xs" onClick={() => setShowTrialModal(true)}>
+                    <CalendarDaysIcon className="h-3.5 w-3.5" /> Назначить пробное
+                  </Button>
+                ) : null}
+                {lead.status === "TRIAL_SCHEDULED" ? (
+                  <Button type="button" className="text-xs" onClick={() => setActiveTab("trial")}>
+                    <CalendarDaysIcon className="h-3.5 w-3.5" /> Открыть пробное
+                  </Button>
+                ) : null}
+                {canShowConvertButton && lead.status === "DECISION_PENDING" ? <Button type="button" className="text-xs" onClick={() => setShowConvertModal(true)}>Оформить клиента</Button> : null}
+                {lead.status === "CONVERTED" && (lead.clientId || conversionResult?.clientId) ? <Button type="button" className="text-xs" onClick={() => navigate(`/admin/clients/${encodeURIComponent(lead.clientId || conversionResult!.clientId)}/overview`)}>Открыть клиента</Button> : null}
+              </div>
+            ) : null}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600"
-          >
-            ✕
-          </button>
-          </div>
+          <nav className="flex gap-5 overflow-x-auto px-5" aria-label="Навигация лида">
+            {([
+              ["overview", "Обзор"],
+              ["trial", "Пробное"],
+              ["activity", "Активность"],
+            ] as const).map(([tab, label]) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`border-b-2 px-0 py-3 text-xs font-medium transition ${activeTab === tab ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+          {lead ? (
+            <div className="mx-5 mt-4 flex items-center justify-between gap-3 rounded-lg border border-admin-100 bg-admin-50 px-4 py-3">
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-admin-700">Следующее действие</div>
+                <div className="mt-1 truncate text-sm font-semibold text-slate-900">
+                  {lead.status === "NEW" ? "Взять лид в работу" : lead.status === "IN_PROGRESS" ? "Назначить пробное занятие" : lead.status === "TRIAL_SCHEDULED" ? "Провести пробное занятие" : lead.status === "DECISION_PENDING" ? "Оформить клиента" : lead.status === "CONVERTED" ? "Клиент оформлен" : "Лид закрыт"}
+                </div>
+              </div>
+              {lead.status === "IN_PROGRESS" ? <Button size="sm" type="button" onClick={() => setShowTrialModal(true)}>Выполнить</Button> : null}
+            </div>
+          ) : null}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className={`flex-1 overflow-y-auto py-5 ${embedded ? "px-0" : "px-6"}`}>
           {loading ? (
             <LoadingState label="Загрузка карточки лида..." />
           ) : error ? (
             <ErrorState message={error} />
           ) : lead ? (
-            <div className="space-y-5">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.9fr)]">
+              {activeTab === "activity" ? (
+                <SectionCard className="p-5"><LeadTimeline activities={activities} loading={activitiesLoading} error={activitiesError} /></SectionCard>
+              ) : null}
+              {activeTab === "trial" ? (
+                <SectionCard className="p-5">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><CalendarDaysIcon className="h-4 w-4 text-emerald-600" /> Пробное занятие</div>
+                  <div className="mt-4 text-sm text-slate-600">{lead.trial ? `${formatTrialTime(lead.trial.trialDate, lead.trial.startTime, lead.trial.endTime)} · ${lead.trial.groupName || groupName || "Группа не указана"}` : "Пробное не назначено"}</div>
+                  <Button type="button" className="mt-4" onClick={() => setShowTrialModal(true)}>Назначить пробное</Button>
+                </SectionCard>
+              ) : null}
+              {activeTab === "overview" ? (
+              <>
               <SectionCard className="p-5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -486,7 +509,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   <UserGroupIcon className="h-4 w-4" />
                   Ответственный
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">
                       {lead.assignedAdmin
@@ -511,46 +534,32 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                 </div>
               </section>
 
-              {canShowConvertButton || isAlreadyConverted ? (
+              {!embedded && (canShowConvertButton || isAlreadyConverted) ? (
                 <section className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    <ArrowPathRoundedSquareIcon className="h-4 w-4" />
-                    Договор
+                    Клиент
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     {isAlreadyConverted ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         <div className="font-medium text-emerald-700">
-                          Договор оформлен
+                          Клиент оформлен
                         </div>
                         <div className="text-slate-500">
-                          Дальше можно открыть договор, карточку ученика или сразу принять оплату.
+                          Дальше можно создать договор или отдельно зачислить ученика в группу.
                         </div>
                         <div className="grid gap-2 pt-2 sm:grid-cols-2">
-                          {conversionContractId ? (
-                            <>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() =>
-                                  navigate(
-                                    `/admin/contracts/${encodeURIComponent(conversionContractId)}/overview`
-                                  )
-                                }
-                              >
-                                Открыть договор
-                              </Button>
-                              <Button
-                                type="button"
-                                onClick={() =>
-                                  navigate(
-                                    `/admin/contracts/${encodeURIComponent(conversionContractId)}/payments?drawer=payment`
-                                  )
-                                }
-                              >
-                                Добавить оплату
-                              </Button>
-                            </>
+                          {(lead.clientId || conversionResult?.clientId) ? (
+                            <Button
+                              type="button"
+                              onClick={() =>
+                                navigate(
+                                  `/admin/clients/${encodeURIComponent(lead.clientId || conversionResult!.clientId)}/overview`
+                                )
+                              }
+                            >
+                              Открыть клиента
+                            </Button>
                           ) : null}
                           {conversionPlayerId ? (
                             <Button
@@ -566,6 +575,32 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                             </Button>
                           ) : null}
                         </div>
+                        {(lead.clientId || conversionResult?.clientId) && conversionPlayerId ? (
+                          <div className="grid gap-2 pt-2 sm:grid-cols-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() =>
+                                navigate(
+                                  `/admin/contracts?drawer=create-contract&clientId=${encodeURIComponent(lead.clientId || conversionResult!.clientId)}&playerId=${encodeURIComponent(conversionPlayerId)}`
+                                )
+                              }
+                            >
+                              Создать договор
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() =>
+                                navigate(
+                                  `/admin/students/${encodeURIComponent(conversionPlayerId)}/overview?drawer=enroll`
+                                )
+                              }
+                            >
+                              Зачислить в группу
+                            </Button>
+                          </div>
+                        ) : null}
                         {!lead.clientId && !conversionResult?.clientId ? (
                           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                             Backend вернул статус клиента, но не передал ID клиента.
@@ -580,7 +615,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                         type="button"
                         onClick={() => setShowConvertModal(true)}
                       >
-                        Оформить договор
+                        Оформить клиента
                       </Button>
                     )}
                   </div>
@@ -592,7 +627,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   <UserGroupIcon className="h-4 w-4" />
                   Участники
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                   {lead.participants.length > 0 ? (
                     <div className="space-y-2">
                       {lead.participants.map((participant) => (
@@ -626,7 +661,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   <ChatBubbleLeftRightIcon className="h-4 w-4" />
                   Комментарий
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-600 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-600 shadow-sm">
                   {lead.comment || "Комментарий отсутствует"}
                 </div>
               </section>
@@ -637,7 +672,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                     <ChatBubbleLeftRightIcon className="h-4 w-4" />
                     Причина потери
                   </div>
-                  <div className="rounded-3xl border border-rose-200 bg-rose-50/60 p-4 text-sm text-slate-700 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+                  <div className="rounded-lg border border-rose-200 bg-rose-50/60 p-4 text-sm text-slate-700 shadow-sm">
                     <div>
                       <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Причина
@@ -671,7 +706,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   <CalendarDaysIcon className="h-4 w-4" />
                   Квалификация
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
                   <div className="space-y-3">
                     <div>
                       <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -706,7 +741,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   <CalendarDaysIcon className="h-4 w-4" />
                   Пробное занятие
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.5)]">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
                   {lead.trial ? (
                     <div className="space-y-3">
                       <div>
@@ -770,7 +805,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                 </div>
               </section>
 
-              <section className="space-y-3">
+              <section className="space-y-3 lg:col-span-2">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
                   <ClockIcon className="h-4 w-4" />
                   Активность
@@ -781,11 +816,13 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   error={activitiesError}
                 />
               </section>
+              </>
+              ) : null}
             </div>
           ) : null}
         </div>
 
-        {lead && actions.length > 0 ? (
+        {!embedded && lead && actions.length > 0 ? (
           <div className="border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
             <LeadActions
               actions={actions}
@@ -882,9 +919,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
           isOpen={showConvertModal}
           leadName={lead.primaryContact.fullName || "Лид"}
           participants={lead.participants ?? []}
-          groups={groups}
-          loadingGroups={groupsLoading}
-          groupsError={groupsError}
+          leadType={lead.leadType}
           submitting={convertSubmitting}
           onClose={() => {
             if (convertSubmitting) return;
@@ -896,14 +931,14 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
             try {
               const result = await LeadApi.convertLeadToClient(lead.id, payload, token);
               setConversionResult(result);
-              toast.success("Договор оформлен");
+              toast.success("Клиент оформлен");
               setShowConvertModal(false);
               await onUpdated();
               await refreshLead();
             } catch (err) {
               console.error(err);
               setError(
-                err instanceof Error ? err.message : "Не удалось оформить договор"
+                err instanceof Error ? err.message : "Не удалось оформить клиента"
               );
             } finally {
               setConvertSubmitting(false);

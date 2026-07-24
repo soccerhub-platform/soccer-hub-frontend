@@ -504,7 +504,7 @@ const FunnelRows = ({ rows, conversion }: { rows: DashboardFunnelRow[]; conversi
           <div className="h-7 rounded-lg bg-slate-100">
             <div
               className={`flex h-7 items-center justify-end rounded-lg px-2 text-xs font-semibold text-white ${
-                row.status === "WON" ? "bg-emerald-600" : row.status === "WAITING_PAYMENT" ? "bg-emerald-200 text-emerald-950" : "bg-admin-700"
+                row.status === "CONVERTED" ? "bg-emerald-600" : "bg-admin-700"
               }`}
               style={{ width: `${Math.max(row.count > 0 ? 16 : 0, (row.count / max) * 100)}%` }}
             >

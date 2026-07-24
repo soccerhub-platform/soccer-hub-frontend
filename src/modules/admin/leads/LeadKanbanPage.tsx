@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import {
+  ChartBarIcon,
+  ClockIcon,
+  FunnelIcon,
+  PlusIcon,
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../shared/AuthContext";
@@ -18,9 +24,9 @@ import {
   LeadKanbanColumns,
   LeadLossReason,
   LEAD_COLUMN_ORDER,
+  LeadColumnStatus,
   LeadStatus,
 } from "./types";
-import LeadDrawer from "./LeadDrawer";
 import { LeadApi } from "./lead.api";
 import QualifyLeadModal from "./QualifyLeadModal";
 import ScheduleTrialModal from "./ScheduleTrialModal";
@@ -35,19 +41,15 @@ import {
   isScheduleTrialAction,
 } from "./lead.ui-actions";
 
-const COLUMN_TITLES: Record<LeadStatus, string> = {
+const COLUMN_TITLES: Record<LeadColumnStatus, string> = {
   NEW: "Новые",
-  CONTACTED: "Связались",
-  QUALIFIED: "Квалифицирован",
+  IN_PROGRESS: "В работе",
   TRIAL_SCHEDULED: "Пробное назначено",
-  TRIAL_DONE: "Пробное прошло",
-  WAITING_PAYMENT: "Ожидает оплату",
-  WON: "Клиент",
-  LOST: "Отказ",
+  DECISION_PENDING: "Ожидают решения",
 };
 
 const COLUMN_COLORS: Record<
-  LeadStatus,
+  LeadColumnStatus,
   {
     column: string;
     header: string;
@@ -59,40 +61,20 @@ const COLUMN_COLORS: Record<
     header: "bg-slate-100/90 text-slate-700 border-slate-200",
     badge: "bg-slate-200 text-slate-700",
   },
-  CONTACTED: {
+  IN_PROGRESS: {
     column: "bg-blue-50/90 border-blue-200",
     header: "bg-blue-100/90 text-blue-700 border-blue-200",
     badge: "bg-blue-200 text-blue-700",
-  },
-  QUALIFIED: {
-    column: "bg-violet-50/90 border-violet-200",
-    header: "bg-violet-100/90 text-violet-700 border-violet-200",
-    badge: "bg-violet-200 text-violet-700",
   },
   TRIAL_SCHEDULED: {
     column: "bg-amber-50/90 border-amber-200",
     header: "bg-amber-100/90 text-amber-700 border-amber-200",
     badge: "bg-amber-200 text-amber-700",
   },
-  TRIAL_DONE: {
-    column: "bg-orange-50/90 border-orange-200",
-    header: "bg-orange-100/90 text-orange-700 border-orange-200",
-    badge: "bg-orange-200 text-orange-700",
-  },
-  WAITING_PAYMENT: {
-    column: "bg-cyan-50/90 border-cyan-200",
-    header: "bg-cyan-100/90 text-cyan-700 border-cyan-200",
-    badge: "bg-cyan-200 text-cyan-700",
-  },
-  WON: {
-    column: "bg-emerald-50/90 border-emerald-200",
-    header: "bg-emerald-100/90 text-emerald-700 border-emerald-200",
-    badge: "bg-emerald-200 text-emerald-700",
-  },
-  LOST: {
-    column: "bg-rose-50/90 border-rose-200",
-    header: "bg-rose-100/90 text-rose-700 border-rose-200",
-    badge: "bg-rose-200 text-rose-700",
+  DECISION_PENDING: {
+    column: "bg-violet-50/90 border-violet-200",
+    header: "bg-violet-100/90 text-violet-700 border-violet-200",
+    badge: "bg-violet-200 text-violet-700",
   },
 };
 
@@ -111,9 +93,6 @@ const LeadKanbanPage: React.FC = () => {
   const [columns, setColumns] = useState<LeadKanbanColumns>(createEmptyColumns);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
-  const [selectedLeadInitialAction, setSelectedLeadInitialAction] =
-    useState<LeadAction | null>(null);
   const [qualifyingLead, setQualifyingLead] = useState<Lead | null>(null);
   const [trialLead, setTrialLead] = useState<Lead | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -202,8 +181,8 @@ const LeadKanbanPage: React.FC = () => {
         );
       });
 
-      const targetStatus = LEAD_COLUMN_ORDER.includes(updatedLead.status)
-        ? updatedLead.status
+      const targetStatus = LEAD_COLUMN_ORDER.includes(updatedLead.status as LeadColumnStatus)
+        ? updatedLead.status as LeadColumnStatus
         : null;
 
       if (targetStatus) {
@@ -214,14 +193,23 @@ const LeadKanbanPage: React.FC = () => {
     });
   };
 
+  const allLeads = LEAD_COLUMN_ORDER.flatMap((status) => columns[status] ?? []);
+  const activeLeadCount = allLeads.filter((lead) => lead.status !== "CONVERTED" && lead.status !== "LOST").length;
+  const overdueTrialCount = allLeads.filter(
+    (lead) => lead.status === "TRIAL_SCHEDULED" && lead.trial?.status === "SCHEDULED" && lead.trial.trialDate < new Date().toISOString().slice(0, 10)
+  ).length;
+  const trialCount = columns.TRIAL_SCHEDULED?.length ?? 0;
+  const convertedCount = allLeads.filter((lead) => lead.status === "CONVERTED").length;
+  const conversionRate = allLeads.length
+    ? Math.round((convertedCount / allLeads.length) * 100)
+    : 0;
+
   const handleLeadAction = async (lead: Lead, action: LeadAction) => {
     if (!token) return;
     const isLeadAlreadyConverted = Boolean(
-      lead.status === "WON" ||
+      lead.status === "CONVERTED" ||
         lead.clientId ||
-        lead.playerId ||
-        lead.contractId ||
-        lead.contract?.contractId
+        lead.playerId
     );
 
     if (isQualifyAction(action)) {
@@ -235,28 +223,10 @@ const LeadKanbanPage: React.FC = () => {
     }
 
     if (isConvertAction(action)) {
-      setSelectedLeadId(lead.id);
-      setSelectedLeadInitialAction(action);
       if (isLeadAlreadyConverted) {
-        toast("Договор уже оформлен");
-      }
-      return;
-    }
-
-    if (action.type === "OPEN_CONTRACT") {
-      const contractId = lead.contractId || lead.contract?.contractId;
-      if (contractId) {
-        navigate(`/admin/contracts/${encodeURIComponent(contractId)}/overview`);
-      }
-      return;
-    }
-
-    if (action.type === "ADD_PAYMENT") {
-      const contractId = lead.contractId || lead.contract?.contractId;
-      if (contractId) {
-        navigate(
-          `/admin/contracts/${encodeURIComponent(contractId)}/payments?drawer=payment`
-        );
+        toast("Клиент уже оформлен");
+      } else {
+        navigate(`/admin/leads/${encodeURIComponent(lead.id)}`);
       }
       return;
     }
@@ -322,72 +292,71 @@ const LeadKanbanPage: React.FC = () => {
   }
 
   return (
-    <PageShell className="min-w-0 max-w-full">
+    <PageShell className="min-w-0 max-w-[1540px] gap-4">
       <PageHeader
-        title="Канбан лидов"
-        description="Воронка по текущему филиалу с быстрым обзором всех статусов."
+        title="Лиды"
+        description="Потенциальные клиенты и заявки"
         actions={
-          <Button type="button" onClick={() => setShowCreateModal(true)}>
-            <PlusIcon className="h-4 w-4" />
-            Новый лид
-          </Button>
+          <>
+            <Button type="button" variant="secondary" className="gap-2">
+              <FunnelIcon className="h-4 w-4" />
+              Фильтры
+              <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">2</span>
+            </Button>
+            <Button type="button" onClick={() => setShowCreateModal(true)}>
+              <PlusIcon className="h-4 w-4" />
+              Новый лид
+            </Button>
+          </>
         }
       />
 
-      {error ? <ErrorState message={error} onRetry={refreshKanban} /> : null}
-
-      <div className="w-full max-w-full min-w-0 overflow-x-auto pb-2">
-        {loading ? (
-          <div className="flex w-max min-w-max gap-4">
-            {LEAD_COLUMN_ORDER.map((status) => (
-              <div
-                key={status}
-                className="h-[calc(100vh-16rem)] w-[300px] shrink-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
-              >
-                <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
-                <div className="mt-3 space-y-3">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <div
-                      key={`${status}-${index}`}
-                      className="h-28 animate-pulse rounded-xl bg-slate-100"
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: "Новые", value: columns.NEW?.length ?? 0, hint: "+6 за неделю", tone: "text-violet-600", icon: FunnelIcon },
+          { label: "Требуют действия", value: activeLeadCount, hint: overdueTrialCount ? `Просрочено: ${overdueTrialCount}` : "Всё под контролем", tone: "text-orange-600", icon: ClockIcon },
+          { label: "Пробные сегодня", value: trialCount, hint: "+2 подтверждено", tone: "text-blue-600", icon: UserGroupIcon },
+          { label: "Конверсия (мес)", value: `${conversionRate}%`, hint: `${convertedCount} из ${allLeads.length} лидов`, tone: "text-violet-600", icon: ChartBarIcon },
+        ].map(({ label, value, hint, tone, icon: Icon }) => (
+          <div key={label} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_10px_30px_-28px_rgba(15,23,42,0.55)]">
+            <div>
+              <div className="text-xs font-medium text-slate-500">{label}</div>
+              <div className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{value}</div>
+              <div className={`mt-1 text-[11px] font-medium ${tone}`}>{hint}</div>
+            </div>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 ${tone}`}>
+              <Icon className="h-5 w-5" />
+            </div>
           </div>
-        ) : (
-          <div className="flex w-max min-w-max gap-4">
-            {LEAD_COLUMN_ORDER.map((status) => (
-              <LeadKanbanColumn
-                key={status}
-                title={COLUMN_TITLES[status]}
-                leads={columns[status] ?? []}
-                theme={COLUMN_COLORS[status]}
-                onLeadClick={setSelectedLeadId}
-                onLeadAction={handleLeadAction}
-                actionState={actionState}
-              />
-            ))}
-          </div>
-        )}
+        ))}
       </div>
 
-      {selectedLeadId ? (
-        <LeadDrawer
-          leadId={selectedLeadId}
-          isOpen={Boolean(selectedLeadId)}
-          branchId={branchId}
-          token={token}
-          initialAction={selectedLeadInitialAction}
-          onInitialActionHandled={() => setSelectedLeadInitialAction(null)}
-          onClose={() => {
-            setSelectedLeadId(null);
-            setSelectedLeadInitialAction(null);
-          }}
-          onUpdated={refreshKanban}
-        />
-      ) : null}
+      {error ? <ErrorState message={error} onRetry={refreshKanban} /> : null}
+
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_16px_44px_-36px_rgba(15,23,42,0.55)]">
+          <div className="mb-3 flex items-center justify-between px-1">
+            <div className="text-sm font-semibold text-slate-900">Активная воронка</div>
+            <div className="text-xs text-slate-400">{activeLeadCount} лидов</div>
+          </div>
+          <div className="w-full min-w-0 overflow-x-auto pb-2">
+            {loading ? (
+              <div className="flex w-max min-w-max gap-4">
+                {LEAD_COLUMN_ORDER.map((status) => (
+                  <div key={status} className="h-[calc(100vh-20rem)] w-[280px] shrink-0 rounded-2xl border border-slate-200 bg-white p-3">
+                    <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
+                    <div className="mt-3 space-y-3">{Array.from({ length: 4 }).map((_, index) => <div key={`${status}-${index}`} className="h-28 animate-pulse rounded-xl bg-slate-100" />)}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex w-max min-w-max gap-3">
+                {LEAD_COLUMN_ORDER.map((status) => (
+                  <LeadKanbanColumn key={status} title={COLUMN_TITLES[status]} leads={columns[status] ?? []} theme={COLUMN_COLORS[status]} onLeadClick={(leadId) => navigate(`/admin/leads/${encodeURIComponent(leadId)}`)} onLeadAction={handleLeadAction} actionState={actionState} />
+                ))}
+              </div>
+            )}
+          </div>
+      </div>
 
       {qualifyingLead ? (
         <QualifyLeadModal

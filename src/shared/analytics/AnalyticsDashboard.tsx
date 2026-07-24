@@ -21,12 +21,10 @@ import {
 
 const STATUS_LABELS: Record<string, string> = {
   NEW: "Новые",
-  CONTACTED: "Связались",
-  QUALIFIED: "Квалифицированы",
+  IN_PROGRESS: "В работе",
   TRIAL_SCHEDULED: "Пробное назначено",
-  TRIAL_DONE: "Пробное проведено",
-  WAITING_PAYMENT: "Ожидают оплату",
-  WON: "Стали клиентами",
+  DECISION_PENDING: "Ожидают решения",
+  CONVERTED: "Стали клиентами",
   LOST: "Потеряны",
   REJECTED: "Отклонены",
 };
@@ -304,8 +302,8 @@ const FunnelTrend = ({ rows }: { rows: Array<Record<string, string | number>> })
   const visible = rows.slice(-10);
   const metrics = [
     { key: "NEW", label: "Новые", color: "#0e7490" },
-    { key: "QUALIFIED", label: "Квалифицированы", color: "#f59e0b" },
-    { key: "WON", label: "Клиенты", color: "#059669" },
+    { key: "IN_PROGRESS", label: "В работе", color: "#f59e0b" },
+    { key: "CONVERTED", label: "Клиенты", color: "#059669" },
     { key: "LOST", label: "Потеряны", color: "#e11d48" },
   ];
 
