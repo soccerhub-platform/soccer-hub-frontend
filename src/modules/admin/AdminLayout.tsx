@@ -13,6 +13,7 @@ import {
   UserIcon,
   UserCircleIcon,
   UserGroupIcon,
+  ClipboardDocumentCheckIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../shared/AuthContext";
 import BrandMark from "../../shared/ui/BrandMark";
@@ -30,6 +31,7 @@ type AdminNavItem = {
 const MAIN_NAV_ITEMS: AdminNavItem[] = [
   { to: "/admin/dashboard", label: "Главная", icon: HomeIcon, end: true },
   { to: "/admin/leads", label: "Лиды", icon: Squares2X2Icon },
+  { to: "/admin/trials", label: "Пробные", icon: ClipboardDocumentCheckIcon },
   { to: "/admin/clients", label: "Клиенты", icon: UserIcon },
   { to: "/admin/students", label: "Ученики", icon: AcademicCapIcon },
   { to: "/admin/coaches", label: "Тренеры", icon: UserCircleIcon },

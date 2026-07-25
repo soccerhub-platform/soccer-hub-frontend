@@ -32,6 +32,7 @@ import QualifyLeadModal from "./QualifyLeadModal";
 import ScheduleTrialModal from "./ScheduleTrialModal";
 import AdminCreateLeadModal from "./AdminCreateLeadModal";
 import LeadLossModal from "./LeadLossModal";
+import { TrialsApi } from "../trials/trials.api";
 import {
   getLeadActionEvent,
   getLeadLossStage,
@@ -253,6 +254,30 @@ const LeadKanbanPage: React.FC = () => {
       return;
     }
 
+    if (action.type === "MARK_TRIAL_DONE") {
+      setActionState({ leadId: lead.id, actionType: action.type });
+      setError(null);
+      try {
+        const trial = await TrialsApi.findByLead(lead.id);
+        if (!trial) throw new Error("Пробное занятие не найдено");
+        await TrialsApi.markAttendance(trial.id, "ATTENDED");
+        const response = await LeadApi.sendLeadEvent(
+          lead.id,
+          { event: getLeadActionEvent(action) },
+          token
+        );
+        if (response?.lead) upsertLeadInColumns(response.lead);
+        else await refreshKanban();
+        toast.success("Посещение пробного отмечено");
+      } catch (err) {
+        console.error(err);
+        setError(err instanceof Error ? err.message : "Не удалось отметить пробное");
+      } finally {
+        setActionState(null);
+      }
+      return;
+    }
+
     setActionState({ leadId: lead.id, actionType: action.type });
     setError(null);
 
@@ -371,15 +396,16 @@ const LeadKanbanPage: React.FC = () => {
         />
       ) : null}
 
-      {trialLead ? (
-        <ScheduleTrialModal
-          lead={trialLead}
-          branchId={branchId}
-          token={token}
-          onClose={() => setTrialLead(null)}
-          onSuccess={async () => {
+        {trialLead ? (
+          <ScheduleTrialModal
+            lead={trialLead}
+            branchId={branchId}
+            token={token}
+            onClose={() => setTrialLead(null)}
+            onSuccess={async (trialId) => {
             await refreshKanban();
             setTrialLead(null);
+            if (trialId) navigate(`/admin/trials/${trialId}/overview`);
           }}
         />
       ) : null}

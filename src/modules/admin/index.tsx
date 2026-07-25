@@ -25,6 +25,8 @@ import CoachDetailsPage from './сoaches/CoachDetailsPage';
 import ClientsPage from './clients/ClientsPage';
 import ClientDetailsPage from './clients/ClientDetailsPage';
 import ContractDetailsPage from './contracts/ContractDetailsPage';
+import TrialsPage from './trials/TrialsPage';
+import TrialDetailsPage from './trials/TrialDetailsPage';
 
 /**
  * Defines routes for the admin module.  Admins have access to
@@ -66,6 +68,9 @@ const AdminRoutes: React.FC = () => {
               <Route path="coaches/:coachId/:section" element={<CoachDetailsPage />} />
               <Route path="leads" element={<LeadKanbanPage />} />
               <Route path="leads/:leadId" element={<LeadDetailsPage />} />
+              <Route path="trials" element={<TrialsPage />} />
+              <Route path="trials/:trialId" element={<Navigate to="overview" replace />} />
+              <Route path="trials/:trialId/:section" element={<TrialDetailsPage />} />
               <Route path="groups" element={<GroupsPage />} />
               <Route path="groups/:groupId" element={<Navigate to="overview" replace />} />
               <Route path="groups/:groupId/sessions/:sessionId/attendance" element={<SessionAttendancePage />} />

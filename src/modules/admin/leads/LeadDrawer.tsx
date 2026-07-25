@@ -16,6 +16,7 @@ import { LeadAction, LeadActivity, LeadDetails, LeadLossReason } from "./types";
 import { LeadApi } from "./lead.api";
 import ScheduleTrialModal from "./ScheduleTrialModal";
 import { GroupApi } from "../groups/group.api";
+import { TrialsApi } from "../trials/trials.api";
 import LeadActions from "./LeadActions";
 import LeadTimeline from "./LeadTimeline";
 import LeadLossModal from "./LeadLossModal";
@@ -254,7 +255,6 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   );
   const conversionPlayerId = lead?.playerId || conversionResult?.playerId || "";
   const actions = lead ? buildLeadUiActions(lead, rawActions, isAlreadyConverted) : [];
-  const hasConvertAction = actions.some((action) => isConvertAction(action));
   const canUseConvertRole = userHasRole(token, [
     "ADMIN",
     "SUPER_ADMIN",
@@ -264,7 +264,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     lead && !["LOST", "CONVERTED"].includes(lead.status)
   );
   const canShowConvertButton =
-    canUseConvertRole && canConvertByStatus && !hasConvertAction && !isAlreadyConverted;
+    canUseConvertRole && canConvertByStatus && !isAlreadyConverted;
   const assignedAdminInitials = assignedAdminDisplayName
     ? assignedAdminDisplayName
         .split(/\s+/)
@@ -329,6 +329,31 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
         } finally {
           setLossReasonsLoading(false);
         }
+      }
+      return;
+    }
+
+    if (action.type === "MARK_TRIAL_DONE") {
+      setLoadingActionType(action.type);
+      setError(null);
+      try {
+        const trial = await TrialsApi.findByLead(lead.id);
+        if (!trial) throw new Error("Пробное занятие не найдено");
+        await TrialsApi.markAttendance(trial.id, "ATTENDED");
+        const response = await LeadApi.sendLeadEvent(
+          lead.id,
+          { event: getLeadActionEvent(action) },
+          token
+        );
+        if (response?.lead) setLead(response.lead);
+        else await refreshLead();
+        await onUpdated();
+        toast.success("Посещение пробного отмечено");
+      } catch (err) {
+        console.error(err);
+        setError(err instanceof Error ? err.message : "Не удалось отметить пробное");
+      } finally {
+        setLoadingActionType(null);
       }
       return;
     }
@@ -449,7 +474,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   {lead.status === "NEW" ? "Взять лид в работу" : lead.status === "IN_PROGRESS" ? "Назначить пробное занятие" : lead.status === "TRIAL_SCHEDULED" ? "Провести пробное занятие" : lead.status === "DECISION_PENDING" ? "Оформить клиента" : lead.status === "CONVERTED" ? "Клиент оформлен" : "Лид закрыт"}
                 </div>
               </div>
-              {lead.status === "IN_PROGRESS" ? <Button size="sm" type="button" onClick={() => setShowTrialModal(true)}>Выполнить</Button> : null}
+              {lead.status === "IN_PROGRESS" ? <Button size="sm" type="button" onClick={() => setShowTrialModal(true)}>Назначить</Button> : null}
             </div>
           ) : null}
         </div>
@@ -850,16 +875,17 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
         />
       ) : null}
 
-      {showTrialModal && lead ? (
-        <ScheduleTrialModal
-          lead={lead}
-          branchId={branchId}
-          token={token}
-          onClose={() => setShowTrialModal(false)}
-          onSuccess={async () => {
+        {showTrialModal && lead ? (
+          <ScheduleTrialModal
+            lead={lead}
+            branchId={branchId}
+            token={token}
+            onClose={() => setShowTrialModal(false)}
+            onSuccess={async (trialId) => {
             await onUpdated();
             setShowTrialModal(false);
             await refreshLead();
+            if (trialId) navigate(`/admin/trials/${trialId}/overview`);
           }}
         />
       ) : null}
