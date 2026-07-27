@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../../../shared/api";
 import { Button, ModalShell, formControlClassName } from "../../../shared/ui";
 import { ClientApi } from "./client.api";
-import type { ClientStudentRelationshipType } from "./client.types";
+import { clientSourceLabels, type ClientSource, type ClientStudentRelationshipType } from "./client.types";
 
 type Mode = "DEPENDENT" | "SELF" | "CLIENT_ONLY";
 type Step = "scenario" | "client" | "student" | "review";
@@ -23,7 +23,7 @@ const ClientOnboardingDrawer: React.FC<{
 }> = ({ branchId, onClose, onCreated }) => {
   const [mode, setMode] = useState<Mode>("DEPENDENT");
   const [index, setIndex] = useState(0);
-  const [client, setClient] = useState({ firstName: "", lastName: "", phone: "", email: "", source: "", comments: "" });
+  const [client, setClient] = useState({ firstName: "", lastName: "", phone: "", email: "", source: "MANUAL" as ClientSource, sourceDetails: "", comments: "" });
   const [student, setStudent] = useState({ firstName: "", lastName: "", birthDate: "" });
   const [relationshipType, setRelationshipType] = useState<Exclude<ClientStudentRelationshipType, "SELF" | "LEGACY_PARENT">>("MOTHER");
   const [saving, setSaving] = useState(false);
@@ -103,7 +103,8 @@ const ClientOnboardingDrawer: React.FC<{
           <label><span className="mb-1.5 block text-sm font-medium">Фамилия</span><input className={formControlClassName} value={client.lastName} onChange={(event) => setClient((value) => ({ ...value, lastName: event.target.value }))} /></label>
           <label><span className="mb-1.5 block text-sm font-medium">Телефон *</span><input className={formControlClassName} value={client.phone} onChange={(event) => setClient((value) => ({ ...value, phone: event.target.value }))} /></label>
           <label><span className="mb-1.5 block text-sm font-medium">Email</span><input type="email" className={formControlClassName} value={client.email} onChange={(event) => setClient((value) => ({ ...value, email: event.target.value }))} /></label>
-          <label className="sm:col-span-2"><span className="mb-1.5 block text-sm font-medium">Источник</span><input className={formControlClassName} value={client.source} onChange={(event) => setClient((value) => ({ ...value, source: event.target.value }))} /></label>
+          <label className="sm:col-span-2"><span className="mb-1.5 block text-sm font-medium">Источник</span><select className={formControlClassName} value={client.source} onChange={(event) => setClient((value) => ({ ...value, source: event.target.value as ClientSource }))}>{Object.entries(clientSourceLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          {client.source === "OTHER" ? <label className="sm:col-span-2"><span className="mb-1.5 block text-sm font-medium">Уточнение источника</span><input className={formControlClassName} value={client.sourceDetails} onChange={(event) => setClient((value) => ({ ...value, sourceDetails: event.target.value }))} /></label> : null}
           <label className="sm:col-span-2"><span className="mb-1.5 block text-sm font-medium">Комментарий</span><textarea className={`${formControlClassName} min-h-24`} value={client.comments} onChange={(event) => setClient((value) => ({ ...value, comments: event.target.value }))} /></label>
         </div> : null}
 

@@ -11,6 +11,33 @@ export type ClientStatus =
   | "PAUSED"
   | "INACTIVE";
 
+export type ClientSource =
+  | "LEAD"
+  | "REFERRAL"
+  | "INSTAGRAM"
+  | "WHATSAPP"
+  | "WEBSITE"
+  | "WALK_IN"
+  | "PHONE"
+  | "PARTNER"
+  | "MANUAL"
+  | "OTHER"
+  | "UNKNOWN";
+
+export const clientSourceLabels: Record<ClientSource, string> = {
+  LEAD: "Лид",
+  REFERRAL: "Рекомендация",
+  INSTAGRAM: "Instagram",
+  WHATSAPP: "WhatsApp",
+  WEBSITE: "Сайт",
+  WALK_IN: "Пришёл самостоятельно",
+  PHONE: "Телефон",
+  PARTNER: "Партнёр",
+  MANUAL: "Вручную",
+  OTHER: "Другое",
+  UNKNOWN: "Не указан",
+};
+
 export type ClientStudentRelationshipType =
   | "SELF"
   | "MOTHER"
@@ -41,6 +68,8 @@ export interface ClientListItem {
   mixedCurrencies: boolean;
   lastPaidAt?: string | null;
   paymentStatus: ClientPaymentStatus;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface ClientsPageResponse {
@@ -99,9 +128,11 @@ export interface ClientDetails {
     phone?: string | null;
     email?: string | null;
     status: ClientStatus;
-    source?: string | null;
+    source?: ClientSource | null;
+    sourceDetails?: string | null;
     comments?: string | null;
     createdAt?: string | null;
+    updatedAt?: string | null;
   };
   summary: {
     studentsCount: number;
@@ -134,7 +165,8 @@ export interface ClientFormInput {
   lastName?: string;
   phone?: string;
   email?: string;
-  source?: string;
+  source?: ClientSource;
+  sourceDetails?: string;
   comments?: string;
 }
 

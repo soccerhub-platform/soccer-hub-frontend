@@ -40,7 +40,7 @@ import ClientContractsTab from "./ClientContractsTab";
 import ClientFormDrawer from "./ClientFormDrawer";
 import ClientPaymentsTab from "./ClientPaymentsTab";
 import ClientStudentDrawer from "./ClientStudentDrawer";
-import type { ClientActivityItem, ClientDetails, ClientFormInput, ClientStatus, ClientStudentRelation, ClientStudentRelationshipType } from "./client.types";
+import { clientSourceLabels, type ClientActivityItem, type ClientDetails, type ClientFormInput, type ClientStatus, type ClientStudentRelation, type ClientStudentRelationshipType } from "./client.types";
 
 const sections = [
   { key: "overview", label: "Обзор" },
@@ -307,6 +307,10 @@ const ClientDetailsPage: React.FC = () => {
               <span className="inline-flex items-center gap-1.5"><PhoneIcon className="h-4 w-4" />{client.client.phone || "Телефон не указан"}</span>
               <span className="inline-flex items-center gap-1.5"><EnvelopeIcon className="h-4 w-4" />{client.client.email || "Email не указан"}</span>
             </div>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
+              <span>Создан: {formatDate(client.client.createdAt)}</span>
+              <span>Профиль изменён: {formatDate(client.client.updatedAt)}</span>
+            </div>
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-slate-600">
               {activeStudents.some((item) => item.primaryPayer) ? <span className="inline-flex items-center gap-1.5">Основной плательщик <CheckCircleIcon className="h-4 w-4 text-emerald-600" /></span> : null}
               {receivesNotifications ? <span className="inline-flex items-center gap-1.5">Получает уведомления <CheckCircleIcon className="h-4 w-4 text-emerald-600" /></span> : null}
@@ -339,7 +343,7 @@ const ClientDetailsPage: React.FC = () => {
         </OverviewPanel>
 
         <OverviewPanel title="Контакты" action={client.capabilities.canEdit ? <button type="button" onClick={() => setDrawer("edit-client")} className={panelLinkClassName}>Редактировать</button> : null}>
-          <div className="space-y-4 text-sm"><div className="flex gap-3"><PhoneIcon className="mt-0.5 h-5 w-5 text-slate-500" /><div><div className="font-medium text-slate-900">{client.client.phone || "Не указан"}</div><div className="mt-0.5 text-xs text-slate-500">Мобильный</div></div></div><div className="flex gap-3"><EnvelopeIcon className="mt-0.5 h-5 w-5 text-slate-500" /><div className="min-w-0"><div className="truncate font-medium text-slate-900">{client.client.email || "Не указан"}</div><div className="mt-0.5 text-xs text-slate-500">Email</div></div></div><div className="flex gap-3"><MapPinIcon className="mt-0.5 h-5 w-5 text-slate-500" /><div><div className="font-medium text-slate-900">{client.client.source || "Источник не указан"}</div><div className="mt-0.5 text-xs text-slate-500">Источник клиента</div></div></div></div>
+          <div className="space-y-4 text-sm"><div className="flex gap-3"><PhoneIcon className="mt-0.5 h-5 w-5 text-slate-500" /><div><div className="font-medium text-slate-900">{client.client.phone || "Не указан"}</div><div className="mt-0.5 text-xs text-slate-500">Мобильный</div></div></div><div className="flex gap-3"><EnvelopeIcon className="mt-0.5 h-5 w-5 text-slate-500" /><div className="min-w-0"><div className="truncate font-medium text-slate-900">{client.client.email || "Не указан"}</div><div className="mt-0.5 text-xs text-slate-500">Email</div></div></div><div className="flex gap-3"><MapPinIcon className="mt-0.5 h-5 w-5 text-slate-500" /><div><div className="font-medium text-slate-900">{clientSourceLabels[client.client.source ?? "UNKNOWN"]}{client.client.source === "OTHER" && client.client.sourceDetails ? ` · ${client.client.sourceDetails}` : ""}</div><div className="mt-0.5 text-xs text-slate-500">Источник клиента</div></div></div></div>
         </OverviewPanel>
 
         <OverviewPanel title="Связь">

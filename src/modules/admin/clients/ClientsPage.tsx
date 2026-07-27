@@ -273,6 +273,8 @@ const ClientsPage: React.FC = () => {
           <ArrowsUpDownIcon className="h-4 w-4 text-slate-400" />
           <span className="sr-only">Сортировка</span>
           <select value={sort} onChange={(event) => updateQuery("sort", event.target.value)} className="h-11 min-w-44 border-0 bg-transparent text-sm text-slate-700 outline-none">
+            <option value="createdAt,desc">Недавние клиенты</option>
+            <option value="createdAt,asc">Старые клиенты</option>
             <option value="fullName,asc">Имя: А–Я</option>
             <option value="fullName,desc">Имя: Я–А</option>
             <option value="outstandingAmount,desc">Сначала должники</option>
@@ -297,13 +299,13 @@ const ClientsPage: React.FC = () => {
         <EmptyState title="Клиенты не найдены" description="Создайте клиента или измените поисковый запрос." />
       ) : (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="hidden grid-cols-[minmax(250px,1.45fr)_minmax(180px,1fr)_110px_120px_150px_170px_28px] gap-4 border-b border-slate-200 bg-slate-50/80 px-5 py-3 text-xs font-medium text-slate-500 lg:grid">
+          <div className="hidden grid-cols-[minmax(230px,1.5fr)_minmax(170px,1fr)_90px_100px_140px_minmax(160px,1fr)_28px] gap-4 border-b border-slate-200 bg-slate-50/80 px-5 py-3 text-xs font-medium text-slate-500 lg:grid">
             <SortHeader label="Клиент" active={sort.startsWith("fullName,")} onClick={() => toggleSort("fullName")} />
             <span>Контакты</span>
             <SortHeader label="Ученики" active={sort.startsWith("studentsCount,")} onClick={() => toggleSort("studentsCount")} />
             <SortHeader label="Договоры" active={sort.startsWith("activeContractsCount,")} onClick={() => toggleSort("activeContractsCount")} />
             <SortHeader label="Оплата" active={sort.startsWith("outstandingAmount,")} onClick={() => toggleSort("outstandingAmount")} />
-            <SortHeader label="Последняя активность" active={sort.startsWith("lastPaidAt,")} onClick={() => toggleSort("lastPaidAt")} />
+            <span>Активность</span>
             <span />
           </div>
           <div className="divide-y divide-slate-100">
@@ -312,7 +314,7 @@ const ClientsPage: React.FC = () => {
                 key={client.id}
                 type="button"
                 onClick={() => navigate(`/admin/clients/${client.id}/overview`)}
-                className="grid w-full gap-4 px-4 py-4 text-left transition hover:bg-slate-50/80 sm:grid-cols-2 lg:grid-cols-[minmax(250px,1.45fr)_minmax(180px,1fr)_110px_120px_150px_170px_28px] lg:items-center lg:px-5"
+                className="grid w-full gap-4 px-4 py-4 text-left transition hover:bg-slate-50/80 sm:grid-cols-2 lg:grid-cols-[minmax(230px,1.5fr)_minmax(170px,1fr)_90px_100px_140px_minmax(160px,1fr)_28px] lg:items-center lg:px-5"
               >
                 <span className="flex min-w-0 items-center gap-3 sm:col-span-2 lg:col-span-1">
                   <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${avatarTone(client.id)}`}>{initials(client.fullName)}</span>
@@ -346,9 +348,14 @@ const ClientsPage: React.FC = () => {
                 <ClientPaymentCell client={client} />
 
                 <span>
-                  <span className="mb-1 block text-[11px] font-medium uppercase text-slate-400 lg:hidden">Последняя активность</span>
-                  <span className="block text-xs text-slate-500">{formatDate(client.lastPaidAt)}</span>
-                  <span className="mt-1 flex items-center gap-1.5 text-xs text-slate-400"><CreditCardIcon className="h-3.5 w-3.5" />{client.lastPaidAt ? "Последняя оплата" : "Оплат пока нет"}</span>
+                  <span className="mb-1 block text-[11px] font-medium uppercase text-slate-400 lg:hidden">Активность</span>
+                  <span className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <CreditCardIcon className="h-3.5 w-3.5 text-slate-400" />
+                    {client.lastPaidAt ? `Оплата: ${formatDate(client.lastPaidAt)}` : "Оплат пока нет"}
+                  </span>
+                  <span className="mt-1 block text-xs text-slate-400">
+                    {client.updatedAt ? `Изменён: ${formatDate(client.updatedAt)}` : `Создан: ${formatDate(client.createdAt)}`}
+                  </span>
                 </span>
 
                 <ChevronRightIcon className="hidden h-4 w-4 text-slate-400 lg:block" />

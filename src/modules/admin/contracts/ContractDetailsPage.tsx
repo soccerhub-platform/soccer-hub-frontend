@@ -104,6 +104,17 @@ const ContractDetailsPage: React.FC = () => {
     setSearchParams(next);
   };
 
+  const returnTo = searchParams.get("returnTo");
+
+  const closeDrawer = () => {
+    if (returnTo) {
+      navigate(returnTo);
+      return;
+    }
+
+    setDrawer();
+  };
+
   const activate = async () => {
     if (!contractId) return;
     setActing(true);
@@ -206,7 +217,7 @@ const ContractDetailsPage: React.FC = () => {
       {drawer === "edit" ? <TermsDrawer contract={contract} mode="edit" onClose={() => setDrawer()} onSaved={(value) => { setContract(value); setDrawer(); toast.success("Черновик обновлён"); }} /> : null}
       {drawer === "extend" ? <TermsDrawer contract={contract} mode="extend" onClose={() => setDrawer()} onSaved={(value) => { setContract(value); setDrawer(); toast.success("Договор продлён"); }} /> : null}
       {drawer === "cancel" ? <CancelDrawer contract={contract} onClose={() => setDrawer()} onSaved={(value) => { setContract(value); setDrawer(); toast.success("Договор отменён"); }} /> : null}
-      {drawer === "payment" ? <PaymentDrawer contract={contract} onClose={() => setDrawer()} onSaved={() => { setDrawer(); toast.success("Оплата добавлена"); void load(); void loadPayments(); }} /> : null}
+      {drawer === "payment" ? <PaymentDrawer contract={contract} onClose={closeDrawer} onSaved={() => { closeDrawer(); toast.success("Оплата добавлена"); void load(); void loadPayments(); }} /> : null}
     </PageShell>
   );
 };

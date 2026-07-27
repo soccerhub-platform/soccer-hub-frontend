@@ -36,14 +36,18 @@ const ClientPaymentsTab: React.FC<{ clientId: string; clientName: string; branch
   }, [branchId, clientId]);
   const paid = useMemo(() => items.filter((item) => item.status !== "CANCELLED").reduce((sum, item) => sum + Number(item.amount ?? 0), 0), [items]);
   const openPayment = () => {
-    if (!selectedContractId) return;
+    if (!selectedContractId) 
+      return;
+
+    const returnTo = `/admin/clients/${clientId}/payments`;
     const params = new URLSearchParams({
-      contractId: selectedContractId,
-      mode: "view",
-      payment: "create",
-      returnTo: `/admin/clients/${clientId}/payments`,
+      drawer: "payment",
+      returnTo,
     });
-    navigate(`/admin/contracts?${params.toString()}`);
+
+    navigate(
+      `/admin/contracts/${encodeURIComponent(selectedContractId)}/payments?${params.toString()}`
+    );
   };
 
   if (loading) return <div className="h-64 animate-pulse rounded-lg border border-slate-200 bg-white" />;
