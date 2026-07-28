@@ -2,7 +2,7 @@ export type ContractStatus = "DRAFT" | "UPCOMING" | "ACTIVE" | "EXPIRED" | "CANC
 export type LeadType = "CHILDREN" | "ADULT";
 export type ContractPaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
 export type PaymentStatus = "PAID" | "CANCELLED";
-export type PaymentMethod = "CASH" | "CARD" | "BANK_TRANSFER" | "KASPI" | "OTHER";
+export type PaymentMethod = "CASH" | "CARD" | "BANK_TRANSFER" | "KASPI" | "GOVERNMENT" | "OTHER";
 export type CancelReasonCode = "CLIENT_REQUEST" | "PAYMENT_ISSUE" | "SCHEDULE_CONFLICT" | "MEDICAL" | "OTHER";
 
 export interface ContractParty {

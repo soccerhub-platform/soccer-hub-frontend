@@ -5,9 +5,16 @@ import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-
 import { getApiErrorMessage } from "../../../shared/api";
 import { Button, EmptyState, ErrorState, LoadingState, ModalShell, PageShell, SectionCard, WorkspaceBreadcrumbs, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs, formControlClassName } from "../../../shared/ui";
 import { TrialsApi, attendanceLabels, resultLabels, trialStatusLabels, trialStatusTone } from "./trials.api";
-import type { TrialAttendanceStatus, TrialDetails, TrialResult } from "./trials.types";
+import type { TrialAttendanceStatus, TrialDetails, TrialNextActionType, TrialResult } from "./trials.types";
 
 const sections = [{ key: "overview", label: "Обзор" }] as const;
+const nextActionLabels: Record<TrialNextActionType, string> = {
+  CALL: "Позвонить",
+  MESSAGE: "Написать сообщение",
+  SEND_OFFER: "Отправить предложение",
+  WAIT_FOR_DECISION: "Ожидать решения",
+  OTHER: "Другое",
+};
 
 const TrialDetailsPage: React.FC = () => {
   const { trialId, section } = useParams<{ trialId: string; section: string }>();
@@ -80,7 +87,7 @@ const TrialDetailsPage: React.FC = () => {
       <div className="grid gap-3 sm:grid-cols-3">
         <WorkspaceMetric icon={<CalendarDaysIcon />} label="Занятие" value={trial.group?.name ?? "Без группы"} note={sessionLabel} />
         <WorkspaceMetric icon={<ClipboardDocumentCheckIcon />} label="Посещение" value={attendanceLabels[trial.attendanceStatus]} note={trial.attendance?.comment || "Отметка ещё не добавлена"} />
-        <WorkspaceMetric icon={<CheckCircleIcon />} label="Результат" value={resultLabels[trial.result]} note={trial.outcome?.coachFeedback || "Результат ещё не записан"} />
+        <WorkspaceMetric icon={<CheckCircleIcon />} label="Результат" value={resultLabels[trial.result]} note={trial.nextAction ? `${nextActionLabels[trial.nextAction.type]}${trial.nextAction.dueAt ? ` · ${formatDateTime(trial.nextAction.dueAt)}` : ""}` : trial.outcome?.coachFeedback || "Результат ещё не записан"} />
       </div>
 
       <WorkspaceTabs items={sections.map((item) => ({ ...item, to: `/admin/trials/${trial.id}/${item.key}` }))} />
@@ -105,7 +112,7 @@ const TrialDetailsPage: React.FC = () => {
 
       {drawer === "cancel" ? <CancelTrialDrawer close={() => setDrawer()} saving={acting} onSubmit={(reason) => void apply(() => TrialsApi.cancel(trial.id, reason), "Пробное отменено")} /> : null}
       {drawer === "attendance" ? <AttendanceDrawer close={() => setDrawer()} saving={acting} onSubmit={(status, comment) => void apply(() => TrialsApi.markAttendance(trial.id, status, comment), "Посещение сохранено")} /> : null}
-      {drawer === "result" ? <ResultDrawer close={() => setDrawer()} saving={acting} onSubmit={(result, groupId, feedback) => void apply(() => TrialsApi.recordResult(trial.id, result, groupId || undefined, feedback), "Результат сохранён")} /> : null}
+      {drawer === "result" ? <ResultDrawer close={() => setDrawer()} saving={acting} onSubmit={(result, groupId, feedback, nextActionType, nextActionAt) => void apply(() => TrialsApi.recordResult(trial.id, result, groupId || undefined, feedback || undefined, nextActionType, nextActionAt || undefined), "Результат сохранён")} /> : null}
     </PageShell>
   );
 };
@@ -123,14 +130,29 @@ const AttendanceDrawer: React.FC<{ close: () => void; saving: boolean; onSubmit:
   return <ModalShell title="Отметить посещение" description="Сохраните фактический результат пробного занятия." placement="right" maxWidthClassName="max-w-lg" onClose={close} closeDisabled={saving} footer={<div className="flex justify-end gap-2"><Button variant="secondary" rounded="rounded-lg" onClick={close}>Отмена</Button><Button rounded="rounded-lg" isLoading={saving} onClick={() => onSubmit(status, comment)}>Сохранить</Button></div>}><label className="block"><span className="mb-1.5 block text-sm font-medium">Статус посещения</span><select className={formControlClassName} value={status} onChange={(event) => setStatus(event.target.value as TrialAttendanceStatus)}><option value="ATTENDED">Был на занятии</option><option value="NO_SHOW">Не пришёл</option></select></label><label className="mt-4 block"><span className="mb-1.5 block text-sm font-medium">Комментарий</span><textarea className={`${formControlClassName} min-h-24`} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Комментарий администратора или тренера" /></label></ModalShell>;
 };
 
-const ResultDrawer: React.FC<{ close: () => void; saving: boolean; onSubmit: (result: TrialResult, groupId: string, feedback: string) => void }> = ({ close, saving, onSubmit }) => {
+const ResultDrawer: React.FC<{
+  close: () => void;
+  saving: boolean;
+  onSubmit: (
+    result: TrialResult,
+    groupId: string,
+    feedback: string,
+    nextActionType?: TrialNextActionType,
+    nextActionAt?: string
+  ) => void;
+}> = ({ close, saving, onSubmit }) => {
   const [result, setResult] = useState<TrialResult>("INTERESTED");
   const [groupId, setGroupId] = useState("");
   const [feedback, setFeedback] = useState("");
-  return <ModalShell title="Записать результат" description="Зафиксируйте итог пробного и дальнейшую рекомендацию." placement="right" maxWidthClassName="max-w-lg" onClose={close} closeDisabled={saving} footer={<div className="flex justify-end gap-2"><Button variant="secondary" rounded="rounded-lg" onClick={close}>Отмена</Button><Button rounded="rounded-lg" isLoading={saving} onClick={() => onSubmit(result, groupId, feedback)}>Сохранить результат</Button></div>}><label className="block"><span className="mb-1.5 block text-sm font-medium">Результат</span><select className={formControlClassName} value={result} onChange={(event) => setResult(event.target.value as TrialResult)}><option value="INTERESTED">Заинтересован</option><option value="FOLLOW_UP">Нужен follow-up</option><option value="NOT_INTERESTED">Не заинтересован</option><option value="CONVERTED">Конвертирован</option></select></label><label className="mt-4 block"><span className="mb-1.5 block text-sm font-medium">ID рекомендованной группы</span><input className={formControlClassName} value={groupId} onChange={(event) => setGroupId(event.target.value)} placeholder="Необязательно" /></label><label className="mt-4 block"><span className="mb-1.5 block text-sm font-medium">Комментарий тренера</span><textarea className={`${formControlClassName} min-h-28`} value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Уровень, рекомендации, следующий шаг" /></label></ModalShell>;
+  const [nextActionType, setNextActionType] = useState<TrialNextActionType>("CALL");
+  const [nextActionAt, setNextActionAt] = useState("");
+  const requiresFollowUp = result === "FOLLOW_UP";
+
+  return <ModalShell title="Записать результат" description="Зафиксируйте итог пробного и дальнейшую рекомендацию." placement="right" maxWidthClassName="max-w-lg" onClose={close} closeDisabled={saving} footer={<div className="flex justify-end gap-2"><Button variant="secondary" rounded="rounded-lg" onClick={close} disabled={saving}>Отмена</Button><Button rounded="rounded-lg" isLoading={saving} disabled={requiresFollowUp && !nextActionAt} onClick={() => onSubmit(result, groupId, feedback, requiresFollowUp ? nextActionType : undefined, requiresFollowUp ? nextActionAt : undefined)}>Сохранить результат</Button></div>}><label className="block"><span className="mb-1.5 block text-sm font-medium">Результат</span><select className={formControlClassName} value={result} onChange={(event) => setResult(event.target.value as TrialResult)}><option value="INTERESTED">Заинтересован</option><option value="FOLLOW_UP">Нужен follow-up</option><option value="NOT_INTERESTED">Не заинтересован</option><option value="CONVERTED">Конвертирован</option></select></label>{requiresFollowUp ? <><label className="mt-4 block"><span className="mb-1.5 block text-sm font-medium">Следующее действие</span><select className={formControlClassName} value={nextActionType} onChange={(event) => setNextActionType(event.target.value as TrialNextActionType)}><option value="CALL">Позвонить</option><option value="MESSAGE">Написать сообщение</option><option value="SEND_OFFER">Отправить предложение</option><option value="WAIT_FOR_DECISION">Ожидать решения</option><option value="OTHER">Другое</option></select></label><label className="mt-4 block"><span className="mb-1.5 block text-sm font-medium">Когда выполнить</span><input type="datetime-local" className={formControlClassName} value={nextActionAt} onChange={(event) => setNextActionAt(event.target.value)} /></label></> : null}<label className="mt-4 block"><span className="mb-1.5 block text-sm font-medium">ID рекомендованной группы</span><input className={formControlClassName} value={groupId} onChange={(event) => setGroupId(event.target.value)} placeholder="Необязательно" /></label><label className="mt-4 block"><span className="mb-1.5 block text-sm font-medium">Комментарий тренера</span><textarea className={`${formControlClassName} min-h-28`} value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Уровень, рекомендации, следующий шаг" /></label></ModalShell>;
 };
 
 const formatDate = (value?: string | null) => value ? new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" }).format(new Date(value)) : "Не указана";
+const formatDateTime = (value: string) => new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 const formatTime = (value: string) => value.includes("T") ? value.slice(11, 16) : value.slice(0, 5);
 
 export default TrialDetailsPage;

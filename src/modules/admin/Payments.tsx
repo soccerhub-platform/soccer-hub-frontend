@@ -49,6 +49,8 @@ const paymentMethodLabel = (method: PaymentMethod) => {
       return "Перевод";
     case "KASPI":
       return "Kaspi";
+    case "GOVERNMENT":
+      return "Государственная оплата";
     case "OTHER":
       return "Другое";
     default:
@@ -261,6 +263,7 @@ const PaymentsPage: React.FC = () => {
             <option value="CARD">Карта</option>
             <option value="BANK_TRANSFER">Перевод</option>
             <option value="CASH">Наличные</option>
+            <option value="GOVERNMENT">Государственная оплата</option>
             <option value="OTHER">Другое</option>
           </select>
           <div className="grid grid-cols-2 gap-3">

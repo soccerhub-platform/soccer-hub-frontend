@@ -4,7 +4,42 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../shared/api";
 import { Button, EmptyState, ErrorState, LoadingState, PageShell, WorkspaceBreadcrumbs, WorkspaceMetric } from "../../../shared/ui";
 import { TrialsApi, attendanceLabels, resultLabels, trialStatusLabels, trialStatusTone } from "./trials.api";
-import type { TrialBookingListItem, TrialBookingStatus, TrialDetails, TrialsPageResponse } from "./trials.types";
+import type {
+  TrialBookingListItem,
+  TrialBookingStatus,
+  TrialDetails,
+  TrialNextActionType,
+  TrialsPageResponse,
+} from "./trials.types";
+
+const nextActionLabels: Record<TrialNextActionType, string> = {
+  CALL: "Позвонить",
+  MESSAGE: "Написать",
+  SEND_OFFER: "Отправить предложение",
+  WAIT_FOR_DECISION: "Ждать решения",
+  OTHER: "Другое",
+};
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "Дата не указана";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Дата не указана";
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+};
+
+const isOverdue = (value?: string | null) => {
+  if (!value) return false;
+
+  const timestamp = new Date(value).getTime();
+  return !Number.isNaN(timestamp) && timestamp < Date.now();
+};
 
 const TrialsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -86,14 +121,36 @@ const TrialsPage: React.FC = () => {
 const TrialRow: React.FC<{ item: TrialBookingListItem | TrialDetails; onOpen: () => void }> = ({ item, onOpen }) => {
   const listItem = "studentId" in item;
   const details = listItem ? null : item as TrialDetails;
+  const nextAction = listItem
+    ? {
+        type: (item as TrialBookingListItem).nextActionType,
+        dueAt: (item as TrialBookingListItem).nextActionAt,
+      }
+    : details?.nextAction;
 
+  const followUpOverdue = item.result === "FOLLOW_UP" && isOverdue(nextAction?.dueAt);
   return (
   <button type="button" onClick={onOpen} className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-slate-50 lg:grid-cols-[minmax(190px,1.2fr)_minmax(170px,1fr)_150px_150px_150px_40px] lg:items-center lg:gap-4">
     <span className="min-w-0"><span className="block truncate text-sm font-semibold text-slate-950">{details?.student?.fullName ?? (listItem && item.studentId ? `Ученик ${item.studentId.slice(0, 8)}` : listItem ? "Участник лида" : "Ученик")}</span><span className="mt-1 block truncate text-xs text-slate-500">ID пробного: {item.id.slice(0, 8)}</span></span>
     <span className="min-w-0"><span className="block truncate text-sm text-slate-700">{details?.session ? `${details.session.date} · ${details.session.startsAt.slice(11, 16)}` : listItem ? `Занятие ${item.trainingSessionId.slice(0, 8)}` : "Занятие не указано"}</span><span className="mt-1 block truncate text-xs text-slate-500">{details?.group?.name ?? "Группа загружается в деталке"}</span></span>
     <span className={`inline-flex w-fit rounded-full px-2 py-1 text-[11px] font-semibold ${trialStatusTone[item.status]}`}>{trialStatusLabels[item.status]}</span>
     <span className="text-sm text-slate-700">{attendanceLabels[item.attendanceStatus]}</span>
-    <span className="text-sm text-slate-700">{resultLabels[item.result]}</span>
+    <span className="min-w-0">
+      <span className="block text-sm text-slate-700">
+        {resultLabels[item.result]}
+      </span>
+
+      {item.result === "FOLLOW_UP" && nextAction?.type && nextAction.dueAt ? (
+        <span
+          className={`mt-1 block truncate text-xs ${
+            followUpOverdue ? "font-semibold text-rose-600" : "text-slate-500"
+          }`}
+        >
+          {nextActionLabels[nextAction.type]} · {formatDateTime(nextAction.dueAt)}
+          {followUpOverdue ? " · просрочено" : ""}
+        </span>
+      ) : null}
+    </span>
     <span className="text-slate-300">›</span>
   </button>
   );

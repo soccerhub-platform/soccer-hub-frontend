@@ -340,13 +340,8 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
         const trial = await TrialsApi.findByLead(lead.id);
         if (!trial) throw new Error("Пробное занятие не найдено");
         await TrialsApi.markAttendance(trial.id, "ATTENDED");
-        const response = await LeadApi.sendLeadEvent(
-          lead.id,
-          { event: getLeadActionEvent(action) },
-          token
-        );
-        if (response?.lead) setLead(response.lead);
-        else await refreshLead();
+
+        await refreshLead();
         await onUpdated();
         toast.success("Посещение пробного отмечено");
       } catch (err) {

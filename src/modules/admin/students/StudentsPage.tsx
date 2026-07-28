@@ -184,6 +184,8 @@ const paymentMethodLabel = (method: PaymentMethod) => {
       return "Перевод";
     case "KASPI":
       return "Kaspi";
+    case "GOVERNMENT":
+      return "Государственная оплата";
     case "OTHER":
       return "Другое";
     default:

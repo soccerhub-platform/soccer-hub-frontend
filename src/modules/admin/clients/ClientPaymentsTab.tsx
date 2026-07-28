@@ -8,7 +8,7 @@ import type { ContractListItem, ContractPaymentItem } from "../contracts/contrac
 
 const amount = (value: number, currency = "KZT") => `${new Intl.NumberFormat("ru-RU").format(Number(value ?? 0))} ${currency}`;
 const dateTime = (value: string) => new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-const methodLabels = { CASH: "Наличные", CARD: "Карта", BANK_TRANSFER: "Перевод", KASPI: "Kaspi", OTHER: "Другое" } as const;
+const methodLabels = { CASH: "Наличные", CARD: "Карта", BANK_TRANSFER: "Перевод", KASPI: "Kaspi", GOVERNMENT: "Государственная оплата", OTHER: "Другое" } as const;
 
 const ClientPaymentsTab: React.FC<{ clientId: string; clientName: string; branchId: string }> = ({ clientId, clientName, branchId }) => {
   const navigate = useNavigate();

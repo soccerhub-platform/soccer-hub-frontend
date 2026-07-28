@@ -1,6 +1,12 @@
 export type TrialBookingStatus = "SCHEDULED" | "CONFIRMED" | "CANCELED" | "COMPLETED";
 export type TrialAttendanceStatus = "UNMARKED" | "ATTENDED" | "NO_SHOW";
 export type TrialResult = "PENDING" | "INTERESTED" | "FOLLOW_UP" | "NOT_INTERESTED" | "CONVERTED";
+export type TrialNextActionType =
+  | "CALL"
+  | "MESSAGE"
+  | "SEND_OFFER"
+  | "WAIT_FOR_DECISION"
+  | "OTHER";
 
 export interface TrialBookingListItem {
   id: string;
@@ -12,6 +18,8 @@ export interface TrialBookingListItem {
   status: TrialBookingStatus;
   attendanceStatus: TrialAttendanceStatus;
   result: TrialResult;
+  nextActionType?: TrialNextActionType | null;
+  nextActionAt?: string | null;
 }
 
 export interface TrialsPageResponse {
@@ -35,7 +43,7 @@ export interface TrialDetails {
   location?: { id: string; name: string } | null;
   attendance?: { status: TrialAttendanceStatus; markedAt?: string | null; markedBy?: string | null; comment?: string | null } | null;
   outcome?: { result: TrialResult; coachFeedback?: string | null; recommendedGroupId?: string | null; recommendedGroupName?: string | null } | null;
-  nextAction?: { type: string; dueAt?: string | null } | null;
+  nextAction?: { type: TrialNextActionType; dueAt?: string | null } | null;
   capabilities: {
     canConfirm: boolean;
     canCancel: boolean;

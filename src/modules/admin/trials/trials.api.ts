@@ -7,6 +7,7 @@ import type {
   TrialListQuery,
   TrialResult,
   TrialsPageResponse,
+  TrialNextActionType
 } from "./trials.types";
 
 const queryString = (query: TrialListQuery) => {
@@ -49,8 +50,21 @@ export const TrialsApi = {
     return apiClient.post(`/admin/trials/${trialId}/attendance`, { status, comment });
   },
 
-  recordResult(trialId: string, result: TrialResult, recommendedGroupId?: string, coachFeedback?: string): Promise<TrialDetails> {
-    return apiClient.post(`/admin/trials/${trialId}/result`, { result, recommendedGroupId, coachFeedback });
+  recordResult(
+    trialId: string,
+    result: TrialResult,
+    recommendedGroupId?: string,
+    coachFeedback?: string,
+    nextActionType?: TrialNextActionType,
+    nextActionAt?: string,
+  ): Promise<TrialDetails> {
+    return apiClient.post(`/admin/trials/${trialId}/result`, {
+      result,
+      recommendedGroupId,
+      coachFeedback,
+      nextActionType,
+      nextActionAt,
+    });
   },
 };
 
