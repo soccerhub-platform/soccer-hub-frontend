@@ -69,7 +69,7 @@ const AdminRoutes: React.FC = () => {
               <Route path="leads" element={<LeadKanbanPage />} />
               <Route path="leads/:leadId" element={<LeadDetailsPage />} />
               <Route path="trials" element={<TrialsPage />} />
-              <Route path="trials/:trialId" element={<Navigate to="overview" replace />} />
+              <Route path="trials/:trialId" element={<TrialDetailsPage />} />
               <Route path="trials/:trialId/:section" element={<TrialDetailsPage />} />
               <Route path="groups" element={<GroupsPage />} />
               <Route path="groups/:groupId" element={<Navigate to="overview" replace />} />

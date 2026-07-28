@@ -15,6 +15,16 @@ export interface TrialBookingListItem {
   participantId?: string | null;
   studentId?: string | null;
   trainingSessionId: string;
+  studentName?: string | null;
+  leadName?: string | null;
+  sessionDate?: string | null;
+  sessionStartsAt?: string | null;
+  sessionEndsAt?: string | null;
+  groupName?: string | null;
+  coachName?: string | null;
+  locationName?: string | null;
+  leadPhone?: string | null;
+  leadEmail?: string | null;
   status: TrialBookingStatus;
   attendanceStatus: TrialAttendanceStatus;
   result: TrialResult;

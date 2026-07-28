@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ArrowLeftIcon, CalendarDaysIcon, CheckCircleIcon, ClipboardDocumentCheckIcon, MapPinIcon, UserCircleIcon, UserGroupIcon, XCircleIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, CalendarDaysIcon, CheckCircleIcon, ClipboardDocumentCheckIcon, ClockIcon, MapPinIcon, UserCircleIcon, UserGroupIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../shared/api";
-import { Button, EmptyState, ErrorState, LoadingState, ModalShell, PageShell, SectionCard, WorkspaceBreadcrumbs, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs, formControlClassName } from "../../../shared/ui";
+import { Button, EmptyState, ErrorState, LoadingState, ModalShell, PageShell, SectionCard, WorkspaceBreadcrumbs, WorkspaceHeader, WorkspaceMetric, formControlClassName } from "../../../shared/ui";
 import { TrialsApi, attendanceLabels, resultLabels, trialStatusLabels, trialStatusTone } from "./trials.api";
 import type { TrialAttendanceStatus, TrialDetails, TrialNextActionType, TrialResult } from "./trials.types";
 
-const sections = [{ key: "overview", label: "Обзор" }] as const;
 const nextActionLabels: Record<TrialNextActionType, string> = {
   CALL: "Позвонить",
   MESSAGE: "Написать сообщение",
@@ -25,9 +24,10 @@ const TrialDetailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
   const drawer = searchParams.get("drawer");
+  const hasValidSection = !section || section === "overview";
 
   const load = useCallback(async () => {
-    if (!trialId) return;
+    if (!trialId || !hasValidSection) return;
     setLoading(true);
     setError(null);
     try {
@@ -37,7 +37,7 @@ const TrialDetailsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [trialId]);
+  }, [hasValidSection, trialId]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -60,7 +60,7 @@ const TrialDetailsPage: React.FC = () => {
     }
   };
 
-  if (section && section !== "overview") return <Navigate to={`/admin/trials/${trialId}/overview`} replace />;
+  if (!hasValidSection) return <Navigate to={`/admin/trials/${trialId}`} replace />;
   if (loading) return <PageShell><LoadingState label="Загрузка пробного занятия..." /></PageShell>;
   if (error || !trial) return <PageShell><ErrorState title="Пробное недоступно" message={error || "Пробное занятие не найдено"} onRetry={() => void load()} /></PageShell>;
 
@@ -68,9 +68,10 @@ const TrialDetailsPage: React.FC = () => {
   const sessionLabel = trial.session ? `${formatDate(trial.session.date)} · ${formatTime(trial.session.startsAt)}–${formatTime(trial.session.endsAt)}` : "Занятие не указано";
 
   return (
-    <PageShell className="space-y-4">
+    <PageShell className="space-y-6">
       <WorkspaceBreadcrumbs items={[{ label: "Пробные занятия", to: "/admin/trials" }, { label: studentName }]} />
       <WorkspaceHeader
+        className="rounded-2xl shadow-none"
         actions={<>
           {trial.capabilities.canConfirm ? <Button rounded="rounded-lg" isLoading={acting} onClick={() => void apply(() => TrialsApi.confirm(trial.id), "Пробное подтверждено")}><CheckCircleIcon className="h-4 w-4" /> Подтвердить</Button> : null}
           {trial.capabilities.canMarkAttendance ? <Button variant="secondary" rounded="rounded-lg" onClick={() => setDrawer("attendance")}><ClipboardDocumentCheckIcon className="h-4 w-4" /> Посещение</Button> : null}
@@ -80,7 +81,7 @@ const TrialDetailsPage: React.FC = () => {
       >
         <div className="flex min-w-0 items-start gap-4">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-admin-50 text-admin-700"><CalendarDaysIcon className="h-7 w-7" /></span>
-          <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="heading-font truncate text-2xl font-semibold text-slate-950">Пробное занятие · {studentName}</h1><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${trialStatusTone[trial.status]}`}>{trialStatusLabels[trial.status]}</span></div><p className="mt-2 text-sm text-slate-500">{sessionLabel}</p></div>
+          <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-admin-700">Рабочая карточка пробного</p><div className="mt-2 flex flex-wrap items-center gap-2"><h1 className="heading-font truncate text-3xl font-semibold tracking-tight text-slate-950">{studentName}</h1><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${trialStatusTone[trial.status]}`}>{trialStatusLabels[trial.status]}</span></div><p className="mt-2 flex items-center gap-2 text-[15px] text-slate-500"><ClockIcon className="h-4 w-4 text-admin-700" />{sessionLabel}</p></div>
         </div>
       </WorkspaceHeader>
 
@@ -90,23 +91,34 @@ const TrialDetailsPage: React.FC = () => {
         <WorkspaceMetric icon={<CheckCircleIcon />} label="Результат" value={resultLabels[trial.result]} note={trial.nextAction ? `${nextActionLabels[trial.nextAction.type]}${trial.nextAction.dueAt ? ` · ${formatDateTime(trial.nextAction.dueAt)}` : ""}` : trial.outcome?.coachFeedback || "Результат ещё не записан"} />
       </div>
 
-      <WorkspaceTabs items={sections.map((item) => ({ ...item, to: `/admin/trials/${trial.id}/${item.key}` }))} />
-
       <div className="grid gap-4 lg:grid-cols-3">
-        <SectionCard title="Ученик" description="Получатель пробного занятия">
+        <SectionCard className="rounded-2xl shadow-none" title="Ученик" description="Получатель пробного занятия">
           <DetailLine label="Имя" value={studentName} />
           <DetailLine label="Возраст" value={trial.student?.age ? `${trial.student.age} лет` : "Не указан"} />
           <DetailLine label="Дата рождения" value={formatDate(trial.student?.birthDate)} />
         </SectionCard>
-        <SectionCard title="Контактное лицо" description="Источник заявки">
+        <SectionCard className="rounded-2xl shadow-none" title="Контактное лицо" description="Источник заявки">
           <DetailLine label="Имя" value={trial.lead?.fullName || "Не связан с лидом"} />
           <DetailLine label="Телефон" value={trial.lead?.phone || "Не указан"} />
           <DetailLine label="Email" value={trial.lead?.email || "Не указан"} />
         </SectionCard>
-        <SectionCard title="Занятие" description="Конкретная тренировка, к которой привязано пробное">
+        <SectionCard className="rounded-2xl shadow-none" title="Занятие" description="Конкретная тренировка, к которой привязано пробное">
           <DetailLine label="Дата и время" value={sessionLabel} />
           <DetailLine label="Тренер" value={trial.coach?.fullName || "Не указан"} />
           <DetailLine label="Локация" value={trial.location?.name || "Не указана"} />
+        </SectionCard>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SectionCard className="rounded-2xl shadow-none" title="Посещение" description="Фактическая отметка по пробному занятию">
+          <DetailLine label="Статус" value={attendanceLabels[trial.attendanceStatus]} />
+          <DetailLine label="Отмечено" value={formatDateTime(trial.attendance?.markedAt)} />
+          <DetailLine label="Комментарий" value={trial.attendance?.comment || "Нет комментария"} />
+        </SectionCard>
+        <SectionCard className="rounded-2xl shadow-none" title="Результат" description="Итог занятия и следующий шаг">
+          <DetailLine label="Результат" value={resultLabels[trial.result]} />
+          <DetailLine label="Комментарий тренера" value={trial.outcome?.coachFeedback || "Нет комментария"} />
+          <DetailLine label="Следующее действие" value={trial.nextAction ? `${nextActionLabels[trial.nextAction.type]} · ${formatDateTime(trial.nextAction.dueAt)}` : "Не назначено"} />
         </SectionCard>
       </div>
 
@@ -152,7 +164,7 @@ const ResultDrawer: React.FC<{
 };
 
 const formatDate = (value?: string | null) => value ? new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" }).format(new Date(value)) : "Не указана";
-const formatDateTime = (value: string) => new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+const formatDateTime = (value?: string | null) => value ? new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Не указано";
 const formatTime = (value: string) => value.includes("T") ? value.slice(11, 16) : value.slice(0, 5);
 
 export default TrialDetailsPage;
