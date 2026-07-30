@@ -1,28 +1,27 @@
 import React, { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
-  CalendarDaysIcon,
-  CheckCircleIcon,
-  ChevronDownIcon,
-  ChevronUpDownIcon,
-  ChevronUpIcon,
-  ClockIcon,
-  EllipsisVerticalIcon,
-  EnvelopeIcon,
-  ExclamationTriangleIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  PhoneIcon,
-  PhotoIcon,
-  PencilSquareIcon,
-  PlusIcon,
-  PowerIcon,
-  TrashIcon,
-  UserCircleIcon,
-  UserGroupIcon,
-  UserIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+  CalendarDays,
+  CheckCircle,
+  ChevronDown,
+  ChevronsUpDown,
+  ChevronUp,
+  Clock3,
+  MoreVertical,
+  Mail,
+  TriangleAlert,
+  ListFilter,
+  Search,
+  Phone,
+  Image,
+  Pencil,
+  Plus,
+  Power,
+  Trash2,
+  CircleUserRound,
+  Users,
+  User,
+  X,
+} from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -50,17 +49,39 @@ import {
 import CreateCoachModal from "./CreateCoachModal";
 import { GroupApi, GroupApiModel } from "../groups/group.api";
 import {
+  Input,
+  Textarea,
+  NativeSelect,
   Button,
+  Checkbox,
+  DatePicker,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   EmptyState,
+  EntitySheet,
   ErrorState,
   FormField,
   LoadingState,
   ModalShell,
   PageHeader,
   PageShell,
+  RadioGroup,
+  RadioGroupItem,
   SectionCard,
+  Skeleton,
+  StatusBadge as SharedStatusBadge,
   formControlClassName,
-} from "../../../shared/ui";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+   } from "../../../shared/ui";
 import { ApiError, resolveApiUrl } from "../../../shared/api";
 
 type StatusFilter = CoachOverviewStatus;
@@ -627,26 +648,26 @@ const CoachesPage: React.FC = () => {
   }
 
   return (
-    <PageShell className="max-w-none space-y-5 px-0 pb-4">
+    <PageShell>
       <PageHeader
         title="Тренеры"
         description="Управление командой тренеров, назначениями, нагрузкой и отчетностью."
         actions={
           <Button type="button" onClick={() => setShowCreate(true)}>
-            <PlusIcon className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Добавить тренера
           </Button>
         }
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <CoachMetric icon={<UserGroupIcon className="h-6 w-6" />} label="Все тренеры" value={overview.summary.total} hint="в текущем филиале" tone="info" />
-        <CoachMetric icon={<CheckCircleIcon className="h-6 w-6" />} label="Активные" value={overview.summary.active} hint="готовы к назначениям" tone="success" />
-        <CoachMetric icon={<ExclamationTriangleIcon className="h-6 w-6" />} label="Требуют внимания" value={overview.summary.withoutGroups + overview.summary.overloaded} hint="без групп или перегружены" tone={overview.summary.withoutGroups + overview.summary.overloaded > 0 ? "warning" : "success"} />
-        <CoachMetric icon={<CalendarDaysIcon className="h-6 w-6" />} label="Ведут сегодня" value={overview.summary.withSessionsToday} hint="есть занятия сегодня" tone="neutral" />
+        <CoachMetric icon={<Users className="h-6 w-6" />} label="Все тренеры" value={overview.summary.total} hint="в текущем филиале" tone="info" />
+        <CoachMetric icon={<CheckCircle className="h-6 w-6" />} label="Активные" value={overview.summary.active} hint="готовы к назначениям" tone="success" />
+        <CoachMetric icon={<TriangleAlert className="h-6 w-6" />} label="Требуют внимания" value={overview.summary.withoutGroups + overview.summary.overloaded} hint="без групп или перегружены" tone={overview.summary.withoutGroups + overview.summary.overloaded > 0 ? "warning" : "success"} />
+        <CoachMetric icon={<CalendarDays className="h-6 w-6" />} label="Ведут сегодня" value={overview.summary.withSessionsToday} hint="есть занятия сегодня" tone="neutral" />
       </div>
 
-      <SectionCard className="p-4 shadow-[0_10px_28px_-25px_rgba(15,23,42,0.45)]">
+      <SectionCard className="p-4">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {statusFilters.map((item) => (
             <button
@@ -654,14 +675,14 @@ const CoachesPage: React.FC = () => {
               type="button"
               onClick={() => changeFilter(item.value)}
               aria-pressed={filter === item.value}
-              className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600 ${
+              className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
                 filter === item.value
-                  ? "border-cyan-700 bg-cyan-50 text-cyan-800"
+                  ? "border-[#0066cc] bg-blue-50 text-[#0066cc]"
                   : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
               }`}
             >
               <span>{item.label}</span>
-              <span className={`rounded-full px-1.5 py-0.5 text-[11px] ${filter === item.value ? "bg-cyan-100 text-cyan-900" : "bg-slate-100 text-slate-500"}`}>
+              <span className={`rounded-full px-1.5 py-0.5 text-[11px] ${filter === item.value ? "bg-blue-100 text-[#0066cc]" : "bg-slate-100 text-slate-500"}`}>
                 {quickFilterCounts[item.value]}
               </span>
             </button>
@@ -670,18 +691,18 @@ const CoachesPage: React.FC = () => {
 
         <div className="mt-3 flex flex-col gap-2 xl:flex-row xl:items-center">
           <div className="relative min-w-0 xl:flex-1">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            <input
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <Input
               type="text"
               placeholder="Поиск по имени, email или телефону"
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-11 pr-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-11 pr-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
                 setPage(0);
               }}
             />
-            {search ? <button type="button" aria-label="Очистить поиск" onClick={() => { setSearch(""); setDebouncedSearch(""); setPage(0); }} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600"><XMarkIcon className="h-4 w-4" /></button> : null}
+            {search ? <button type="button" aria-label="Очистить поиск" onClick={() => { setSearch(""); setDebouncedSearch(""); setPage(0); }} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><X className="h-4 w-4" /></button> : null}
           </div>
 
           <button
@@ -689,28 +710,28 @@ const CoachesPage: React.FC = () => {
             onClick={openFilters}
             className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-3.5 text-sm font-semibold transition ${
               advancedFilterCount > 0
-                ? "border-cyan-700 bg-cyan-50 text-cyan-800"
+                ? "border-[#0066cc] bg-blue-50 text-[#0066cc]"
                 : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
             }`}
             aria-expanded={showFilters}
             aria-haspopup="dialog"
           >
-            <FunnelIcon className="h-4 w-4" />
+            <ListFilter className="h-4 w-4" />
             Фильтры{advancedFilterCount > 0 ? ` ${advancedFilterCount}` : ""}
           </button>
 
           <label className="relative inline-flex h-10 w-full items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-slate-300 xl:w-[320px]">
-            <ChevronUpDownIcon className="mr-2 h-4 w-4" />
+            <ChevronsUpDown className="mr-2 h-4 w-4" />
             <span className="mr-1 text-slate-400">Сортировка:</span>
-            <select
+            <NativeSelect
               aria-label="Сортировка тренеров"
               value={sortValue}
               onChange={(event) => changeSortOption(event.target.value)}
               className="w-full appearance-none bg-transparent pr-5 outline-none"
             >
               {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-            <ChevronDownIcon className="pointer-events-none absolute right-2 h-4 w-4" />
+            </NativeSelect>
+            <ChevronDown className="pointer-events-none absolute right-2 h-4 w-4" />
           </label>
         </div>
       </SectionCard>
@@ -746,18 +767,18 @@ const CoachesPage: React.FC = () => {
         />
       ) : (
         <div>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-[0_10px_28px_-25px_rgba(15,23,42,0.45)]">
-            <div className="min-w-[1080px]">
-              <div className="grid grid-cols-[2fr_0.7fr_0.7fr_1.05fr_1.35fr_0.75fr_64px] border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
-                <SortableHeader label="Тренер" sortKey="lastName" currentSort={sort} onSort={changeSort} />
-                <SortableHeader label="Группы" sortKey="groupsCount" currentSort={sort} onSort={changeSort} />
-                <SortableHeader label="Сегодня" sortKey="todaySessionsCount" currentSort={sort} onSort={changeSort} />
-                <SortableHeader label="Нагрузка" sortKey="loadPercent" currentSort={sort} onSort={changeSort} />
-                <SortableHeader label="Последний отчет" sortKey="lastReportAt" currentSort={sort} onSort={changeSort} />
-                <SortableHeader label="Статус" sortKey="active" currentSort={sort} onSort={changeSort} />
-                <div className="text-right"><span className="sr-only">Действия</span></div>
-              </div>
-              <div className="divide-y divide-slate-100">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <Table className="min-w-[1080px]">
+              <TableHeader><TableRow className="hover:bg-transparent">
+                <TableHead><SortableHeader label="Тренер" sortKey="lastName" currentSort={sort} onSort={changeSort} /></TableHead>
+                <TableHead><SortableHeader label="Группы" sortKey="groupsCount" currentSort={sort} onSort={changeSort} /></TableHead>
+                <TableHead><SortableHeader label="Сегодня" sortKey="todaySessionsCount" currentSort={sort} onSort={changeSort} /></TableHead>
+                <TableHead><SortableHeader label="Нагрузка" sortKey="loadPercent" currentSort={sort} onSort={changeSort} /></TableHead>
+                <TableHead><SortableHeader label="Последний отчет" sortKey="lastReportAt" currentSort={sort} onSort={changeSort} /></TableHead>
+                <TableHead><SortableHeader label="Статус" sortKey="active" currentSort={sort} onSort={changeSort} /></TableHead>
+                <TableHead className="w-16"><span className="sr-only">Действия</span></TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
               {coaches.map((coach) => (
                 <CoachRow
                   key={coach.coachId}
@@ -773,14 +794,14 @@ const CoachesPage: React.FC = () => {
                   actionLoading={loadingActionId === coach.coachId}
                 />
               ))}
-              </div>
-            </div>
+              </TableBody>
+            </Table>
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-2 text-sm text-slate-500">
             <div>
               Показано {pageStart}-{pageEnd} из {totalElements} тренеров
             </div>
-            <div className="flex items-center gap-3"><label className="flex items-center gap-2">На странице:<select aria-label="Количество тренеров на странице" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-cyan-700" value={pageSize} onChange={(event) => changePageSize(Number(event.target.value))}>{pageSizeOptions.map((value) => <option key={value} value={value}>{value}</option>)}</select></label><div className="flex items-center gap-2">
+            <div className="flex items-center gap-3"><label className="flex items-center gap-2">На странице:<NativeSelect aria-label="Количество тренеров на странице" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-[#0066cc]" value={pageSize} onChange={(event) => changePageSize(Number(event.target.value))}>{pageSizeOptions.map((value) => <option key={value} value={value}>{value}</option>)}</NativeSelect></label><div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setPage((value) => Math.max(0, value - 1))}
@@ -789,7 +810,7 @@ const CoachesPage: React.FC = () => {
               >
                 ‹
               </button>
-              <div className="flex h-8 min-w-8 items-center justify-center rounded-xl bg-cyan-700 px-3 text-sm font-semibold text-white">
+              <div className="flex h-8 min-w-8 items-center justify-center rounded-xl bg-[#0066cc] px-3 text-sm font-semibold text-white">
                 {currentPage + 1}
               </div>
               <span className="text-xs text-slate-400">из {Math.max(1, totalPages)}</span>
@@ -869,11 +890,11 @@ const CoachMetric: React.FC<{
     neutral: "bg-slate-100 text-slate-600",
     success: "bg-emerald-50 text-emerald-700",
     warning: "bg-amber-50 text-amber-700",
-    info: "bg-cyan-50 text-cyan-700",
+    info: "bg-blue-50 text-[#0066cc]",
   }[tone];
 
   return (
-    <div className="flex min-h-[96px] items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-[0_10px_26px_-24px_rgba(15,23,42,0.45)]">
+    <div className="flex min-h-[96px] items-center gap-4 rounded-lg border border-slate-200 bg-white p-4">
       <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${toneClassName}`}>{icon}</span>
       <div className="min-w-0">
         <div className="text-sm font-medium text-slate-600">{label}</div>
@@ -887,7 +908,7 @@ const CoachMetric: React.FC<{
 };
 
 const FilterChip: React.FC<{ label: string; onClear: () => void }> = ({ label, onClear }) => (
-  <button type="button" onClick={onClear} title={`Снять фильтр: ${label}`} className="inline-flex max-w-xs items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800 transition hover:border-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600"><span className="truncate">{label}</span><XMarkIcon className="h-3.5 w-3.5 shrink-0" /></button>
+  <button type="button" onClick={onClear} title={`Снять фильтр: ${label}`} className="inline-flex max-w-xs items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-[#0066cc] transition hover:border-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><span className="truncate">{label}</span><X className="h-3.5 w-3.5 shrink-0" /></button>
 );
 
 const CoachFiltersDrawer: React.FC<{
@@ -897,27 +918,20 @@ const CoachFiltersDrawer: React.FC<{
   onClose: () => void;
   onReset: () => void;
   onApply: () => void;
-}> = ({ draftFilters, activeCount, onChange, onClose, onReset, onApply }) =>
-  createPortal(
-    <div className="fixed inset-0 z-50">
-      <button type="button" aria-label="Закрыть фильтры" className="fixed inset-0 bg-slate-950/30" onClick={onClose} />
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-label="Фильтры тренеров"
-        className="fixed inset-x-0 bottom-0 flex max-h-[92vh] min-h-0 flex-col rounded-t-2xl bg-white shadow-2xl shadow-slate-950/20 lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:w-[min(400px,100vw)] lg:rounded-none"
-      >
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
-          <div>
-            <div className="text-lg font-semibold text-slate-950">Фильтры</div>
-            <div className="mt-0.5 text-xs text-slate-500">Активных: {activeCount}</div>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Закрыть" className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600">
-            <XMarkIcon className="h-5 w-5" />
-          </button>
+}> = ({ draftFilters, activeCount, onChange, onClose, onReset, onApply }) => (
+    <EntitySheet
+      title="Фильтры"
+      description={`Активных фильтров: ${activeCount}`}
+      onClose={onClose}
+      contentClassName="sm:max-w-[400px]"
+      bodyClassName="space-y-5 py-3"
+      footer={
+        <div className="flex w-full items-center justify-between gap-3">
+          <Button type="button" variant="ghost" size="sm" onClick={onReset}>Сбросить</Button>
+          <Button type="button" size="sm" onClick={onApply}>Применить</Button>
         </div>
-
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pb-6 pt-3">
+      }
+    >
           <DrawerSection title="Рабочий статус">
             <FilterCheckGroup options={workStatusOptions} values={draftFilters.workStatuses} onChange={(values) => onChange((current) => ({ ...current, workStatuses: values as WorkStatus[] }))} />
           </DrawerSection>
@@ -947,44 +961,38 @@ const CoachFiltersDrawer: React.FC<{
           <DrawerSection title="Занятия">
             <FilterCheckGroup options={[["true", "Ведет сегодня"]]} values={draftFilters.hasSessionToday ? [draftFilters.hasSessionToday] : []} onChange={(values) => onChange((current) => ({ ...current, hasSessionToday: values.includes("true") ? "true" : "" }))} />
           </DrawerSection>
-        </div>
-
-        <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
-          <button type="button" onClick={onReset} className="text-sm font-semibold text-slate-500 transition hover:text-slate-900">Сбросить</button>
-          <Button type="button" size="sm" onClick={onApply}>Применить</Button>
-        </div>
-      </aside>
-    </div>,
-    document.body,
+    </EntitySheet>
   );
 
 const DrawerSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section className="border-b border-slate-100 pb-5 last:border-b-0">
-    <div className="text-sm font-semibold text-slate-950">{title}</div>
+    <div className="ui-section-title">{title}</div>
     <div className="mt-3">{children}</div>
   </section>
 );
 
 const FilterSelect: React.FC<{ value: string; options: Array<[string, string]>; emptyLabel: string; onChange: (value: string) => void }> = ({ value, options, emptyLabel, onChange }) => (
-  <label className="relative block">
-    <select
+  <label className="block">
+    <NativeSelect
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm text-slate-700 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+      className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm text-slate-700 outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
     >
       <option value="">{emptyLabel}</option>
       {options.map(([optionValue, label]) => <option key={optionValue} value={optionValue}>{label}</option>)}
-    </select>
-    <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+    </NativeSelect>
   </label>
 );
 
 const FilterCheckGroup: React.FC<{ title?: string; options: Array<[string, string]>; values: string[]; onChange: (values: string[]) => void }> = ({ title, options, values, onChange }) => (
-  <fieldset>{title ? <legend className="text-sm font-semibold text-slate-900">{title}</legend> : null}<div className={title ? "mt-2 space-y-1" : "space-y-1"}>{options.map(([value, label]) => <label key={value} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><input type="checkbox" checked={values.includes(value)} onChange={() => onChange(values.includes(value) ? values.filter((item) => item !== value) : [...values, value])} className="h-4 w-4 rounded accent-cyan-700" />{label}</label>)}</div></fieldset>
+  <fieldset>{title ? <legend className="ui-section-title">{title}</legend> : null}<div className={`flex flex-col gap-1 ${title ? "mt-2" : ""}`}>{options.map(([value, label]) => <label key={value} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><Checkbox checked={values.includes(value)} onCheckedChange={(checked) => onChange(checked ? [...values, value] : values.filter((item) => item !== value))} />{label}</label>)}</div></fieldset>
 );
 
 const FilterRadioGroup: React.FC<{ options: Array<[string, string]>; value: string; emptyLabel: string; onChange: (value: string) => void }> = ({ options, value, emptyLabel, onChange }) => (
-  <fieldset><div className="space-y-1"><label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><input type="radio" checked={!value} onChange={() => onChange("")} className="h-4 w-4 accent-cyan-700" />{emptyLabel}</label>{options.map(([optionValue, label]) => <label key={optionValue} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><input type="radio" checked={value === optionValue} onChange={() => onChange(optionValue)} className="h-4 w-4 accent-cyan-700" />{label}</label>)}</div></fieldset>
+  <RadioGroup value={value || "__all__"} onValueChange={(nextValue) => onChange(nextValue === "__all__" ? "" : nextValue)}>
+    <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><RadioGroupItem value="__all__" />{emptyLabel}</label>
+    {options.map(([optionValue, label]) => <label key={optionValue} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><RadioGroupItem value={optionValue} />{label}</label>)}
+  </RadioGroup>
 );
 
 const SortableHeader: React.FC<{
@@ -994,7 +1002,7 @@ const SortableHeader: React.FC<{
   onSort: (key: CoachOverviewSortKey) => void;
 }> = ({ label, sortKey, currentSort, onSort }) => {
   const active = currentSort.key === sortKey;
-  const Icon = !active ? ChevronUpDownIcon : currentSort.direction === "asc" ? ChevronUpIcon : ChevronDownIcon;
+  const Icon = !active ? ChevronsUpDown : currentSort.direction === "asc" ? ChevronUp : ChevronDown;
 
   return (
     <button
@@ -1002,7 +1010,7 @@ const SortableHeader: React.FC<{
       onClick={() => onSort(sortKey)}
       aria-sort={!active ? "none" : currentSort.direction === "asc" ? "ascending" : "descending"}
       className={`inline-flex w-fit items-center gap-1.5 rounded-lg px-1.5 py-1 text-left transition ${
-        active ? "text-cyan-800" : "text-slate-500 hover:bg-white hover:text-slate-800"
+        active ? "text-[#0066cc]" : "text-slate-500 hover:bg-white hover:text-slate-800"
       }`}
     >
       {label}
@@ -1027,124 +1035,93 @@ const CoachRow: React.FC<{
   const report = reportState(coach);
 
   return (
-    <div
-      role="button"
+    <TableRow
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") onOpen();
       }}
-      className="relative grid cursor-pointer grid-cols-[2fr_0.7fr_0.7fr_1.05fr_1.35fr_0.75fr_64px] items-center px-4 py-3 text-sm transition hover:bg-emerald-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600"
+      className="relative cursor-pointer"
     >
-      <div className="min-w-0 text-left">
+      <TableCell><div className="min-w-0 text-left">
         <div className="flex items-center gap-3">
           <CoachAvatar coach={coach} />
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-slate-950">{coachFullName(coach)}</div>
+            <div className="truncate ui-section-title">{coachFullName(coach)}</div>
             <div className="mt-0.5 truncate text-xs text-slate-500">
               {coach.specialization || "Специализация не указана"}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-              <EnvelopeIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
               <span className="truncate">{coach.email}</span>
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-              <PhoneIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
               <span className="truncate">{coach.phone}</span>
             </div>
           </div>
         </div>
-      </div>
+      </div></TableCell>
 
-      <div>
+      <TableCell>
         <div className="font-semibold text-slate-950">{coach.groups.length}</div>
         <div className="mt-1 text-slate-500">{coach.groups.length === 1 ? "группа" : "групп"}</div>
-      </div>
+      </TableCell>
 
-      <div>
+      <TableCell>
         <div className="font-semibold text-slate-950">{coach.todaySessionsCount}</div>
         <div className="mt-1 text-slate-500">занятий</div>
-      </div>
+      </TableCell>
 
-      <div>
+      <TableCell>
         <div className="font-semibold text-slate-950">
           {load.used} из {load.limit} занятий
         </div>
         <div className="mt-3 flex items-center gap-3">
           <div className="h-1.5 w-28 rounded-full bg-slate-200" title={`Нагрузка за текущую неделю: ${coach.load?.completed ?? 0} проведено, ${coach.load?.planned ?? 0} запланировано, лимит — ${load.limit} занятий.`}>
             <div
-              className={`h-1.5 rounded-full ${isOverloaded(coach) ? "bg-rose-500" : "bg-cyan-700"}`}
+              className={`h-1.5 rounded-full ${isOverloaded(coach) ? "bg-rose-500" : "bg-[#0066cc]"}`}
               style={{ width: `${load.percentage}%` }}
             />
           </div>
           <span className="text-xs text-slate-500">{load.percentage}%</span>
         </div>
-      </div>
+      </TableCell>
 
-      <div>
+      <TableCell>
         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${report.className}`}>
           {report.label}
         </span>
         <div className="mt-1.5 text-xs text-slate-500">
           {coach.reports.lastReportAt ? formatDateTime(coach.reports.lastReportAt) : "—"}
         </div>
-      </div>
+      </TableCell>
 
-      <div>
+      <TableCell>
         <StatusBadge active={coach.active} workStatus={coach.workStatus} />
-      </div>
+      </TableCell>
 
-      <div className="flex justify-end" data-coach-menu onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
-        <button
-          type="button"
-          onClick={onToggleMenu}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-          aria-label={`Действия для тренера ${coachFullName(coach)}`}
-        >
-          <EllipsisVerticalIcon className="h-5 w-5" />
-        </button>
-
-        {menuOpen ? (
-          <div className="absolute right-5 top-11 z-20 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
-            <ActionMenuButton
-              icon={<UserIcon className="h-4 w-4" />}
-              label="Открыть профиль"
-              onClick={() => {
-                onCloseMenu();
-                onOpen();
-              }}
-            />
-            <ActionMenuButton
-              icon={<PencilSquareIcon className="h-4 w-4" />}
-              label="Редактировать"
-              disabled={actionLoading}
-              onClick={() => {
-                onCloseMenu();
-                onEdit();
-              }}
-            />
-            <ActionMenuButton
-              icon={<UserGroupIcon className="h-4 w-4" />}
-              label="Назначить группы"
-              onClick={() => {
-                onCloseMenu();
-                onAssign();
-              }}
-            />
-            <ActionMenuButton
-              icon={<PowerIcon className="h-4 w-4" />}
-              label={coach.active ? "Отключить" : "Включить"}
-              danger={coach.active}
-              disabled={isUpdating}
-              onClick={() => {
-                onCloseMenu();
-                onToggleStatus();
-              }}
-            />
-          </div>
-        ) : null}
-      </div>
-    </div>
+      <TableCell><div className="flex justify-end" data-coach-menu onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+        <DropdownMenu open={menuOpen} onOpenChange={(open) => open ? onToggleMenu() : onCloseMenu()}>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="sm" className="h-9 w-9 p-0" aria-label={`Действия для тренера ${coachFullName(coach)}`}>
+              <MoreVertical />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuGroup>
+              <DropdownMenuItem onSelect={onOpen}><User />Открыть профиль</DropdownMenuItem>
+              <DropdownMenuItem disabled={actionLoading} onSelect={onEdit}><Pencil />Редактировать</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onAssign}><Users />Назначить группы</DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem disabled={isUpdating} onSelect={onToggleStatus} className={coach.active ? "text-rose-700 focus:text-rose-700" : undefined}><Power />{coach.active ? "Отключить" : "Включить"}</DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div></TableCell>
+    </TableRow>
   );
 };
 
@@ -1158,7 +1135,7 @@ const CoachAvatar: React.FC<{ coach: CoachOverviewItem }> = ({ coach }) => {
   }, [resolvedSource]);
 
   return (
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-emerald-700 text-sm font-semibold text-white shadow-sm">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#0066cc] text-sm font-semibold text-white">
       {resolvedSource && !imageFailed ? (
         <img
           src={resolvedSource}
@@ -1172,30 +1149,10 @@ const CoachAvatar: React.FC<{ coach: CoachOverviewItem }> = ({ coach }) => {
 };
 
 const CoachTableSkeleton: React.FC = () => (
-  <div aria-label="Загрузка тренеров" aria-busy="true" className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-    <div className="h-11 animate-pulse border-b border-slate-200 bg-slate-100" />
-    {Array.from({ length: 6 }).map((_, index) => <div key={index} className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-8 border-b border-slate-100 px-5 py-4 last:border-0"><div className="h-10 animate-pulse rounded-lg bg-slate-100" /><div className="h-8 animate-pulse rounded-lg bg-slate-100" /><div className="h-8 animate-pulse rounded-lg bg-slate-100" /><div className="h-8 animate-pulse rounded-lg bg-slate-100" /></div>)}
+  <div aria-label="Загрузка тренеров" aria-busy="true" className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <Skeleton className="h-11 rounded-none border-b border-slate-200" />
+    {Array.from({ length: 6 }).map((_, index) => <div key={index} className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-8 border-b border-slate-100 px-5 py-4 last:border-0"><Skeleton className="h-10 rounded-lg" /><Skeleton className="h-8 rounded-lg" /><Skeleton className="h-8 rounded-lg" /><Skeleton className="h-8 rounded-lg" /></div>)}
   </div>
-);
-
-const ActionMenuButton: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  danger?: boolean;
-  disabled?: boolean;
-}> = ({ icon, label, onClick, danger = false, disabled = false }) => (
-  <button
-    type="button"
-    disabled={disabled}
-    onClick={onClick}
-    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition disabled:cursor-wait disabled:opacity-60 ${
-      danger ? "text-rose-600 hover:bg-rose-50" : "text-slate-700 hover:bg-slate-50"
-    }`}
-  >
-    {icon}
-    {label}
-  </button>
 );
 
 export const SmallStat: React.FC<{ icon: React.ReactNode; label: string; value: number }> = ({ icon, label, value }) => (
@@ -1204,13 +1161,13 @@ export const SmallStat: React.FC<{ icon: React.ReactNode; label: string; value: 
       {icon}
       {label}
     </div>
-    <div className="mt-1 text-sm font-semibold text-slate-900">{value}</div>
+    <div className="mt-1 ui-section-title">{value}</div>
   </div>
 );
 
 export const StatusBadge: React.FC<{ active: boolean; workStatus?: WorkStatus }> = ({ active, workStatus }) => {
   const workLabel = workStatus === "VACATION" ? "В отпуске" : workStatus === "BUSY" ? "Занят" : workStatus === "AVAILABLE" ? "Доступен" : null;
-  return <div className="flex flex-wrap items-center gap-1.5"><span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${active ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-100 text-slate-600"}`}><span aria-hidden="true">{active ? "✓" : "—"}</span>{active ? "Активен" : "Отключен"}</span>{workLabel ? <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500">{workLabel}</span> : null}</div>;
+  return <div className="flex flex-wrap items-center gap-1.5"><SharedStatusBadge tone={active ? "success" : "neutral"}>{active ? "Активен" : "Отключен"}</SharedStatusBadge>{workLabel ? <SharedStatusBadge tone="neutral">{workLabel}</SharedStatusBadge> : null}</div>;
 };
 
 export const CoachProfileContent: React.FC<{
@@ -1313,13 +1270,13 @@ export const CoachProfileContent: React.FC<{
         </span>
       </div>
       <div className="mt-3 h-2 rounded-full bg-slate-100">
-        <div className="h-2 rounded-full bg-cyan-700" style={{ width: `${loadPercent}%` }} />
+        <div className="h-2 rounded-full bg-[#0066cc]" style={{ width: `${loadPercent}%` }} />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <SmallStat icon={<CheckCircleIcon className="h-4 w-4" />} label="Проведено" value={load?.completed ?? 0} />
-        <SmallStat icon={<CalendarDaysIcon className="h-4 w-4" />} label="Запланировано" value={load?.planned ?? 0} />
+        <SmallStat icon={<CheckCircle className="h-4 w-4" />} label="Проведено" value={load?.completed ?? 0} />
+        <SmallStat icon={<CalendarDays className="h-4 w-4" />} label="Запланировано" value={load?.planned ?? 0} />
         <SmallStat
-          icon={<ExclamationTriangleIcon className="h-4 w-4" />}
+          icon={<TriangleAlert className="h-4 w-4" />}
           label="Просрочено"
           value={profile.reports.overdueCount}
         />
@@ -1352,7 +1309,7 @@ export const CoachProfileContent: React.FC<{
               }`}
             >
               <div className="flex items-start gap-2">
-                <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
                 <div className="min-w-0">
                   <div className="font-semibold">{item.title}</div>
                   <div className="mt-1 text-xs leading-5 opacity-80">{item.description}</div>
@@ -1402,7 +1359,7 @@ export const CoachProfileContent: React.FC<{
       {trainerOverview?.availability ? (
         <div className="space-y-3">
           <div>
-            <div className="text-sm font-semibold text-slate-950">{formatAvailabilityDays(trainerOverview.availability.days)}</div>
+            <div className="ui-section-title">{formatAvailabilityDays(trainerOverview.availability.days)}</div>
             <div className="mt-1 text-sm text-slate-600">
               {timeShort(trainerOverview.availability.timeFrom)} – {timeShort(trainerOverview.availability.timeTo)}
             </div>
@@ -1427,33 +1384,33 @@ export const CoachProfileContent: React.FC<{
         <SectionCard>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-cyan-50">
-                <UserCircleIcon className="h-8 w-8 text-cyan-800" />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-50">
+                <CircleUserRound className="h-8 w-8 text-[#0066cc]" />
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg font-semibold text-slate-900">
+                  <h3 className="ui-card-title">
                     {profile.firstName} {profile.lastName}
                   </h3>
                   <StatusBadge active={profile.active} />
                 </div>
                 {profile.specialization ? (
-                  <div className="mt-1 text-xs font-medium text-cyan-800">
+                  <div className="mt-1 text-xs font-medium text-[#0066cc]">
                     {profile.specialization}
                   </div>
                 ) : null}
                 <div className="mt-2 space-y-1 text-sm text-slate-500">
                   <div className="flex items-center gap-1.5">
-                    <EnvelopeIcon className="h-4 w-4" />
+                    <Mail className="h-4 w-4" />
                     {profile.email}
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <PhoneIcon className="h-4 w-4" />
+                    <Phone className="h-4 w-4" />
                     {profile.phone}
                   </div>
                   {profile.birthDate ? (
                     <div className="flex items-center gap-1.5">
-                      <CalendarDaysIcon className="h-4 w-4" />
+                      <CalendarDays className="h-4 w-4" />
                       {formatDate(profile.birthDate)}
                     </div>
                   ) : null}
@@ -1481,7 +1438,7 @@ export const CoachProfileContent: React.FC<{
                 <div className="grid gap-2 sm:grid-cols-2">
                   {trainerOverview.groups.slice(0, 4).map((group) => (
                     <button key={group.groupId} type="button" onClick={() => onOpenGroup(group.groupId)} className="rounded-lg border border-slate-200 px-3 py-2 text-left hover:bg-slate-50">
-                      <div className="truncate text-sm font-semibold text-slate-950">{group.groupName}</div>
+                      <div className="truncate ui-section-title">{group.groupName}</div>
                       <div className="mt-1 text-xs text-slate-500">{group.role === "MAIN" ? "Главный тренер" : "Ассистент"}</div>
                     </button>
                   ))}
@@ -1510,12 +1467,12 @@ export const CoachProfileContent: React.FC<{
             {groupInsights.map((group) => (
               <div
                 key={group.groupId}
-                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="rounded-xl border border-slate-200 bg-white p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="truncate text-base font-semibold text-slate-950">{group.groupName}</div>
+                      <div className="truncate ui-card-title">{group.groupName}</div>
                       {group.role ? (
                         <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600">
                           {group.role === "MAIN" ? "Главный тренер" : "Ассистент"}
@@ -1542,10 +1499,10 @@ export const CoachProfileContent: React.FC<{
                 <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-3">
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                     <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <UserGroupIcon className="h-4 w-4" />
+                      <Users className="h-4 w-4" />
                       Ученики
                     </div>
-                    <div className="mt-1 text-sm font-semibold text-slate-950">
+                    <div className="mt-1 ui-section-title">
                       {group.activeStudentsCount ?? "?"}
                       {group.studentsCount !== null ? (
                         <span className="ml-1 text-xs font-medium text-slate-400">из {group.studentsCount}</span>
@@ -1554,17 +1511,17 @@ export const CoachProfileContent: React.FC<{
                   </div>
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                     <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <CalendarDaysIcon className="h-4 w-4" />
+                      <CalendarDays className="h-4 w-4" />
                       Слотов
                     </div>
-                    <div className="mt-1 text-sm font-semibold text-slate-950">{group.weeklySlotsCount}</div>
+                    <div className="mt-1 ui-section-title">{group.weeklySlotsCount}</div>
                   </div>
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                     <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <ClockIcon className="h-4 w-4" />
+                      <Clock3 className="h-4 w-4" />
                       Ближайшее
                     </div>
-                    <div className="mt-1 truncate text-sm font-semibold text-slate-950">
+                    <div className="mt-1 truncate ui-section-title">
                       {group.nextSession
                         ? `${formatDate(group.nextSession.sessionDate)} ${timeShort(group.nextSession.startTime)}`
                         : "Нет"}
@@ -1590,7 +1547,7 @@ export const CoachProfileContent: React.FC<{
                     {group.weeklySlots.slice(0, 4).map((slot) => (
                       <span
                         key={slot.scheduleId}
-                        className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-medium text-cyan-800"
+                        className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-[#0066cc]"
                       >
                         {weekDays.find((day) => day.key === slot.dayOfWeek)?.label ?? slot.dayOfWeek}{" "}
                         {timeShort(slot.startTime)}
@@ -1643,12 +1600,12 @@ export const CoachProfileContent: React.FC<{
                   key={day.key}
                   className={`min-h-[132px] rounded-xl border px-2.5 py-2.5 ${
                     day.items.length > 0
-                      ? "border-cyan-100 bg-cyan-50/45"
+                      ? "border-blue-100 bg-blue-50/45"
                       : "border-slate-200 bg-slate-50/70"
                   }`}
                 >
                   <div className="mb-2 flex items-center justify-between">
-                    <div className="text-sm font-semibold text-slate-900">{day.label}</div>
+                    <div className="ui-section-title">{day.label}</div>
                     <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
                       {day.items.length}
                     </span>
@@ -1665,10 +1622,10 @@ export const CoachProfileContent: React.FC<{
                           key={item.scheduleId}
                           type="button"
                           onClick={() => onOpenGroup(item.groupId)}
-                          className={`w-full rounded-lg border px-2.5 py-2 text-left shadow-sm transition hover:bg-white ${
+                          className={`w-full rounded-lg border px-2.5 py-2 text-left transition hover:bg-white ${
                             item.conflicts?.length
                               ? "border-rose-100 bg-rose-50 hover:border-rose-200"
-                              : "border-white/80 bg-white hover:border-cyan-200"
+                              : "border-white/80 bg-white hover:border-blue-200"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
@@ -1689,7 +1646,7 @@ export const CoachProfileContent: React.FC<{
                               </span>
                             ) : null}
                           </div>
-                          <div className="mt-1 truncate text-xs font-medium text-cyan-800">{item.groupName}</div>
+                          <div className="mt-1 truncate text-xs font-medium text-[#0066cc]">{item.groupName}</div>
                           {item.coachName ? (
                             <div className="mt-1 truncate text-[11px] text-slate-500">{item.coachName}</div>
                           ) : null}
@@ -1751,7 +1708,7 @@ export const CoachProfileContent: React.FC<{
                     <button
                       type="button"
                       onClick={() => onOpenGroup(session.groupId)}
-                      className="font-medium text-cyan-800 hover:text-cyan-900"
+                      className="font-medium text-[#0066cc] hover:text-[#0066cc]"
                     >
                       {session.groupName}
                     </button>{" "}
@@ -1779,11 +1736,11 @@ export const CoachProfileContent: React.FC<{
             }`}
           >
             <div className="text-xs font-medium uppercase tracking-wide opacity-75">Просрочено</div>
-            <div className="mt-1 text-2xl font-semibold">{profile.reports.overdueCount}</div>
+            <div className="mt-1 ui-metric-value">{profile.reports.overdueCount}</div>
           </div>
           <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-amber-800">
             <div className="text-xs font-medium uppercase tracking-wide opacity-75">Ожидают отчета</div>
-            <div className="mt-1 text-2xl font-semibold">{pendingReportSessions.length}</div>
+            <div className="mt-1 ui-metric-value">{pendingReportSessions.length}</div>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Последний отчет</div>
@@ -1803,7 +1760,7 @@ export const CoachProfileContent: React.FC<{
               type="button"
               onClick={() => setReportFilter(value)}
               className={`rounded-lg border px-3 py-1.5 text-sm font-semibold ${
-                reportFilter === value ? "border-cyan-600 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600"
+                reportFilter === value ? "border-[#0066cc] bg-blue-50 text-[#0066cc]" : "border-slate-200 bg-white text-slate-600"
               }`}
             >
               {label}
@@ -1844,7 +1801,7 @@ export const CoachProfileContent: React.FC<{
                   <button
                     type="button"
                     onClick={() => onOpenGroup(report.groupId)}
-                    className="text-left font-medium text-cyan-800 hover:text-cyan-900"
+                    className="text-left font-medium text-[#0066cc] hover:text-[#0066cc]"
                   >
                     {report.groupName}
                   </button>
@@ -1874,9 +1831,9 @@ export const CoachProfileContent: React.FC<{
           <div className="space-y-3" aria-busy="true" aria-label="Загрузка активности">
             {Array.from({ length: 3 }).map((_, index) => (
               <div key={index} className="rounded-lg border border-slate-200 px-3 py-3">
-                <div className="h-4 w-48 animate-pulse rounded bg-slate-100" />
-                <div className="mt-3 h-3 w-32 animate-pulse rounded bg-slate-100" />
-                <div className="mt-4 h-3 w-72 animate-pulse rounded bg-slate-100" />
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="mt-3 h-3 w-32" />
+                <Skeleton className="mt-4 h-3 w-72" />
               </div>
             ))}
           </div>
@@ -1888,7 +1845,7 @@ export const CoachProfileContent: React.FC<{
               <div className="space-y-0">
                 {activity.content.map((event) => (
                   <div key={event.id} className="relative border-l border-slate-200 pb-5 pl-4 last:pb-0">
-                    <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-cyan-700 ring-4 ring-cyan-50" />
+                    <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-[#0066cc] ring-4 ring-blue-50" />
                     <div className="rounded-lg border border-slate-200 px-3 py-2">
                       <div className="font-medium text-slate-900">{event.title}</div>
                       <div className="mt-1 text-xs text-slate-500">{formatDateTime(event.occurredAt)}</div>
@@ -1942,7 +1899,7 @@ export const CoachProfileContent: React.FC<{
               .sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
               .map((item) => (
               <div key={`${item.status}-${item.changedAt}`} className="relative border-l border-slate-200 pb-5 pl-4 last:pb-0">
-                <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-cyan-700 ring-4 ring-cyan-50" />
+                <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-[#0066cc] ring-4 ring-blue-50" />
                 <div className="rounded-lg border border-slate-200 px-3 py-2">
                   <div className="font-medium text-slate-900">{formatCoachStatusHistory(item.newWorkStatus ?? item.newAccountStatus ?? item.status)}</div>
                   <div className="mt-1 text-xs text-slate-500">{formatDateTime(item.changedAt)}</div>
@@ -2072,14 +2029,14 @@ export const AssignCoachToGroupModal: React.FC<{
       ) : (
         <div className="space-y-4">
           <FormField label="Группа">
-            <select className={formControlClassName} value={groupId} onChange={(event) => setGroupId(event.target.value)}>
+            <NativeSelect className={formControlClassName} value={groupId} onChange={(event) => setGroupId(event.target.value)}>
               <option value="">Выберите группу</option>
               {availableGroups.map((group) => (
                 <option key={group.groupId} value={group.groupId}>
                   {group.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </FormField>
           <FormField label="Роль*">
             <div className="grid grid-cols-2 gap-2">
@@ -2088,7 +2045,7 @@ export const AssignCoachToGroupModal: React.FC<{
                 onClick={() => setRole("MAIN")}
                 className={`rounded-lg border px-3 py-2 text-sm ${
                   role === "MAIN"
-                    ? "border-cyan-200 bg-cyan-50 text-cyan-800"
+                    ? "border-blue-200 bg-blue-50 text-[#0066cc]"
                     : "border-slate-200 bg-white text-slate-600"
                 }`}
               >
@@ -2099,7 +2056,7 @@ export const AssignCoachToGroupModal: React.FC<{
                 onClick={() => setRole("ASSISTANT")}
                 className={`rounded-lg border px-3 py-2 text-sm ${
                   role === "ASSISTANT"
-                    ? "border-cyan-200 bg-cyan-50 text-cyan-800"
+                    ? "border-blue-200 bg-blue-50 text-[#0066cc]"
                     : "border-slate-200 bg-white text-slate-600"
                 }`}
               >
@@ -2114,25 +2071,22 @@ export const AssignCoachToGroupModal: React.FC<{
               className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold text-slate-700"
             >
               Дополнительные настройки
-              <ChevronDownIcon className={`h-4 w-4 transition ${showPeriod ? "rotate-180" : ""}`} />
+              <ChevronDown className={`h-4 w-4 transition ${showPeriod ? "rotate-180" : ""}`} />
             </button>
             {showPeriod ? (
               <div className="grid gap-3 border-t border-slate-100 p-3 sm:grid-cols-2">
                 <FormField label="С">
-                  <input
-                    type="date"
-                    className={formControlClassName}
+                  <DatePicker
                     value={assignedFrom}
-                    onChange={(event) => setAssignedFrom(event.target.value)}
+                    onValueChange={setAssignedFrom}
                   />
                 </FormField>
                 <FormField label="По">
-                  <input
-                    type="date"
+                  <DatePicker
                     min={assignedFrom}
-                    className={formControlClassName}
                     value={assignedTo}
-                    onChange={(event) => setAssignedTo(event.target.value)}
+                    onValueChange={setAssignedTo}
+                    clearable
                   />
                 </FormField>
               </div>
@@ -2304,15 +2258,15 @@ export const EditCoachModal: React.FC<{
               {avatarUrl ? (
                 <img src={resolveApiUrl(avatarUrl)} alt={`${profile.firstName} ${profile.lastName}`} className="h-full w-full object-cover" />
               ) : (
-                `${profile.firstName?.[0] ?? ""}${profile.lastName?.[0] ?? ""}`.toUpperCase() || <UserCircleIcon className="h-7 w-7" />
+                `${profile.firstName?.[0] ?? ""}${profile.lastName?.[0] ?? ""}`.toUpperCase() || <CircleUserRound className="h-7 w-7" />
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold text-slate-950">Фото профиля</div>
+              <div className="ui-section-title">Фото профиля</div>
               <div className="mt-1 text-xs leading-5 text-slate-500">
                 {avatar ? "Фото используется в списке тренеров и workspace." : "Фото пока не загружено."}
               </div>
-              <input
+              <Input
                 ref={avatarInputRef}
                 type="file"
                 accept="image/*"
@@ -2328,7 +2282,7 @@ export const EditCoachModal: React.FC<{
                   disabled={avatarAction !== null || loading}
                   onClick={() => avatarInputRef.current?.click()}
                 >
-                  <PhotoIcon className="h-4 w-4" />
+                  <Image className="h-4 w-4" />
                   {avatar ? "Заменить" : "Загрузить"}
                 </Button>
                 {avatar ? (
@@ -2340,7 +2294,7 @@ export const EditCoachModal: React.FC<{
                     disabled={avatarAction !== null || loading}
                     onClick={() => setDeleteAvatarConfirmOpen(true)}
                   >
-                    <TrashIcon className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                     Удалить
                   </Button>
                 ) : null}
@@ -2363,7 +2317,7 @@ export const EditCoachModal: React.FC<{
           ) : null}
         </div>
         <FormField label="Имя*">
-          <input
+          <Input
             type="text"
             className={formControlClassName}
             value={form.firstName}
@@ -2371,7 +2325,7 @@ export const EditCoachModal: React.FC<{
           />
         </FormField>
         <FormField label="Фамилия*">
-          <input
+          <Input
             type="text"
             className={formControlClassName}
             value={form.lastName}
@@ -2379,7 +2333,7 @@ export const EditCoachModal: React.FC<{
           />
         </FormField>
         <FormField label="Email*">
-          <input
+          <Input
             type="email"
             className={formControlClassName}
             value={form.email}
@@ -2391,7 +2345,7 @@ export const EditCoachModal: React.FC<{
           {emailError ? <span className="block text-xs font-medium text-rose-600">{emailError}</span> : null}
         </FormField>
         <FormField label="Телефон*">
-          <input
+          <Input
             type="text"
             className={formControlClassName}
             value={form.phone}
@@ -2399,7 +2353,7 @@ export const EditCoachModal: React.FC<{
           />
         </FormField>
         <FormField label="Специализация">
-          <input
+          <Input
             type="text"
             className={formControlClassName}
             value={form.specialization}
@@ -2407,15 +2361,14 @@ export const EditCoachModal: React.FC<{
           />
         </FormField>
         <FormField label="Дата рождения">
-          <input
-            type="date"
-            className={formControlClassName}
+          <DatePicker
             value={form.birthDate}
-            onChange={(event) => setForm({ ...form, birthDate: event.target.value })}
+            onValueChange={(birthDate) => setForm({ ...form, birthDate })}
+            clearable
           />
         </FormField>
         <FormField label="Описание">
-          <textarea
+          <Textarea
             className={formControlClassName}
             value={form.description}
             rows={4}
@@ -2453,7 +2406,7 @@ export const ResetCoachPasswordModal: React.FC<{
         }
       >
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <code className="text-sm font-semibold text-slate-900">{password}</code>
+          <code className="ui-section-title">{password}</code>
         </div>
         <p className="mt-2 text-xs text-rose-600">Сохраните пароль сейчас. Повторно он показан не будет.</p>
       </ModalShell>

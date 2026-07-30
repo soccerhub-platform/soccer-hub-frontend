@@ -25,15 +25,15 @@ const ScheduleWeekView: React.FC<{ schedules: GroupScheduleDto[] }> = ({
             </div>
 
             {list.length === 0 ? (
-              <div className="mt-2 text-center text-xs text-gray-400">—</div>
+              <div className="mt-2 text-center text-xs text-slate-400">—</div>
             ) : (
               <div className="space-y-2">
                 {list.map((s) => (
                   <div
                     key={s.scheduleId}
-                    className="rounded-md bg-cyan-50 px-1.5 py-1"
+                    className="rounded-md bg-blue-50 px-1.5 py-1"
                   >
-                    <div className="text-xs font-semibold text-cyan-800">
+                    <div className="text-xs font-semibold text-[#0066cc]">
                       {toHHmm(s.startTime)} – {toHHmm(s.endTime)}
                     </div>
                   </div>

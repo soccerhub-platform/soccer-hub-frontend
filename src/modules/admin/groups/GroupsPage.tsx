@@ -13,17 +13,18 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
+  MetricCard,
   PageHeader,
   PageShell,
   SectionCard,
 } from "../../../shared/ui";
 import {
-  CheckBadgeIcon,
-  ExclamationTriangleIcon,
-  PauseCircleIcon,
-  PlusIcon,
-  UserGroupIcon,
-} from "@heroicons/react/24/outline";
+  BadgeCheck,
+  TriangleAlert,
+  PauseCircle,
+  Plus,
+  Users,
+} from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 const emptyOverview: GroupOverviewResponse = {
@@ -124,50 +125,50 @@ const GroupsPage: React.FC = () => {
   }
 
   return (
-    <PageShell className="max-w-none space-y-5 px-0 pb-4">
+    <PageShell>
       <PageHeader
         title="Группы"
         description="Операционный обзор групп: состояние, риски и действия."
         actions={
           <Button type="button" onClick={openCreate}>
-            <PlusIcon className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Создать группу
           </Button>
         }
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric
-          icon={<UserGroupIcon className="h-6 w-6" />}
-          label="Все группы"
+        <MetricCard
+          icon={<Users className="h-6 w-6" />}
+          title="Все группы"
           value={overview.summary.total}
-          hint="в текущем филиале"
+          note="в текущем филиале"
           tone="info"
         />
-        <Metric
-          icon={<CheckBadgeIcon className="h-6 w-6" />}
-          label="Активные"
+        <MetricCard
+          icon={<BadgeCheck className="h-6 w-6" />}
+          title="Активные"
           value={overview.summary.active}
-          hint="работают по расписанию"
+          note="работают по расписанию"
           tone="success"
         />
-        <Metric
-          icon={<ExclamationTriangleIcon className="h-6 w-6" />}
-          label="Требуют внимания"
+        <MetricCard
+          icon={<TriangleAlert className="h-6 w-6" />}
+          title="Требуют внимания"
           value={needsAttention}
-          hint={needsAttention > 0 ? "есть операционные риски" : "рисков не обнаружено"}
+          note={needsAttention > 0 ? "есть операционные риски" : "рисков не обнаружено"}
           tone={needsAttention > 0 ? "warning" : "success"}
         />
-        <Metric
-          icon={<PauseCircleIcon className="h-6 w-6" />}
-          label="Пауза или стоп"
+        <MetricCard
+          icon={<PauseCircle className="h-6 w-6" />}
+          title="Пауза или стоп"
           value={overview.summary.paused + overview.summary.stopped}
-          hint="неактивные группы"
+          note="неактивные группы"
           tone="neutral"
         />
       </div>
 
-      <SectionCard className="p-4 shadow-[0_10px_28px_-25px_rgba(15,23,42,0.45)]">
+      <SectionCard className="p-4">
         <GroupFilters value={filters} onChange={setFilters} />
       </SectionCard>
 
@@ -194,37 +195,6 @@ const GroupsPage: React.FC = () => {
         />
       )}
     </PageShell>
-  );
-};
-
-const Metric: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  hint: string;
-  tone?: "neutral" | "success" | "warning" | "danger" | "info";
-}> = ({ icon, label, value, hint, tone = "neutral" }) => {
-  const toneClassName = {
-    neutral: "bg-slate-100 text-slate-600",
-    success: "bg-emerald-50 text-emerald-700",
-    warning: "bg-amber-50 text-amber-700",
-    danger: "bg-rose-50 text-rose-700",
-    info: "bg-cyan-50 text-cyan-700",
-  }[tone];
-
-  return (
-    <div className="flex min-h-[96px] items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_26px_-24px_rgba(15,23,42,0.45)]">
-      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${toneClassName}`}>
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <div className="text-sm font-medium text-slate-600">{label}</div>
-        <div className="mt-1 flex items-end gap-2">
-          <span className="text-[26px] font-semibold leading-none text-slate-950">{value}</span>
-          <span className="pb-0.5 text-xs text-slate-400">{hint}</span>
-        </div>
-      </div>
-    </div>
   );
 };
 

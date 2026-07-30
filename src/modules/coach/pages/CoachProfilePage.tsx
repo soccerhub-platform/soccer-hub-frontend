@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
-  BellIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  IdentificationIcon,
-  LockClosedIcon,
-  PhoneIcon,
-  UserCircleIcon,
-} from "@heroicons/react/24/outline";
+  Bell,
+  CheckCircle,
+  Clock3,
+  Badge,
+  LockKeyhole,
+  Phone,
+  CircleUserRound,
+} from "lucide-react";
 import { useAuth } from "../../../shared/AuthContext";
 import { CoachApi, CoachProfileGroup } from "../coach.api";
 import { getApiErrorMessage } from "../../../shared/api";
+import { Button, Checkbox, Input, StatusBadge, Textarea, TimePicker, ToggleGroup, ToggleGroupItem } from "../../../shared/ui";
 import {
   ChangePasswordForm,
   UserAvailability,
@@ -21,11 +22,9 @@ import {
 } from "../../../shared/profile/foundation";
 
 const inputClassName =
-  "w-full rounded-xl border border-teal-100 bg-white px-3 py-2.5 text-sm text-teal-950 outline-none transition focus:border-teal-700 focus:ring-4 focus:ring-teal-100";
+  "w-full rounded-xl border border-black/[0.12] bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100";
 const cardClassName =
-  "rounded-2xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5";
-const primaryButtonClassName =
-  "inline-flex h-11 w-full items-center justify-center rounded-xl bg-teal-950 px-4 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:opacity-60";
+  "rounded-2xl border border-black/[0.12] bg-white p-4 ";
 
 const SectionError: React.FC<{ message: string }> = ({ message }) => {
   if (!message) return null;
@@ -135,12 +134,6 @@ const CoachProfilePage: React.FC = () => {
       .join("")
       .toUpperCase();
   }, [profile.firstName, profile.lastName]);
-
-  const toggleDay = (day: string) => {
-    setAvailableDays((prev) =>
-      prev.includes(day) ? prev.filter((item) => item !== day) : [...prev, day]
-    );
-  };
 
   const saveProfile = async () => {
     setSectionErrors((prev) => ({ ...prev, profile: "" }));
@@ -264,7 +257,7 @@ const CoachProfilePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-teal-100 bg-white px-4 py-3 text-sm text-teal-900/70">
+      <div className="rounded-2xl border border-black/[0.12] bg-white px-4 py-3 text-sm text-slate-500">
         Загрузка профиля...
       </div>
     );
@@ -280,32 +273,32 @@ const CoachProfilePage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-3xl border border-teal-100 bg-white p-5 shadow-sm shadow-teal-900/5">
+      <section className="rounded-2xl border border-black/[0.12] bg-white p-5 ">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-teal-950 text-lg font-semibold text-white">
-            {initials || <UserCircleIcon className="h-8 w-8" />}
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#1d1d1f] text-lg font-semibold text-white">
+            {initials || <CircleUserRound className="h-8 w-8" />}
           </div>
           <div className="min-w-0">
-            <h1 className="heading-font text-xl font-semibold text-teal-950">
+            <h1 className="ui-page-title">
               {profile.firstName} {profile.lastName}
             </h1>
-            <div className="mt-1 truncate text-sm text-teal-900/65">{profile.email}</div>
-            <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-              <CheckCircleIcon className="h-3.5 w-3.5" />
+            <div className="mt-1 truncate text-sm text-slate-500">{profile.email}</div>
+            <StatusBadge tone="success" className="mt-2 gap-1">
+              <CheckCircle />
               {status === "ACTIVE" ? "Активный тренер" : status}
-            </div>
+            </StatusBadge>
           </div>
         </div>
       </section>
 
       {groups.length > 0 ? (
         <section className={cardClassName}>
-          <div className="mb-3 text-sm font-semibold text-teal-950">Мои группы</div>
+          <div className="mb-3 ui-section-title">Мои группы</div>
           <div className="space-y-2">
             {groups.map((group) => (
-              <div key={group.groupId} className="rounded-xl bg-teal-50 px-3 py-2 text-sm text-teal-900">
-                <div className="font-medium text-teal-950">{group.groupName}</div>
-                <div className="text-xs text-teal-900/65">
+              <div key={group.groupId} className="rounded-xl bg-blue-50 px-3 py-2 text-sm text-slate-700">
+                <div className="font-medium text-slate-950">{group.groupName}</div>
+                <div className="text-xs text-slate-500">
                   {group.branchName} · {group.role === "MAIN" ? "Главный тренер" : group.role}
                 </div>
               </div>
@@ -315,55 +308,55 @@ const CoachProfilePage: React.FC = () => {
       ) : null}
 
       <section className={cardClassName}>
-        <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-teal-950">
-          <IdentificationIcon className="h-5 w-5 text-teal-700" />
+        <div className="mb-4 flex items-center gap-2 ui-section-title">
+          <Badge className="h-5 w-5 text-[#0066cc]" />
           Основные данные
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="space-y-1 text-xs font-medium text-teal-900/65">
+          <label className="space-y-1 text-xs font-medium text-slate-500">
             Имя
-            <input
+            <Input
               value={profile.firstName}
               onChange={(event) => setProfile({ ...profile, firstName: event.target.value })}
               className={inputClassName}
             />
           </label>
-          <label className="space-y-1 text-xs font-medium text-teal-900/65">
+          <label className="space-y-1 text-xs font-medium text-slate-500">
             Фамилия
-            <input
+            <Input
               value={profile.lastName}
               onChange={(event) => setProfile({ ...profile, lastName: event.target.value })}
               className={inputClassName}
             />
           </label>
-          <label className="space-y-1 text-xs font-medium text-teal-900/65">
+          <label className="space-y-1 text-xs font-medium text-slate-500">
             Телефон
-            <input
+            <Input
               value={profile.phone}
               onChange={(event) => setProfile({ ...profile, phone: event.target.value })}
               className={inputClassName}
             />
           </label>
-          <label className="space-y-1 text-xs font-medium text-teal-900/65">
+          <label className="space-y-1 text-xs font-medium text-slate-500">
             Email
-            <input
+            <Input
               value={profile.email}
               onChange={(event) => setProfile({ ...profile, email: event.target.value })}
               className={inputClassName}
             />
           </label>
         </div>
-        <label className="mt-3 block space-y-1 text-xs font-medium text-teal-900/65">
+        <label className="mt-3 block space-y-1 text-xs font-medium text-slate-500">
           Специализация
-          <input
+          <Input
             value={profile.specialization}
             onChange={(event) => setProfile({ ...profile, specialization: event.target.value })}
             className={inputClassName}
           />
         </label>
-        <label className="mt-3 block space-y-1 text-xs font-medium text-teal-900/65">
+        <label className="mt-3 block space-y-1 text-xs font-medium text-slate-500">
           О себе
-          <textarea
+          <Textarea
             value={profile.bio}
             onChange={(event) => setProfile({ ...profile, bio: event.target.value })}
             rows={3}
@@ -373,55 +366,41 @@ const CoachProfilePage: React.FC = () => {
         <div className="mt-3">
           <SectionError message={sectionErrors.profile} />
         </div>
-        <button disabled={savingProfile} onClick={saveProfile} className={`${primaryButtonClassName} mt-4`}>
+        <Button disabled={savingProfile} onClick={saveProfile} className="mt-4 w-full">
           {savingProfile ? "Сохранение..." : "Сохранить профиль"}
-        </button>
+        </Button>
       </section>
 
       <section className={cardClassName}>
-        <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-teal-950">
-          <ClockIcon className="h-5 w-5 text-teal-700" />
+        <div className="mb-4 flex items-center gap-2 ui-section-title">
+          <Clock3 className="h-5 w-5 text-[#0066cc]" />
           Доступность
         </div>
-        <div className="grid grid-cols-7 gap-2">
-          {DAYS.map((day) => {
-            const active = availableDays.includes(day.key);
-            return (
-              <button
-                key={day.key}
-                type="button"
-                onClick={() => toggleDay(day.key)}
-                className={`h-10 rounded-xl text-xs font-semibold transition ${
-                  active ? "bg-teal-950 text-white" : "bg-teal-50 text-teal-900"
-                }`}
-              >
-                {day.label}
-              </button>
-            );
-          })}
-        </div>
+        <ToggleGroup type="multiple" value={availableDays} onValueChange={setAvailableDays} variant="outline" className="grid grid-cols-7 gap-2">
+          {DAYS.map((day) => <ToggleGroupItem key={day.key} value={day.key} className="w-full px-0 text-xs">{day.label}</ToggleGroupItem>)}
+        </ToggleGroup>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <label className="space-y-1 text-xs font-medium text-teal-900/65">
+          <label className="space-y-1 text-xs font-medium text-slate-500">
             С
-            <input type="time" value={timeFrom} onChange={(e) => setTimeFrom(e.target.value)} className={inputClassName} />
+            <TimePicker value={timeFrom} onValueChange={setTimeFrom} />
           </label>
-          <label className="space-y-1 text-xs font-medium text-teal-900/65">
+          <label className="space-y-1 text-xs font-medium text-slate-500">
             До
-            <input type="time" value={timeTo} onChange={(e) => setTimeTo(e.target.value)} className={inputClassName} />
+            <TimePicker value={timeTo} onValueChange={setTimeTo} />
           </label>
         </div>
-        <div className="mt-3 text-xs text-teal-900/55">Часовой пояс: {timezone}</div>
+        <div className="mt-3 text-xs text-slate-400">Часовой пояс: {timezone}</div>
         <div className="mt-3">
           <SectionError message={sectionErrors.availability} />
         </div>
-        <button disabled={savingAvailability} onClick={saveAvailability} className={`${primaryButtonClassName} mt-4`}>
+        <Button disabled={savingAvailability} onClick={saveAvailability} className="mt-4 w-full">
           {savingAvailability ? "Сохранение..." : "Сохранить доступность"}
-        </button>
+        </Button>
       </section>
 
       <section className={cardClassName}>
-        <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-teal-950">
-          <BellIcon className="h-5 w-5 text-teal-700" />
+        <div className="mb-4 flex items-center gap-2 ui-section-title">
+          <Bell className="h-5 w-5 text-[#0066cc]" />
           Уведомления
         </div>
         {[
@@ -429,34 +408,32 @@ const CoachProfilePage: React.FC = () => {
           ["overdueReports", "Показывать напоминания о незакрытых отчетах"],
           ["scheduleChanges", "Сообщать об изменениях расписания"],
         ].map(([key, label]) => (
-          <label key={key} className="flex items-center justify-between gap-3 border-t border-teal-50 py-3 first:border-t-0">
-            <span className="text-sm text-teal-950">{label}</span>
-            <input
-              type="checkbox"
+          <label key={key} className="flex items-center justify-between gap-3 border-t border-black/[0.06] py-3 first:border-t-0">
+            <span className="text-sm text-slate-950">{label}</span>
+            <Checkbox
               checked={notifications[key as keyof typeof notifications]}
-              onChange={(event) =>
+              onCheckedChange={(checked) =>
                 setNotifications({
                   ...notifications,
-                  [key]: event.target.checked,
+                  [key]: checked === true,
                 })
               }
-              className="h-5 w-5 rounded border-teal-200 text-teal-900"
             />
           </label>
         ))}
         <SectionError message={sectionErrors.notifications} />
-        <button disabled={savingNotifications} onClick={saveNotifications} className={`${primaryButtonClassName} mt-3`}>
+        <Button disabled={savingNotifications} onClick={saveNotifications} className="mt-3 w-full">
           {savingNotifications ? "Сохранение..." : "Сохранить уведомления"}
-        </button>
+        </Button>
       </section>
 
       <section className={cardClassName}>
-        <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-teal-950">
-          <LockClosedIcon className="h-5 w-5 text-teal-700" />
+        <div className="mb-4 flex items-center gap-2 ui-section-title">
+          <LockKeyhole className="h-5 w-5 text-[#0066cc]" />
           Безопасность
         </div>
         <div className="space-y-3">
-          <input
+          <Input
             type="password"
             value={passwordForm.currentPassword}
             onChange={(event) =>
@@ -465,7 +442,7 @@ const CoachProfilePage: React.FC = () => {
             placeholder="Текущий пароль"
             className={inputClassName}
           />
-          <input
+          <Input
             type="password"
             value={passwordForm.newPassword}
             onChange={(event) =>
@@ -474,7 +451,7 @@ const CoachProfilePage: React.FC = () => {
             placeholder="Новый пароль"
             className={inputClassName}
           />
-          <input
+          <Input
             type="password"
             value={passwordForm.confirmPassword}
             onChange={(event) =>
@@ -487,17 +464,17 @@ const CoachProfilePage: React.FC = () => {
         <div className="mt-3">
           <SectionError message={sectionErrors.password} />
         </div>
-        <button disabled={savingPassword} onClick={changePassword} className={`${primaryButtonClassName} mt-4`}>
+        <Button disabled={savingPassword} onClick={changePassword} className="mt-4 w-full">
           {savingPassword ? "Обновление..." : "Обновить пароль"}
-        </button>
+        </Button>
       </section>
 
-      <section className="rounded-2xl border border-teal-100 bg-teal-50 p-4">
+      <section className="rounded-2xl border border-black/[0.12] bg-blue-50 p-4">
         <div className="flex items-start gap-3">
-          <PhoneIcon className="mt-0.5 h-5 w-5 shrink-0 text-teal-700" />
+          <Phone className="mt-0.5 h-5 w-5 shrink-0 text-[#0066cc]" />
           <div>
-            <div className="text-sm font-semibold text-teal-950">Нужна помощь?</div>
-            <div className="mt-1 text-sm text-teal-900/65">
+            <div className="ui-section-title">Нужна помощь?</div>
+            <div className="mt-1 text-sm text-slate-500">
               Обратитесь к администратору клуба, если нужно изменить филиал, группы или роль.
             </div>
           </div>

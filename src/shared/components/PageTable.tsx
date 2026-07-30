@@ -1,4 +1,10 @@
 import { Page } from "../types";
+import {
+  Button,
+  Table,
+  TableBody,
+  TableHeader,
+} from "../ui";
 
 interface PageTableProps<T> {
   page: Page<T>;
@@ -14,35 +20,37 @@ export function PageTable<T>({
   onPageChange,
 }: PageTableProps<T>) {
   return (
-    <div className="bg-white shadow rounded-2xl border">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">{renderHeader()}</thead>
-        <tbody className="divide-y divide-gray-200">
-          {page.content.map(renderRow)}
-        </tbody>
-      </table>
+    <div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-white">
+      <Table>
+        <TableHeader>{renderHeader()}</TableHeader>
+        <TableBody>{page.content.map(renderRow)}</TableBody>
+      </Table>
 
       {!page.empty && (
-        <div className="flex justify-between px-4 py-3 border-t bg-gray-50">
-          <span className="text-xs text-gray-600">
+        <div className="flex items-center justify-between border-t border-black/[0.08] bg-slate-50/60 px-4 py-3">
+          <span className="text-xs text-slate-500">
             Страница {page.number + 1} из {page.totalPages}
           </span>
 
           <div className="flex gap-2">
-            <button
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
               disabled={page.first}
               onClick={() => onPageChange(page.number - 1)}
-              className="px-3 py-1 text-xs rounded border disabled:opacity-50"
             >
               Назад
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
               disabled={page.last}
               onClick={() => onPageChange(page.number + 1)}
-              className="px-3 py-1 text-xs rounded border disabled:opacity-50"
             >
               Вперёд
-            </button>
+            </Button>
           </div>
         </div>
       )}

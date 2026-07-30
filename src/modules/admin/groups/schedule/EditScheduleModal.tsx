@@ -1,21 +1,24 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRightIcon,
-  CalendarDaysIcon,
-  CheckIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon,
-  UserCircleIcon,
-} from "@heroicons/react/24/outline";
+  CalendarDays,
+  Check,
+  Clock3,
+  TriangleAlert,
+  Info,
+  CircleUserRound,
+} from "lucide-react";
 import { getApiErrorMessage } from "../../../../shared/api";
 import { useAuth } from "../../../../shared/AuthContext";
 import {
+  Input,
+  NativeSelect,
   Button,
+  DatePicker,
   FormField,
   ModalShell,
+  TimePicker,
   formControlClassName,
-} from "../../../../shared/ui";
+   } from "../../../../shared/ui";
 import {
   DayScheduleSlot,
   ScheduleValidationConflict,
@@ -183,7 +186,7 @@ const EditScheduleModal: React.FC<Props> = ({
         <div className="flex items-center justify-end gap-2">
           <Button type="button" variant="secondary" disabled={saving} onClick={onClose}>Отмена</Button>
           <Button type="button" isLoading={saving} onClick={save}>
-            {!saving ? <CheckIcon className="h-4 w-4" /> : null}
+            {!saving ? <Check className="h-4 w-4" /> : null}
             {isEditing ? "Сохранить изменения" : "Создать период"}
           </Button>
         </div>
@@ -192,7 +195,7 @@ const EditScheduleModal: React.FC<Props> = ({
       <div className="space-y-6 px-5 py-5">
         <section>
           <SectionHeading
-            icon={<CalendarDaysIcon />}
+            icon={<CalendarDays />}
             title="Основные параметры"
             description="Период определяет, когда и по каким правилам создаются занятия."
           />
@@ -228,8 +231,8 @@ const EditScheduleModal: React.FC<Props> = ({
               error={attemptedSubmit && !coachId ? "Выберите тренера" : undefined}
             >
               <div className="relative">
-                <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <select
+                <CircleUserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <NativeSelect
                   value={coachId}
                   onChange={(event) => {
                     setCoachId(event.target.value);
@@ -239,7 +242,7 @@ const EditScheduleModal: React.FC<Props> = ({
                 >
                   <option value="">Выберите тренера</option>
                   {coaches.map((coach) => <option key={coach.id} value={coach.id}>{coach.name}</option>)}
-                </select>
+                </NativeSelect>
               </div>
             </FormField>
 
@@ -257,15 +260,13 @@ const EditScheduleModal: React.FC<Props> = ({
                 hint="С этой даты начнут создаваться занятия."
                 error={attemptedSubmit && !from ? "Укажите дату начала" : undefined}
               >
-                <input
-                  type="date"
+                <DatePicker
                   value={from}
                   max={to || undefined}
-                  onChange={(event) => {
-                    setFrom(event.target.value);
+                  onValueChange={(value) => {
+                    setFrom(value);
                     clearServerFeedback();
                   }}
-                  className={formControlClassName}
                 />
               </FormField>
               <FormField
@@ -275,15 +276,13 @@ const EditScheduleModal: React.FC<Props> = ({
                   ? (!to ? "Укажите дату окончания" : "Дата раньше начала")
                   : undefined}
               >
-                <input
-                  type="date"
+                <DatePicker
                   value={to}
                   min={from || undefined}
-                  onChange={(event) => {
-                    setTo(event.target.value);
+                  onValueChange={(value) => {
+                    setTo(value);
                     clearServerFeedback();
                   }}
-                  className={formControlClassName}
                 />
               </FormField>
             </div>
@@ -293,7 +292,7 @@ const EditScheduleModal: React.FC<Props> = ({
         <section className="border-t border-slate-200 pt-5">
           <div className="flex items-start justify-between gap-3">
             <SectionHeading
-              icon={<ClockIcon />}
+              icon={<Clock3 />}
               title="Дни и время"
               description="Отметьте дни, в которые группа занимается регулярно."
             />
@@ -312,32 +311,29 @@ const EditScheduleModal: React.FC<Props> = ({
                   className={`flex min-h-[64px] flex-col gap-2.5 border-b border-slate-100 px-3 py-2.5 last:border-b-0 sm:grid sm:grid-cols-[minmax(150px,1fr)_minmax(280px,auto)] sm:items-center sm:gap-3 ${slot.enabled ? "bg-white" : "bg-slate-50/70"}`}
                 >
                   <label className="flex min-w-0 cursor-pointer items-center gap-3">
-                    <input
+                    <Input
                       type="checkbox"
                       checked={slot.enabled}
                       onChange={(event) => updateSlot(index, { enabled: event.target.checked })}
-                      className="h-4 w-4 rounded border-slate-300 text-cyan-700 accent-cyan-700 focus:ring-cyan-600"
+                      className="h-4 w-4 rounded border-slate-300 text-[#0066cc] accent-[#0066cc] focus:ring-[#0066cc]"
                     />
                     <span className={`text-sm font-semibold ${slot.enabled ? "text-slate-900" : "text-slate-500"}`}>{day.label}</span>
                   </label>
 
-                  <div className="grid grid-cols-[minmax(0,1fr)_20px_minmax(0,1fr)] items-center gap-2">
-                    <input
-                      type="time"
+                  <div className="grid gap-2 xl:grid-cols-2">
+                    <TimePicker
                       aria-label={`Начало: ${day.label}`}
                       disabled={!slot.enabled}
                       value={slot.startTime}
-                      onChange={(event) => updateSlot(index, { startTime: event.target.value })}
-                      className={`${formControlClassName} px-2.5 py-2 ${invalidTime ? "border-rose-300 bg-rose-50" : ""}`}
+                      onValueChange={(startTime) => updateSlot(index, { startTime })}
+                      aria-invalid={invalidTime}
                     />
-                    <ArrowRightIcon className={`h-4 w-4 ${slot.enabled ? "text-slate-400" : "text-slate-200"}`} />
-                    <input
-                      type="time"
+                    <TimePicker
                       aria-label={`Окончание: ${day.label}`}
                       disabled={!slot.enabled}
                       value={slot.endTime}
-                      onChange={(event) => updateSlot(index, { endTime: event.target.value })}
-                      className={`${formControlClassName} px-2.5 py-2 ${invalidTime ? "border-rose-300 bg-rose-50" : ""}`}
+                      onValueChange={(endTime) => updateSlot(index, { endTime })}
+                      aria-invalid={invalidTime}
                     />
                   </div>
                 </div>
@@ -353,8 +349,8 @@ const EditScheduleModal: React.FC<Props> = ({
           ) : null}
         </section>
 
-        <div className="flex gap-3 rounded-lg border border-cyan-100 bg-cyan-50 px-3.5 py-3 text-xs leading-5 text-cyan-900">
-          <InformationCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50 px-3.5 py-3 text-xs leading-5 text-[#0066cc]">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
             При сохранении система проверит пересечения тренера и группы. Изменения применятся к будущим занятиям этого периода.
           </p>
@@ -363,7 +359,7 @@ const EditScheduleModal: React.FC<Props> = ({
         {attemptedSubmit && errors.length > 0 ? (
           <div className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-rose-800">
-              <ExclamationTriangleIcon className="h-4 w-4" />
+              <TriangleAlert className="h-4 w-4" />
               Проверьте параметры периода
             </div>
             <ul className="mt-2 space-y-1 text-xs text-rose-700">
@@ -380,7 +376,7 @@ const EditScheduleModal: React.FC<Props> = ({
 
         {conflicts.length > 0 ? (
           <section className="space-y-2">
-            <div className="text-sm font-semibold text-slate-950">Найденные конфликты</div>
+            <div className="ui-section-title">Найденные конфликты</div>
             {conflicts.map((conflict, index) => (
               <ConflictCard key={`${conflict.code}-${conflict.conflictingScheduleId ?? index}`} conflict={conflict} />
             ))}
@@ -397,11 +393,11 @@ const SectionHeading: React.FC<{
   description: string;
 }> = ({ icon, title, description }) => (
   <div className="flex items-start gap-3">
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-cyan-50 text-cyan-700">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]">
       {React.cloneElement(icon, { className: "h-4 w-4" })}
     </span>
     <div>
-      <h4 className="text-sm font-semibold text-slate-950">{title}</h4>
+      <h4 className="ui-section-title">{title}</h4>
       <p className="mt-0.5 text-xs leading-5 text-slate-500">{description}</p>
     </div>
   </div>
@@ -416,12 +412,12 @@ const TypeOption: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className={`rounded-lg border px-3 py-3 text-left transition ${active ? "border-cyan-300 bg-cyan-50" : "border-slate-200 bg-white hover:border-cyan-200"}`}
+    className={`rounded-lg border px-3 py-3 text-left transition ${active ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"}`}
   >
     <div className="flex items-center justify-between gap-2">
-      <span className="text-sm font-semibold text-slate-900">{title}</span>
-      <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${active ? "border-cyan-700 bg-cyan-700 text-white" : "border-slate-300 bg-white"}`}>
-        {active ? <CheckIcon className="h-3.5 w-3.5" /> : null}
+      <span className="ui-section-title">{title}</span>
+      <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${active ? "border-[#0066cc] bg-[#0066cc] text-white" : "border-slate-300 bg-white"}`}>
+        {active ? <Check className="h-3.5 w-3.5" /> : null}
       </span>
     </div>
     <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
@@ -444,8 +440,8 @@ const CoachAvailabilitySummary: React.FC<{
   }
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800">
-      <span className="inline-flex items-center gap-1.5 font-semibold"><CalendarDaysIcon className="h-4 w-4" />{formatAvailabilityDays(availability.days)}</span>
-      <span className="inline-flex items-center gap-1.5"><ClockIcon className="h-4 w-4" />{availability.timeFrom.slice(0, 5)}–{availability.timeTo.slice(0, 5)}</span>
+      <span className="inline-flex items-center gap-1.5 font-semibold"><CalendarDays className="h-4 w-4" />{formatAvailabilityDays(availability.days)}</span>
+      <span className="inline-flex items-center gap-1.5"><Clock3 className="h-4 w-4" />{availability.timeFrom.slice(0, 5)}–{availability.timeTo.slice(0, 5)}</span>
       <span className="text-emerald-700/70">{availability.timezone}</span>
     </div>
   );
@@ -469,7 +465,7 @@ const ConflictCard: React.FC<{ conflict: ScheduleValidationConflict }> = ({ conf
   return (
     <div className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-900">
       <div className="flex items-start gap-2">
-        <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
         <div>
           <div className="font-semibold">{conflictTitle(conflict)}</div>
           {details.length ? <div className="mt-1 text-xs leading-5 text-rose-700">{details.join(" · ")}</div> : null}

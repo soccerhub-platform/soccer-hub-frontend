@@ -1,28 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRightIcon,
-  ArrowPathIcon,
-  CalendarDaysIcon,
-  ChartBarIcon,
-  ChatBubbleOvalLeftEllipsisIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  ClockIcon,
-  EnvelopeIcon,
-  ExclamationTriangleIcon,
-  PencilSquareIcon,
-  PhoneIcon,
-  PlusIcon,
-  UserGroupIcon,
-  UserCircleIcon,
-} from "@heroicons/react/24/outline";
+  ArrowRight,
+  RefreshCw,
+  CalendarDays,
+  ChartBar,
+  MessageCircleMore,
+  ChevronDown,
+  ChevronRight,
+  Clock3,
+  Mail,
+  TriangleAlert,
+  Pencil,
+  Phone,
+  Plus,
+  Users,
+  CircleUserRound,
+} from "lucide-react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import { useAuth } from "../../../shared/AuthContext";
 import { resolveApiUrl } from "../../../shared/api";
 import { useAdminBranch } from "../BranchContext";
-import { Button, EmptyState, ErrorState, FormField, LoadingState, ModalShell, PageShell, SectionCard, WorkspaceBreadcrumbs, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs, formControlClassName } from "../../../shared/ui";
+import { ActionMenu, Input, Textarea, Button, DatePicker, DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, EmptyState, ErrorState, FormField, LoadingState, ModalShell, PageShell, SectionCard, TimePicker, WorkspaceBreadcrumbs, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs, formControlClassName  } from "../../../shared/ui";
 import { CoachApi, CoachAvailability, CoachGroupAssignmentHistoryItem, CoachProfile, CoachStatus, TrainerActivityResponse, TrainerOverview } from "./coach.api";
 import { GroupApi } from "../groups/group.api";
 import CoachScheduleTab from "./CoachScheduleTab";
@@ -154,8 +154,6 @@ const CoachDetailsPage: React.FC = () => {
   const [updating, setUpdating] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetPasswordValue, setResetPasswordValue] = useState<string | null>(null);
-  const [contactOpen, setContactOpen] = useState(false);
-  const [actionsOpen, setActionsOpen] = useState(false);
   const activeDrawer = searchParams.get("drawer");
   const selectedGroupCoachId = searchParams.get("groupCoachId");
 
@@ -391,12 +389,12 @@ const CoachDetailsPage: React.FC = () => {
           <WorkspaceHeader>
             <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex min-w-0 gap-4">
-                <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-admin-100 bg-admin-50 text-2xl font-semibold text-admin-800 sm:h-28 sm:w-28">
-                  {coachAvatarUrl(profile) ? <img src={resolveApiUrl(coachAvatarUrl(profile)!)} alt={`${profile.firstName} ${profile.lastName}`} className="h-full w-full object-cover" /> : (`${profile.firstName?.[0] ?? ""}${profile.lastName?.[0] ?? ""}`.toUpperCase() || <UserCircleIcon className="h-7 w-7" />)}
+                <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-blue-100 bg-blue-50 ui-metric-value text-[#0066cc] sm:h-28 sm:w-28">
+                  {coachAvatarUrl(profile) ? <img src={resolveApiUrl(coachAvatarUrl(profile)!)} alt={`${profile.firstName} ${profile.lastName}`} className="h-full w-full object-cover" /> : (`${profile.firstName?.[0] ?? ""}${profile.lastName?.[0] ?? ""}`.toUpperCase() || <CircleUserRound className="h-7 w-7" />)}
                 </div>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl font-semibold text-slate-950">
+                    <h1 className="ui-detail-title">
                       {profile.firstName} {profile.lastName}
                     </h1>
                     <StatusBadge active={profile.active} workStatus={trainerOverview?.trainer.workStatus ?? profile.workStatus} />
@@ -404,82 +402,34 @@ const CoachDetailsPage: React.FC = () => {
                   <div className="mt-1 text-base text-slate-600">{profile.specialization || "Специализация не указана"}</div>
                   <div className="mt-1 line-clamp-1 text-sm text-slate-500">{trainerOverview?.branches?.length ? trainerOverview.branches.map((branch) => branch.name).join(" · ") : profile.description || "Филиал не указан"}</div>
                   <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
-                    <span className="inline-flex items-center gap-1.5"><PhoneIcon className="h-4 w-4" />{profile.phone}</span>
-                    <span className="inline-flex items-center gap-1.5"><EnvelopeIcon className="h-4 w-4" />{profile.email}</span>
+                    <span className="inline-flex items-center gap-1.5"><Phone className="h-4 w-4" />{profile.phone}</span>
+                    <span className="inline-flex items-center gap-1.5"><Mail className="h-4 w-4" />{profile.email}</span>
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-                  <div className="relative">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => {
-                        setActionsOpen(false);
-                        setContactOpen((value) => !value);
-                      }}
-                    >
-                      <ChatBubbleOvalLeftEllipsisIcon className="h-4 w-4" />
-                      Связаться
-                      <ChevronDownIcon className={`h-4 w-4 transition ${contactOpen ? "rotate-180" : ""}`} />
-                    </Button>
-                    {contactOpen ? (
-                      <div className="absolute right-0 top-12 z-30 w-72 overflow-hidden rounded-lg border border-slate-200 bg-white p-1.5 shadow-xl">
-                        <div className="px-2.5 pb-1.5 pt-1 text-xs font-semibold uppercase text-slate-400">Способ связи</div>
-                        <a
-                          href={`https://wa.me/${profile.phone.replace(/\D/g, "")}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={() => setContactOpen(false)}
-                          className="flex items-center gap-3 rounded-md px-2.5 py-2.5 transition hover:bg-emerald-50"
-                        >
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                            <ChatBubbleOvalLeftEllipsisIcon className="h-5 w-5" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-semibold text-slate-900">Написать в WhatsApp</span>
-                            <span className="block truncate text-xs text-slate-500">{profile.phone}</span>
-                          </span>
-                          <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400" />
-                        </a>
-                        <a
-                          href={`tel:${profile.phone}`}
-                          onClick={() => setContactOpen(false)}
-                          className="flex items-center gap-3 rounded-md px-2.5 py-2.5 transition hover:bg-sky-50"
-                        >
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700">
-                            <PhoneIcon className="h-5 w-5" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-semibold text-slate-900">Позвонить</span>
-                            <span className="block truncate text-xs text-slate-500">{profile.phone}</span>
-                          </span>
-                          <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400" />
-                        </a>
-                        <a
-                          href={`mailto:${profile.email}`}
-                          onClick={() => setContactOpen(false)}
-                          className="flex items-center gap-3 rounded-md px-2.5 py-2.5 transition hover:bg-violet-50"
-                        >
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700">
-                            <EnvelopeIcon className="h-5 w-5" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-semibold text-slate-900">Написать на email</span>
-                            <span className="block truncate text-xs text-slate-500">{profile.email}</span>
-                          </span>
-                          <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400" />
-                        </a>
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="relative">
-                    <Button type="button" variant="secondary" onClick={() => { setContactOpen(false); setActionsOpen((value) => !value); }}>Еще<ChevronDownIcon className={`h-4 w-4 transition ${actionsOpen ? "rotate-180" : ""}`} /></Button>
-                    {actionsOpen ? <div className="absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl"><button type="button" onClick={() => { setActionsOpen(false); openDrawer("work-status"); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Изменить рабочий статус</button><button type="button" onClick={() => { setActionsOpen(false); openDrawer("availability"); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Настроить доступность</button><button type="button" onClick={() => { setActionsOpen(false); openDrawer("reset-password"); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Сбросить пароль</button><button type="button" disabled={updating} onClick={() => { setActionsOpen(false); void toggleStatus(); }} className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-50 ${profile.active ? "text-rose-700" : "text-emerald-700"}`}>{profile.active ? "Отключить аккаунт" : "Включить аккаунт"}</button></div> : null}
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="secondary"><MessageCircleMore />Связаться<ChevronDown /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-72">
+                      <DropdownMenuLabel>Способ связи</DropdownMenuLabel>
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem asChild><a href={`https://wa.me/${profile.phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer"><MessageCircleMore /><span className="flex min-w-0 flex-col"><span>Написать в WhatsApp</span><span className="truncate text-xs text-muted-foreground">{profile.phone}</span></span></a></DropdownMenuItem>
+                        <DropdownMenuItem asChild><a href={`tel:${profile.phone}`}><Phone /><span className="flex min-w-0 flex-col"><span>Позвонить</span><span className="truncate text-xs text-muted-foreground">{profile.phone}</span></span></a></DropdownMenuItem>
+                        <DropdownMenuItem asChild><a href={`mailto:${profile.email}`}><Mail /><span className="flex min-w-0 flex-col"><span>Написать на email</span><span className="truncate text-xs text-muted-foreground">{profile.email}</span></span></a></DropdownMenuItem>
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <ActionMenu label="Еще" items={[
+                    { key: "work-status", label: "Изменить рабочий статус", onSelect: () => openDrawer("work-status") },
+                    { key: "availability", label: "Настроить доступность", onSelect: () => openDrawer("availability") },
+                    { key: "reset-password", label: "Сбросить пароль", onSelect: () => openDrawer("reset-password") },
+                    { key: "account-status", label: profile.active ? "Отключить аккаунт" : "Включить аккаунт", danger: profile.active, separatorBefore: true, disabled: updating, onSelect: () => void toggleStatus() },
+                  ]} />
                   <Button type="button" onClick={() => openDrawer("edit-coach")}>
-                    <PencilSquareIcon className="h-4 w-4" />
+                    <Pencil className="h-4 w-4" />
                     Редактировать
                   </Button>
               </div>
@@ -600,24 +550,24 @@ const CoachOverviewTab: React.FC<{
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <WorkspaceMetric icon={<UserGroupIcon />} iconClassName="bg-emerald-50 text-emerald-700" label="Активные группы" value={String(profile.groups.length)} note="Смотреть группы" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/groups`)} />
-        <WorkspaceMetric icon={<CalendarDaysIcon />} iconClassName="bg-sky-50 text-sky-700" label="Занятия сегодня" value={String(todaySessions.length)} note="Смотреть расписание" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/schedule`)} />
-        <WorkspaceMetric icon={<ChartBarIcon />} iconClassName="bg-violet-50 text-violet-700" label="Загрузка на неделю" value={`${loadPercent}%`} progress={loadPercent} />
-        <WorkspaceMetric icon={<CalendarDaysIcon />} iconClassName="bg-amber-50 text-amber-700" label="Начало отпуска" value={profile.vacationFrom ? formatDate(profile.vacationFrom) : "Не задан"} note={profile.vacationTo ? `до ${formatDate(profile.vacationTo)}` : undefined} />
-        <WorkspaceMetric icon={<ArrowPathIcon />} iconClassName={overview?.substitutionsThisWeek ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"} label="Замены на этой неделе" value={String(overview?.substitutionsThisWeek ?? 0)} />
+        <WorkspaceMetric icon={<Users />} iconClassName="bg-emerald-50 text-emerald-700" label="Активные группы" value={String(profile.groups.length)} note="Смотреть группы" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/groups`)} />
+        <WorkspaceMetric icon={<CalendarDays />} iconClassName="bg-sky-50 text-sky-700" label="Занятия сегодня" value={String(todaySessions.length)} note="Смотреть расписание" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/schedule`)} />
+        <WorkspaceMetric icon={<ChartBar />} iconClassName="bg-violet-50 text-violet-700" label="Загрузка на неделю" value={`${loadPercent}%`} progress={loadPercent} />
+        <WorkspaceMetric icon={<CalendarDays />} iconClassName="bg-amber-50 text-amber-700" label="Начало отпуска" value={profile.vacationFrom ? formatDate(profile.vacationFrom) : "Не задан"} note={profile.vacationTo ? `до ${formatDate(profile.vacationTo)}` : undefined} />
+        <WorkspaceMetric icon={<RefreshCw />} iconClassName={overview?.substitutionsThisWeek ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"} label="Замены на этой неделе" value={String(overview?.substitutionsThisWeek ?? 0)} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.95fr_0.85fr]">
         <SectionCard title={todaySessions.length ? "Сегодня" : "Ближайшее занятие"}>
-          {displayedSessions.length ? <div className="divide-y divide-slate-100">{displayedSessions.slice(0, 3).map((session) => <button key={session.sessionId} type="button" onClick={() => onNavigate(`/admin/groups/${session.groupId}/sessions/${session.sessionId}`)} className="flex w-full items-center gap-4 py-3 text-left transition first:pt-0 last:pb-0 hover:bg-slate-50"><span className="w-14 shrink-0"><span className="block text-base font-semibold text-slate-950">{timeShort(session.startTime)}</span><span className="mt-0.5 block text-xs text-slate-400">{timeShort(session.endTime)}</span></span><span className="min-w-0 flex-1 border-l-2 border-slate-200 pl-4"><span className="block truncate text-sm font-semibold text-slate-950">{session.groupName}</span><span className="mt-1 block text-xs text-slate-500">{roleLabel(profile.groups.find((group) => group.groupId === session.groupId)?.role)}</span></span><ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400" /></button>)}</div> : <EmptyState title="Занятий нет" description="В расписании тренера нет будущих занятий." />}
-          <button type="button" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/schedule`)} className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-admin-700 hover:text-admin-900">Смотреть расписание<ArrowRightIcon className="h-4 w-4" /></button>
+          {displayedSessions.length ? <div className="divide-y divide-slate-100">{displayedSessions.slice(0, 3).map((session) => <button key={session.sessionId} type="button" onClick={() => onNavigate(`/admin/groups/${session.groupId}/sessions/${session.sessionId}`)} className="flex w-full items-center gap-4 py-3 text-left transition first:pt-0 last:pb-0 hover:bg-slate-50"><span className="w-14 shrink-0"><span className="block ui-card-title">{timeShort(session.startTime)}</span><span className="mt-0.5 block text-xs text-slate-400">{timeShort(session.endTime)}</span></span><span className="min-w-0 flex-1 border-l-2 border-slate-200 pl-4"><span className="block truncate ui-section-title">{session.groupName}</span><span className="mt-1 block text-xs text-slate-500">{roleLabel(profile.groups.find((group) => group.groupId === session.groupId)?.role)}</span></span><ChevronRight className="h-4 w-4 shrink-0 text-slate-400" /></button>)}</div> : <EmptyState title="Занятий нет" description="В расписании тренера нет будущих занятий." />}
+          <button type="button" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/schedule`)} className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:text-[#0066cc]">Смотреть расписание<ArrowRight className="h-4 w-4" /></button>
         </SectionCard>
 
         <SectionCard title="Требует внимания">
-          {attentionItems.length ? <div className="divide-y divide-slate-100">{attentionItems.slice(0, 4).map((item) => <div key={`${item.type}-${item.entityId ?? item.title}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${item.severity === "CRITICAL" ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"}`}><ExclamationTriangleIcon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold text-slate-900">{item.title}</div><div className="mt-0.5 truncate text-xs text-slate-500">{item.description}</div></div><ChevronRightIcon className="h-4 w-4 text-slate-400" /></div>)}</div> : <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">Критичных проблем сейчас нет.</div>}
+          {attentionItems.length ? <div className="divide-y divide-slate-100">{attentionItems.slice(0, 4).map((item) => <div key={`${item.type}-${item.entityId ?? item.title}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${item.severity === "CRITICAL" ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"}`}><TriangleAlert className="h-4 w-4" /></span><div className="min-w-0 flex-1"><div className="truncate ui-section-title">{item.title}</div><div className="mt-0.5 truncate text-xs text-slate-500">{item.description}</div></div><ChevronRight className="h-4 w-4 text-slate-400" /></div>)}</div> : <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">Критичных проблем сейчас нет.</div>}
         </SectionCard>
         <SectionCard title="Быстрые действия">
-          <div className="divide-y divide-slate-100"><button type="button" onClick={onAssign} className="flex w-full items-center gap-3 py-3 text-left text-sm font-medium text-slate-800 first:pt-0"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700"><UserGroupIcon className="h-4 w-4" /></span><span className="min-w-0 flex-1">Назначить в группу</span><ChevronRightIcon className="h-4 w-4 text-slate-400" /></button><button type="button" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/overview?drawer=work-status&initialStatus=VACATION`)} className="flex w-full items-center gap-3 py-3 text-left text-sm font-medium text-slate-800"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-700"><CalendarDaysIcon className="h-4 w-4" /></span><span className="min-w-0 flex-1">Отправить в отпуск</span><ChevronRightIcon className="h-4 w-4 text-slate-400" /></button><button type="button" onClick={onAvailability} className="flex w-full items-center gap-3 py-3 text-left text-sm font-medium text-slate-800"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-700"><ClockIcon className="h-4 w-4" /></span><span className="min-w-0 flex-1">Настроить доступность</span><ChevronRightIcon className="h-4 w-4 text-slate-400" /></button><button type="button" onClick={onEdit} className="flex w-full items-center gap-3 py-3 text-left text-sm font-medium text-slate-800 last:pb-0"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-700"><PencilSquareIcon className="h-4 w-4" /></span><span className="min-w-0 flex-1">Редактировать профиль</span><ChevronRightIcon className="h-4 w-4 text-slate-400" /></button></div>
+          <div className="divide-y divide-slate-100"><button type="button" onClick={onAssign} className="flex w-full items-center gap-3 py-3 text-left text-sm font-medium text-slate-800 first:pt-0"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700"><Users className="h-4 w-4" /></span><span className="min-w-0 flex-1">Назначить в группу</span><ChevronRight className="h-4 w-4 text-slate-400" /></button><button type="button" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/overview?drawer=work-status&initialStatus=VACATION`)} className="flex w-full items-center gap-3 py-3 text-left text-sm font-medium text-slate-800"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-700"><CalendarDays className="h-4 w-4" /></span><span className="min-w-0 flex-1">Отправить в отпуск</span><ChevronRight className="h-4 w-4 text-slate-400" /></button><button type="button" onClick={onAvailability} className="flex w-full items-center gap-3 py-3 text-left text-sm font-medium text-slate-800"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-700"><Clock3 className="h-4 w-4" /></span><span className="min-w-0 flex-1">Настроить доступность</span><ChevronRight className="h-4 w-4 text-slate-400" /></button><button type="button" onClick={onEdit} className="flex w-full items-center gap-3 py-3 text-left text-sm font-medium text-slate-800 last:pb-0"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-700"><Pencil className="h-4 w-4" /></span><span className="min-w-0 flex-1">Редактировать профиль</span><ChevronRight className="h-4 w-4 text-slate-400" /></button></div>
         </SectionCard>
       </div>
 
@@ -626,8 +576,8 @@ const CoachOverviewTab: React.FC<{
           <div className="flex h-44 items-end gap-3 border-b border-slate-200 px-1 pb-6">{dailyLoad.map((day) => { const height = day.count ? Math.max(18, Math.round((day.count / maxDailyLoad) * 100)) : 4; return <div key={day.key} className="flex h-full min-w-0 flex-1 flex-col justify-end"><div className="mb-1 text-center text-xs font-semibold text-slate-600">{day.count}</div><div className={`mx-auto w-full max-w-10 rounded-t ${day.count === maxDailyLoad && day.count > 1 ? "bg-amber-500" : "bg-emerald-600"}`} style={{ height: `${height}%` }} /></div>; })}</div><div className="mt-2 grid grid-cols-7 gap-3 px-1">{dailyLoad.map((day) => <div key={day.key} className="text-center text-xs text-slate-500">{day.short}</div>)}</div>
         </SectionCard>
         <SectionCard title="Текущие группы">
-          {profile.groups.length ? <div className="divide-y divide-slate-100">{profile.groups.slice(0, 4).map((group) => <button key={group.groupId} type="button" onClick={() => onNavigate(`/admin/groups/${group.groupId}/overview`)} className="flex w-full items-center gap-3 py-3 text-left transition first:pt-0 last:pb-0 hover:bg-slate-50"><GroupAvatar name={group.groupName} avatar={group.avatar} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-950">{group.groupName}</span><span className="mt-0.5 block text-xs text-slate-500">{group.weeklySlotsCount ?? 0} занятий в неделю</span></span><span className="hidden text-xs font-medium text-slate-600 sm:block">{roleLabel(group.role)}</span><ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400" /></button>)}</div> : <EmptyState title="Группы не назначены" description="Назначьте тренера в первую группу." />}
-          <button type="button" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/groups`)} className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-admin-700 hover:text-admin-900">Все группы<ArrowRightIcon className="h-4 w-4" /></button>
+          {profile.groups.length ? <div className="divide-y divide-slate-100">{profile.groups.slice(0, 4).map((group) => <button key={group.groupId} type="button" onClick={() => onNavigate(`/admin/groups/${group.groupId}/overview`)} className="flex w-full items-center gap-3 py-3 text-left transition first:pt-0 last:pb-0 hover:bg-slate-50"><GroupAvatar name={group.groupName} avatar={group.avatar} /><span className="min-w-0 flex-1"><span className="block truncate ui-section-title">{group.groupName}</span><span className="mt-0.5 block text-xs text-slate-500">{group.weeklySlotsCount ?? 0} занятий в неделю</span></span><span className="hidden text-xs font-medium text-slate-600 sm:block">{roleLabel(group.role)}</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-400" /></button>)}</div> : <EmptyState title="Группы не назначены" description="Назначьте тренера в первую группу." />}
+          <button type="button" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/groups`)} className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:text-[#0066cc]">Все группы<ArrowRight className="h-4 w-4" /></button>
         </SectionCard>
       </div>
     </div>
@@ -676,13 +626,13 @@ const CoachGroupsTab: React.FC<{
     <SectionCard>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-base font-semibold text-slate-950">Активные группы</h2>
+          <h2 className="ui-card-title">Активные группы</h2>
           <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
             {assignments.length} текущих назначений
           </span>
         </div>
         <Button type="button" size="sm" onClick={onAssign}>
-          <PlusIcon className="h-4 w-4" />
+          <Plus className="h-4 w-4" />
           Назначить в группу
         </Button>
       </div>
@@ -700,13 +650,13 @@ const CoachGroupsTab: React.FC<{
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") onNavigate(`/admin/groups/${assignment.groupId}/overview`);
                 }}
-                className="group flex cursor-pointer flex-col gap-4 rounded-lg border border-slate-200 bg-white p-3 transition hover:border-emerald-200 hover:bg-emerald-50/30 lg:flex-row lg:items-center"
+                className="group flex cursor-pointer flex-col gap-4 rounded-lg border border-slate-200 bg-white p-3 transition hover:border-blue-200 hover:bg-blue-50/30 lg:flex-row lg:items-center"
               >
                 <div className="flex min-w-0 flex-1 gap-4">
                   <GroupAvatar name={assignment.groupName} avatar={assignment.avatar} size="lg" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-base font-semibold text-slate-950">{assignment.groupName}</span>
+                      <span className="truncate ui-card-title">{assignment.groupName}</span>
                       <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${roleBadgeClass(assignment.role)}`}>
                         {roleLabel(assignment.role)}
                       </span>
@@ -760,7 +710,7 @@ const CoachGroupsTab: React.FC<{
 
     <SectionCard>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <h2 className="text-base font-semibold text-slate-950">История назначений</h2>
+        <h2 className="ui-card-title">История назначений</h2>
         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
           {history.length} завершенных
         </span>
@@ -785,13 +735,13 @@ const CoachGroupsTab: React.FC<{
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <GroupAvatar name={assignment.groupName} avatar={assignment.avatar} />
-                    <span className="truncate text-sm font-semibold text-slate-900">{assignment.groupName}</span>
+                    <span className="truncate ui-section-title">{assignment.groupName}</span>
                   </span>
                   <span className="text-sm text-slate-600"><span className="mr-1 text-xs text-slate-400 lg:hidden">Роль:</span>{roleLabel(assignment.role)}</span>
                   <span className="text-sm text-slate-600"><span className="mr-1 text-xs text-slate-400 lg:hidden">Период:</span>{assignmentPeriodLabel(assignment)}</span>
                   <span className="flex min-w-0 items-center justify-between gap-3 text-sm text-slate-600">
                     <span className="truncate"><span className="mr-1 text-xs text-slate-400 lg:hidden">Причина:</span>{assignment.removalReason || "Не указана"}</span>
-                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
                   </span>
                 </button>
               ))}
@@ -801,10 +751,10 @@ const CoachGroupsTab: React.FC<{
             <button
               type="button"
               onClick={() => setHistoryExpanded((current) => !current)}
-              className="mx-auto mt-3 flex items-center gap-1.5 text-sm font-semibold text-emerald-700 transition hover:text-emerald-800"
+              className="mx-auto mt-3 flex items-center gap-1.5 text-sm font-semibold text-[#0066cc] transition hover:text-[#004b99]"
             >
               {historyExpanded ? "Свернуть" : `Показать еще ${history.length - 3}`}
-              <ChevronDownIcon className={`h-4 w-4 transition ${historyExpanded ? "rotate-180" : ""}`} />
+              <ChevronDown className={`h-4 w-4 transition ${historyExpanded ? "rotate-180" : ""}`} />
             </button>
           ) : null}
         </>
@@ -819,11 +769,11 @@ const CoachGroupsTab: React.FC<{
 
 const CoachAvailabilityTab: React.FC<{ profile: CoachProfile; overview: TrainerOverview | null; loadPercent: number; onEditAvailability: () => void; onEditStatus: () => void }> = ({ profile, overview, loadPercent, onEditAvailability, onEditStatus }) => {
   const availability = overview?.availability;
-  return <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]"><SectionCard><div className="mb-4 flex items-start justify-between gap-3"><h2 className="text-base font-semibold text-slate-950">Текущий статус</h2><Button type="button" size="sm" variant="secondary" onClick={onEditStatus}>Изменить</Button></div><div className="flex items-center gap-3"><span className={`h-3 w-3 rounded-full ${profile.workStatus === "VACATION" ? "bg-amber-500" : profile.workStatus === "BUSY" ? "bg-rose-500" : "bg-emerald-500"}`} /><div><div className="text-lg font-semibold text-slate-950">{workStatusLabel(profile.workStatus)}</div>{profile.workStatusReason ? <div className="mt-1 text-sm text-slate-500">{profile.workStatusReason}</div> : null}</div></div>{profile.workStatus === "VACATION" ? <div className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">Отпуск: <span className="font-semibold text-slate-900">{formatDate(profile.vacationFrom)} — {formatDate(profile.vacationTo)}</span></div> : null}</SectionCard><SectionCard><div className="mb-4 flex items-start justify-between gap-3"><h2 className="text-base font-semibold text-slate-950">Рабочие часы</h2><Button type="button" size="sm" variant="secondary" onClick={onEditAvailability}>Настроить</Button></div>{availability ? <><div className="flex flex-wrap gap-2">{normalizeAvailabilityDays(availability.days).map((day) => <span key={day} className="flex h-9 w-9 items-center justify-center rounded-lg bg-admin-50 text-xs font-semibold text-admin-800">{availabilityDays.find((item) => item.value === day)?.label ?? day}</span>)}</div><div className="mt-4 flex items-center gap-2 text-sm text-slate-600"><ClockIcon className="h-4 w-4" />{timeShort(availability.timeFrom)}–{timeShort(availability.timeTo)} · {availability.timezone}</div></> : <EmptyState title="Доступность не настроена" description="Укажите рабочие дни и часы тренера." />}</SectionCard><SectionCard title="Нагрузка"><div className="flex items-end justify-between"><div><div className="text-3xl font-semibold text-slate-950">{loadPercent}%</div><div className="mt-1 text-sm text-slate-500">Использовано недельного лимита</div></div><ChartBarIcon className="h-9 w-9 text-admin-600" /></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${loadPercent >= 90 ? "bg-rose-500" : loadPercent >= 70 ? "bg-amber-500" : "bg-admin-600"}`} style={{ width: `${Math.min(loadPercent, 100)}%` }} /></div></SectionCard><SectionCard title="Планирование"><div className="space-y-3 text-sm text-slate-600"><div className="flex justify-between border-b border-slate-100 pb-3"><span>Постоянных слотов</span><strong className="text-slate-950">{profile.weeklySchedule.length}</strong></div><div className="flex justify-between border-b border-slate-100 pb-3"><span>Ближайших занятий</span><strong className="text-slate-950">{profile.upcomingSessions.length}</strong></div><div className="flex justify-between"><span>Конфликтов расписания</span><strong className={profile.weeklySchedule.some((item) => item.conflicts?.length) ? "text-rose-700" : "text-emerald-700"}>{profile.weeklySchedule.filter((item) => item.conflicts?.length).length}</strong></div></div></SectionCard></div>;
+  return <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]"><SectionCard><div className="mb-4 flex items-start justify-between gap-3"><h2 className="ui-card-title">Текущий статус</h2><Button type="button" size="sm" variant="secondary" onClick={onEditStatus}>Изменить</Button></div><div className="flex items-center gap-3"><span className={`h-3 w-3 rounded-full ${profile.workStatus === "VACATION" ? "bg-amber-500" : profile.workStatus === "BUSY" ? "bg-rose-500" : "bg-emerald-500"}`} /><div><div className="ui-card-title">{workStatusLabel(profile.workStatus)}</div>{profile.workStatusReason ? <div className="mt-1 text-sm text-slate-500">{profile.workStatusReason}</div> : null}</div></div>{profile.workStatus === "VACATION" ? <div className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">Отпуск: <span className="font-semibold text-slate-900">{formatDate(profile.vacationFrom)} — {formatDate(profile.vacationTo)}</span></div> : null}</SectionCard><SectionCard><div className="mb-4 flex items-start justify-between gap-3"><h2 className="ui-card-title">Рабочие часы</h2><Button type="button" size="sm" variant="secondary" onClick={onEditAvailability}>Настроить</Button></div>{availability ? <><div className="flex flex-wrap gap-2">{normalizeAvailabilityDays(availability.days).map((day) => <span key={day} className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-xs font-semibold text-[#0066cc]">{availabilityDays.find((item) => item.value === day)?.label ?? day}</span>)}</div><div className="mt-4 flex items-center gap-2 text-sm text-slate-600"><Clock3 className="h-4 w-4" />{timeShort(availability.timeFrom)}–{timeShort(availability.timeTo)} · {availability.timezone}</div></> : <EmptyState title="Доступность не настроена" description="Укажите рабочие дни и часы тренера." />}</SectionCard><SectionCard title="Нагрузка"><div className="flex items-end justify-between"><div><div className="text-3xl font-semibold text-slate-950">{loadPercent}%</div><div className="mt-1 text-sm text-slate-500">Использовано недельного лимита</div></div><ChartBar className="h-9 w-9 text-[#0066cc]" /></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${loadPercent >= 90 ? "bg-rose-500" : loadPercent >= 70 ? "bg-amber-500" : "bg-[#0066cc]"}`} style={{ width: `${Math.min(loadPercent, 100)}%` }} /></div></SectionCard><SectionCard title="Планирование"><div className="space-y-3 text-sm text-slate-600"><div className="flex justify-between border-b border-slate-100 pb-3"><span>Постоянных слотов</span><strong className="text-slate-950">{profile.weeklySchedule.length}</strong></div><div className="flex justify-between border-b border-slate-100 pb-3"><span>Ближайших занятий</span><strong className="text-slate-950">{profile.upcomingSessions.length}</strong></div><div className="flex justify-between"><span>Конфликтов расписания</span><strong className={profile.weeklySchedule.some((item) => item.conflicts?.length) ? "text-rose-700" : "text-emerald-700"}>{profile.weeklySchedule.filter((item) => item.conflicts?.length).length}</strong></div></div></SectionCard></div>;
 };
 
 const CoachActivityTab: React.FC<{ activity: TrainerActivityResponse | null; loading: boolean; onPageChange: React.Dispatch<React.SetStateAction<number>> }> = ({ activity, loading, onPageChange }) => (
-  <SectionCard title="История изменений" description="Статусы и административные действия по тренеру">{loading ? <LoadingState label="Загрузка активности..." /> : activity?.content.length ? <><div className="divide-y divide-slate-100">{activity.content.map((item) => <div key={item.id} className="flex gap-4 py-4 first:pt-0 last:pb-0"><span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ArrowPathIcon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><div className="text-sm font-semibold text-slate-950">{item.title}</div><div className="mt-1 text-xs text-slate-500">{item.actor.name} · {formatDateTime(item.occurredAt)}</div>{item.changes.length ? <div className="mt-2 flex flex-wrap gap-2">{item.changes.map((change, index) => <span key={`${change.field}-${index}`} className="rounded-md bg-slate-50 px-2 py-1 text-xs text-slate-600">{change.label}: {change.fromLabel ?? "—"} → {change.toLabel ?? "—"}</span>)}</div> : null}</div></div>)}</div>{activity.totalPages > 1 ? <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 pt-4"><Button type="button" size="sm" variant="secondary" disabled={activity.first} onClick={() => onPageChange((page) => Math.max(0, page - 1))}>Назад</Button><Button type="button" size="sm" variant="secondary" disabled={activity.last} onClick={() => onPageChange((page) => page + 1)}>Далее</Button></div> : null}</> : <EmptyState title="История пока пуста" description="Изменения статусов и назначений появятся здесь." />}</SectionCard>
+  <SectionCard title="История изменений" description="Статусы и административные действия по тренеру">{loading ? <LoadingState label="Загрузка активности..." /> : activity?.content.length ? <><div className="divide-y divide-slate-100">{activity.content.map((item) => <div key={item.id} className="flex gap-4 py-4 first:pt-0 last:pb-0"><span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><RefreshCw className="h-4 w-4" /></span><div className="min-w-0 flex-1"><div className="ui-section-title">{item.title}</div><div className="mt-1 text-xs text-slate-500">{item.actor.name} · {formatDateTime(item.occurredAt)}</div>{item.changes.length ? <div className="mt-2 flex flex-wrap gap-2">{item.changes.map((change, index) => <span key={`${change.field}-${index}`} className="rounded-md bg-slate-50 px-2 py-1 text-xs text-slate-600">{change.label}: {change.fromLabel ?? "—"} → {change.toLabel ?? "—"}</span>)}</div> : null}</div></div>)}</div>{activity.totalPages > 1 ? <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 pt-4"><Button type="button" size="sm" variant="secondary" disabled={activity.first} onClick={() => onPageChange((page) => Math.max(0, page - 1))}>Назад</Button><Button type="button" size="sm" variant="secondary" disabled={activity.last} onClick={() => onPageChange((page) => page + 1)}>Далее</Button></div> : null}</> : <EmptyState title="История пока пуста" description="Изменения статусов и назначений появятся здесь." />}</SectionCard>
 );
 
 const WorkStatusModal: React.FC<{ profile: CoachProfile; token: string; initialStatus?: "VACATION"; onClose: () => void; onSaved: () => Promise<void> }> = ({ profile, token, initialStatus, onClose, onSaved }) => {
@@ -881,7 +831,7 @@ const WorkStatusModal: React.FC<{ profile: CoachProfile; token: string; initialS
               type="button"
               onClick={() => setStatus(value)}
               className={`rounded-lg border px-2 py-2 text-sm font-medium ${
-                status === value ? "border-cyan-600 bg-cyan-50 text-cyan-800" : "border-slate-200 text-slate-600"
+                status === value ? "border-[#0066cc] bg-blue-50 text-[#0066cc]" : "border-slate-200 text-slate-600"
               }`}
             >
               {label}
@@ -892,28 +842,26 @@ const WorkStatusModal: React.FC<{ profile: CoachProfile; token: string; initialS
           <div className="grid grid-cols-2 gap-3">
             <label className="text-sm text-slate-600">
               Дата начала
-              <input
-                type="date"
+              <DatePicker
                 value={from}
-                onChange={(event) => setFrom(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+                onValueChange={setFrom}
+                className="mt-1"
               />
             </label>
             <label className="text-sm text-slate-600">
               Дата окончания
-              <input
-                type="date"
+              <DatePicker
                 min={from}
                 value={to}
-                onChange={(event) => setTo(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+                onValueChange={setTo}
+                className="mt-1"
               />
             </label>
           </div>
         ) : null}
         <label className="block text-sm text-slate-600">
           Комментарий
-          <textarea
+          <Textarea
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             rows={3}
@@ -1001,7 +949,7 @@ const AvailabilityModal: React.FC<{
                 onClick={() => toggleDay(day.value)}
                 className={`rounded-lg border px-2 py-2 text-sm font-semibold ${
                   form.days.includes(day.value)
-                    ? "border-cyan-600 bg-cyan-50 text-cyan-800"
+                    ? "border-[#0066cc] bg-blue-50 text-[#0066cc]"
                     : "border-slate-200 bg-white text-slate-600"
                 }`}
               >
@@ -1012,24 +960,20 @@ const AvailabilityModal: React.FC<{
         </FormField>
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label="Время с">
-            <input
-              type="time"
-              className={formControlClassName}
+            <TimePicker
               value={form.timeFrom}
-              onChange={(event) => setForm((current) => ({ ...current, timeFrom: event.target.value }))}
+              onValueChange={(timeFrom) => setForm((current) => ({ ...current, timeFrom }))}
             />
           </FormField>
           <FormField label="Время до">
-            <input
-              type="time"
-              className={formControlClassName}
+            <TimePicker
               value={form.timeTo}
-              onChange={(event) => setForm((current) => ({ ...current, timeTo: event.target.value }))}
+              onValueChange={(timeTo) => setForm((current) => ({ ...current, timeTo }))}
             />
           </FormField>
         </div>
         <FormField label="Часовой пояс">
-          <input
+          <Input
             type="text"
             className={formControlClassName}
             value={form.timezone}

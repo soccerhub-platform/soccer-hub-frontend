@@ -1,22 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import {
-  AcademicCapIcon,
-  ArrowRightOnRectangleIcon,
-  CalendarDaysIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CreditCardIcon,
-  DocumentTextIcon,
-  HomeIcon,
-  Squares2X2Icon,
-  UserIcon,
-  UserCircleIcon,
-  UserGroupIcon,
-  ClipboardDocumentCheckIcon,
-} from "@heroicons/react/24/outline";
+import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, ClipboardCheck, CreditCard, FileText, GraduationCap, House, LayoutDashboard, LogOut, User, Users } from "lucide-react";
 import { useAuth } from "../../shared/AuthContext";
 import BrandMark from "../../shared/ui/BrandMark";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../../shared/ui";
 import { useAdminBranch } from "./BranchContext";
 
 const SIDEBAR_COLLAPSED_KEY = "admin.sidebar.collapsed";
@@ -29,16 +16,16 @@ type AdminNavItem = {
 };
 
 const MAIN_NAV_ITEMS: AdminNavItem[] = [
-  { to: "/admin/dashboard", label: "Главная", icon: HomeIcon, end: true },
-  { to: "/admin/leads", label: "Лиды", icon: Squares2X2Icon },
-  { to: "/admin/trials", label: "Пробные", icon: ClipboardDocumentCheckIcon },
-  { to: "/admin/clients", label: "Клиенты", icon: UserIcon },
-  { to: "/admin/students", label: "Ученики", icon: AcademicCapIcon },
-  { to: "/admin/coaches", label: "Тренеры", icon: UserCircleIcon },
-  { to: "/admin/groups", label: "Группы", icon: UserGroupIcon },
-  { to: "/admin/schedule", label: "Расписание", icon: CalendarDaysIcon },
-  { to: "/admin/contracts", label: "Договоры", icon: DocumentTextIcon },
-  { to: "/admin/payments", label: "Платежи", icon: CreditCardIcon },
+  { to: "/admin/dashboard", label: "Главная", icon: House, end: true },
+  { to: "/admin/leads", label: "Лиды", icon: LayoutDashboard },
+  { to: "/admin/trials", label: "Пробные", icon: ClipboardCheck },
+  { to: "/admin/clients", label: "Клиенты", icon: User },
+  { to: "/admin/students", label: "Ученики", icon: GraduationCap },
+  { to: "/admin/coaches", label: "Тренеры", icon: CircleUserRound },
+  { to: "/admin/groups", label: "Группы", icon: Users },
+  { to: "/admin/schedule", label: "Расписание", icon: CalendarDays },
+  { to: "/admin/contracts", label: "Договоры", icon: FileText },
+  { to: "/admin/payments", label: "Платежи", icon: CreditCard },
 ];
 
 const AdminLayout: React.FC = () => {
@@ -84,7 +71,7 @@ const AdminLayout: React.FC = () => {
       sidebarCollapsed ? "justify-center px-0 py-3" : "gap-3 px-3 py-2.5"
     } ${
       isActive
-        ? "bg-admin-50 text-admin-700 shadow-[inset_0_0_0_1px_rgba(15,118,110,0.04)]"
+        ? "bg-blue-50 text-[#0066cc]"
         : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
     }`;
 
@@ -102,7 +89,7 @@ const AdminLayout: React.FC = () => {
           <>
             <Icon
               className={`h-[18px] w-[18px] shrink-0 ${
-                isActive ? "text-admin-600" : "text-slate-400 group-hover:text-admin-600"
+                isActive ? "text-[#0066cc]" : "text-slate-400 group-hover:text-[#0066cc]"
               }`}
             />
             {!sidebarCollapsed ? <span className="min-w-0 truncate">{item.label}</span> : null}
@@ -113,9 +100,9 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden app-bg-admin">
+    <div className="admin-flat-ui flex h-screen overflow-hidden app-bg-admin">
       <aside
-        className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-slate-200 bg-white shadow-sm transition-[width] duration-300 ${
+        className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-black/[0.08] bg-[#fbfbfd] transition-[width] duration-300 ${
           sidebarCollapsed ? "w-[76px]" : "w-[240px]"
         }`}
       >
@@ -137,13 +124,13 @@ const AdminLayout: React.FC = () => {
                 setCollapsed((value) => !value);
                 setProfileMenuOpen(false);
               }}
-              className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-admin-200 hover:text-admin-700 md:flex ${
+              className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-black/[0.08] bg-white text-slate-500 transition hover:border-blue-200 hover:text-[#0066cc] md:flex ${
                 collapsed ? "absolute left-[58px] top-6 z-20" : ""
               }`}
               aria-label={collapsed ? "Открыть меню" : "Свернуть меню"}
               title={collapsed ? "Открыть меню" : "Свернуть меню"}
             >
-              {collapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </button>
           </div>
         </div>
@@ -155,55 +142,27 @@ const AdminLayout: React.FC = () => {
           {MAIN_NAV_ITEMS.map(renderNavItem)}
         </nav>
 
-        <div className="relative px-3 pb-4 pt-2">
-          <button
-            type="button"
-            onClick={() => setProfileMenuOpen((value) => !value)}
-            title={sidebarCollapsed ? "Профиль" : undefined}
-            className={`flex w-full items-center rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-sm transition hover:border-slate-300 hover:bg-slate-50 ${
-              profileMenuOpen ? "border-slate-300 bg-slate-50" : ""
-            } ${sidebarCollapsed ? "justify-center px-0" : "gap-3"}`}
-            aria-expanded={profileMenuOpen}
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white">
-              {(user?.email?.[0] ?? "A").toUpperCase()}
-            </div>
-            {!sidebarCollapsed ? (
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-slate-900">Администратор</div>
-                <div className="truncate text-xs text-slate-500">{branchLabel ?? "Филиал не выбран"}</div>
-              </div>
-            ) : null}
-            {!sidebarCollapsed ? <ChevronRightIcon className={`h-4 w-4 shrink-0 text-slate-400 transition ${profileMenuOpen ? "rotate-90" : ""}`} /> : null}
-          </button>
-
-          {profileMenuOpen ? (
-            <div
-              className={`absolute bottom-[92px] z-30 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10 ${
-                sidebarCollapsed ? "left-3 w-56" : "left-3 right-3"
-              }`}
-            >
+        <div className="px-3 pb-4 pt-2">
+          <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen}>
+            <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                onClick={() => {
-                  setProfileMenuOpen(false);
-                  navigate("/admin/profile");
-                }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                title={sidebarCollapsed ? "Профиль" : undefined}
+                className={`flex w-full items-center rounded-2xl border border-black/[0.08] bg-transparent px-3 py-3 text-left transition hover:border-slate-300 hover:bg-white ${
+                  profileMenuOpen ? "border-slate-300 bg-slate-50" : ""
+                } ${sidebarCollapsed ? "justify-center px-0" : "gap-3"}`}
               >
-                <UserIcon className="h-4 w-4 text-slate-400" />
-                Профиль
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0066cc] text-sm font-semibold text-white">{(user?.email?.[0] ?? "A").toUpperCase()}</div>
+                {!sidebarCollapsed ? <div className="min-w-0 flex-1"><div className="truncate ui-section-title">Администратор</div><div className="truncate text-xs text-slate-500">{branchLabel ?? "Филиал не выбран"}</div></div> : null}
+                {!sidebarCollapsed ? <ChevronRight className={`h-4 w-4 shrink-0 text-slate-400 transition ${profileMenuOpen ? "rotate-90" : ""}`} /> : null}
               </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50"
-              >
-                <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                Выйти
-              </button>
-            </div>
-          ) : null}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
+              <DropdownMenuGroup><DropdownMenuItem onSelect={() => navigate("/admin/profile")}><User />Профиль</DropdownMenuItem></DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup><DropdownMenuItem onSelect={handleLogout} className="text-rose-700 focus:text-rose-700"><LogOut />Выйти</DropdownMenuItem></DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowTopRightOnSquareIcon,
-  BanknotesIcon,
-  CheckCircleIcon,
-  DocumentTextIcon,
-  ExclamationTriangleIcon,
-} from "@heroicons/react/24/outline";
-import { Button } from "../../../shared/ui";
+  ExternalLink,
+  Banknote,
+  CheckCircle,
+  FileText,
+  TriangleAlert,
+} from "lucide-react";
+import { Button, Skeleton } from "../../../shared/ui";
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import { StudentApi } from "./student.api";
 import type { AdminStudentContractsResponse } from "./student.types";
@@ -107,13 +107,13 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
     navigate(`/admin/contracts/${encodeURIComponent(contractId)}/payments?drawer=payment`);
 
   if (loading) {
-    return <div className="h-72 animate-pulse rounded-lg border border-slate-200 bg-white" />;
+    return <Skeleton className="h-72 rounded-lg" />;
   }
 
   if (error) {
     return (
       <div className="rounded-lg border border-rose-200 bg-rose-50 px-5 py-8 text-center">
-        <ExclamationTriangleIcon className="mx-auto h-6 w-6 text-rose-600" />
+        <TriangleAlert className="mx-auto h-6 w-6 text-rose-600" />
         <div className="mt-3 text-sm font-semibold text-rose-900">{error}</div>
       </div>
     );
@@ -122,11 +122,11 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
   if (!data?.items.length) {
     return (
       <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
-        <DocumentTextIcon className="mx-auto h-8 w-8 text-slate-400" />
-        <div className="mt-3 text-sm font-semibold text-slate-900">У ученика пока нет договоров</div>
+        <FileText className="mx-auto h-8 w-8 text-slate-400" />
+        <div className="mt-3 ui-section-title">У ученика пока нет договоров</div>
         <p className="mt-1 text-sm text-slate-500">Создание и оформление доступны в разделе договоров.</p>
         <Button rounded="rounded-md" className="mt-5" onClick={() => navigate("/admin/contracts")}>
-          Открыть договоры <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+          Открыть договоры <ExternalLink className="h-4 w-4" />
         </Button>
       </div>
     );
@@ -142,7 +142,7 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
       {current && (hasDebt || endingSoon) ? (
         <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-start gap-3">
-            <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+            <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
             <div>
               <div className="text-sm font-semibold text-amber-950">Требует внимания</div>
               <div className="mt-0.5 text-sm text-amber-800">
@@ -154,11 +154,11 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
           </div>
           {hasDebt ? (
             <Button rounded="rounded-md" size="sm" onClick={() => addPayment(current.id)}>
-              <BanknotesIcon className="h-4 w-4" /> Добавить оплату
+              <Banknote className="h-4 w-4" /> Добавить оплату
             </Button>
           ) : (
             <Button rounded="rounded-md" size="sm" variant="secondary" onClick={() => openContract(current.id)}>
-              Управлять договором <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+              Управлять договором <ExternalLink className="h-4 w-4" />
             </Button>
           )}
         </div>
@@ -169,7 +169,7 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
           <div className="grid gap-6 px-5 py-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:px-6">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base font-semibold text-slate-950">Договор {current.contractNumber}</h2>
+                <h2 className="ui-card-title">Договор {current.contractNumber}</h2>
                 <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses[current.status]}`}>
                   {statusLabels[current.status]}
                 </span>
@@ -214,11 +214,11 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
               <div className="mt-5 flex flex-col gap-2">
                 {current.status === "ACTIVE" ? (
                   <Button rounded="rounded-md" onClick={() => addPayment(current.id)}>
-                    <BanknotesIcon className="h-4 w-4" /> Добавить оплату
+                    <Banknote className="h-4 w-4" /> Добавить оплату
                   </Button>
                 ) : null}
                 <Button rounded="rounded-md" variant="secondary" onClick={() => openContract(current.id)}>
-                  Открыть договор <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                  Открыть договор <ExternalLink className="h-4 w-4" />
                 </Button>
               </div>
             </aside>
@@ -226,14 +226,14 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
         </section>
       ) : (
         <div className="rounded-lg border border-slate-200 bg-white px-5 py-6">
-          <div className="text-sm font-semibold text-slate-950">Нет текущего договора</div>
+          <div className="ui-section-title">Нет текущего договора</div>
           <p className="mt-1 text-sm text-slate-500">Все договоры ученика находятся в истории.</p>
         </div>
       )}
 
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-950">История договоров</h2>
+          <h2 className="ui-section-title">История договоров</h2>
           <p className="mt-1 text-xs text-slate-500">Предыдущие договоры и их финансовый результат</p>
         </div>
         {history.length ? (
@@ -246,7 +246,7 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
                 className="grid w-full gap-4 px-5 py-4 text-left transition hover:bg-slate-50 md:grid-cols-[minmax(180px,1.3fr)_minmax(160px,1fr)_minmax(170px,0.9fr)_auto] md:items-center"
               >
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-slate-950">{item.contractNumber}</div>
+                  <div className="truncate ui-section-title">{item.contractNumber}</div>
                   <div className="mt-1 text-xs text-slate-500">{formatDate(item.startDate)} — {formatDate(item.endDate)}</div>
                 </div>
                 <div className="flex min-w-0 items-center gap-3">
@@ -254,7 +254,7 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
                   <span className="truncate text-sm text-slate-700">{item.group?.name || "Группа не указана"}</span>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">{formatAmount(item.amount, item.currency)}</div>
+                  <div className="ui-section-title">{formatAmount(item.amount, item.currency)}</div>
                   <div className={`mt-1 text-xs ${item.outstandingAmount > 0 ? "text-rose-600" : "text-slate-500"}`}>
                     {item.outstandingAmount > 0
                       ? `Не оплачено ${formatAmount(item.outstandingAmount, item.currency)}`
@@ -271,7 +271,7 @@ const StudentContractsTab = ({ playerId }: { playerId: string }) => {
           </div>
         ) : (
           <div className="flex items-center gap-3 px-5 py-8 text-sm text-slate-500">
-            <CheckCircleIcon className="h-5 w-5 text-emerald-600" /> Предыдущих договоров нет
+            <CheckCircle className="h-5 w-5 text-emerald-600" /> Предыдущих договоров нет
           </div>
         )}
       </section>

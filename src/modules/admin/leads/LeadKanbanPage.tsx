@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import {
-  ChartBarIcon,
-  ClockIcon,
-  FunnelIcon,
-  PlusIcon,
-  UserGroupIcon,
-} from "@heroicons/react/24/outline";
+  ChartBar,
+  Clock3,
+  ListFilter,
+  Plus,
+  Users,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../shared/AuthContext";
@@ -15,6 +15,7 @@ import {
   ErrorState,
   PageHeader,
   PageShell,
+  Skeleton,
 } from "../../../shared/ui";
 import { useAdminBranch } from "../BranchContext";
 import LeadKanbanColumn from "./LeadKanbanColumn";
@@ -25,7 +26,6 @@ import {
   LeadLossReason,
   LEAD_COLUMN_ORDER,
   LeadColumnStatus,
-  LeadStatus,
 } from "./types";
 import { LeadApi } from "./lead.api";
 import QualifyLeadModal from "./QualifyLeadModal";
@@ -319,12 +319,12 @@ const LeadKanbanPage: React.FC = () => {
         actions={
           <>
             <Button type="button" variant="secondary" className="gap-2">
-              <FunnelIcon className="h-4 w-4" />
+              <ListFilter className="h-4 w-4" />
               Фильтры
               <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">2</span>
             </Button>
             <Button type="button" onClick={() => setShowCreateModal(true)}>
-              <PlusIcon className="h-4 w-4" />
+              <Plus className="h-4 w-4" />
               Новый лид
             </Button>
           </>
@@ -333,15 +333,15 @@ const LeadKanbanPage: React.FC = () => {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "Новые", value: columns.NEW?.length ?? 0, hint: "+6 за неделю", tone: "text-violet-600", icon: FunnelIcon },
-          { label: "Требуют действия", value: activeLeadCount, hint: overdueTrialCount ? `Просрочено: ${overdueTrialCount}` : "Всё под контролем", tone: "text-orange-600", icon: ClockIcon },
-          { label: "Пробные сегодня", value: trialCount, hint: "+2 подтверждено", tone: "text-blue-600", icon: UserGroupIcon },
-          { label: "Конверсия (мес)", value: `${conversionRate}%`, hint: `${convertedCount} из ${allLeads.length} лидов`, tone: "text-violet-600", icon: ChartBarIcon },
+          { label: "Новые", value: columns.NEW?.length ?? 0, hint: "+6 за неделю", tone: "text-violet-600", icon: ListFilter },
+          { label: "Требуют действия", value: activeLeadCount, hint: overdueTrialCount ? `Просрочено: ${overdueTrialCount}` : "Всё под контролем", tone: "text-orange-600", icon: Clock3 },
+          { label: "Пробные сегодня", value: trialCount, hint: "+2 подтверждено", tone: "text-blue-600", icon: Users },
+          { label: "Конверсия (мес)", value: `${conversionRate}%`, hint: `${convertedCount} из ${allLeads.length} лидов`, tone: "text-violet-600", icon: ChartBar },
         ].map(({ label, value, hint, tone, icon: Icon }) => (
-          <div key={label} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_10px_30px_-28px_rgba(15,23,42,0.55)]">
+          <div key={label} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3">
             <div>
               <div className="text-xs font-medium text-slate-500">{label}</div>
-              <div className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{value}</div>
+              <div className="mt-1 ui-metric-value">{value}</div>
               <div className={`mt-1 text-[11px] font-medium ${tone}`}>{hint}</div>
             </div>
             <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 ${tone}`}>
@@ -353,9 +353,9 @@ const LeadKanbanPage: React.FC = () => {
 
       {error ? <ErrorState message={error} onRetry={refreshKanban} /> : null}
 
-      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_16px_44px_-36px_rgba(15,23,42,0.55)]">
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3">
           <div className="mb-3 flex items-center justify-between px-1">
-            <div className="text-sm font-semibold text-slate-900">Активная воронка</div>
+            <div className="ui-section-title">Активная воронка</div>
             <div className="text-xs text-slate-400">{activeLeadCount} лидов</div>
           </div>
           <div className="w-full min-w-0 overflow-x-auto pb-2">
@@ -363,8 +363,8 @@ const LeadKanbanPage: React.FC = () => {
               <div className="flex w-max min-w-max gap-4">
                 {LEAD_COLUMN_ORDER.map((status) => (
                   <div key={status} className="h-[calc(100vh-20rem)] w-[280px] shrink-0 rounded-2xl border border-slate-200 bg-white p-3">
-                    <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
-                    <div className="mt-3 space-y-3">{Array.from({ length: 4 }).map((_, index) => <div key={`${status}-${index}`} className="h-28 animate-pulse rounded-xl bg-slate-100" />)}</div>
+                    <Skeleton className="h-12 rounded-xl" />
+                    <div className="mt-3 flex flex-col gap-3">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={`${status}-${index}`} className="h-28 rounded-xl" />)}</div>
                   </div>
                 ))}
               </div>
@@ -400,7 +400,7 @@ const LeadKanbanPage: React.FC = () => {
             onSuccess={async (trialId) => {
             await refreshKanban();
             setTrialLead(null);
-            if (trialId) navigate(`/admin/trials/${trialId}/overview`);
+            if (trialId) navigate(`/admin/trials/${trialId}`);
           }}
         />
       ) : null}

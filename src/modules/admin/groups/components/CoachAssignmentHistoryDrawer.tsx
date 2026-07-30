@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import {
-  ArrowRightIcon,
-  CalendarDaysIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  UserIcon,
-} from "@heroicons/react/24/outline";
+  ArrowRight,
+  CalendarDays,
+  CheckCircle,
+  Clock3,
+  User,
+} from "lucide-react";
 import { useAuth } from "../../../../shared/AuthContext";
 import { getApiErrorMessage, resolveApiUrl } from "../../../../shared/api";
 import { EmptyState, ErrorState, LoadingState, ModalShell } from "../../../../shared/ui";
@@ -55,7 +55,7 @@ const HistoryAvatar: React.FC<{
   }
 
   return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-50 text-xs font-bold text-cyan-800 ring-1 ring-cyan-100">
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-[#0066cc] ring-1 ring-blue-100">
       {initials(firstName, lastName)}
     </span>
   );
@@ -109,7 +109,7 @@ const CoachAssignmentHistoryDrawer: React.FC<Props> = ({ groupId, onClose }) => 
             return (
               <div key={item.groupCoachId} className="relative py-4 pl-7">
                 <span className={`absolute left-0 top-5 flex h-5 w-5 items-center justify-center rounded-full ${item.active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                  {item.active ? <CheckCircleIcon className="h-4 w-4" /> : <ClockIcon className="h-4 w-4" />}
+                  {item.active ? <CheckCircle className="h-4 w-4" /> : <Clock3 className="h-4 w-4" />}
                 </span>
 
                 <div className="flex items-start gap-3">
@@ -123,16 +123,16 @@ const CoachAssignmentHistoryDrawer: React.FC<Props> = ({ groupId, onClose }) => 
                       ) : (
                         <span className="font-semibold text-slate-700">Тренер недоступен</span>
                       )}
-                      <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${item.role === "MAIN" ? "border-cyan-100 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                      <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${item.role === "MAIN" ? "border-blue-100 bg-blue-50 text-[#0066cc]" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
                         {roleLabel(item.role)}
                       </span>
                       {item.active ? <span className="text-xs font-medium text-emerald-700">Текущее</span> : null}
                     </div>
 
                     <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                      <CalendarDaysIcon className="h-4 w-4" />
+                      <CalendarDays className="h-4 w-4" />
                       <span>{formatDate(item.assignedFrom)}</span>
-                      <ArrowRightIcon className="h-3.5 w-3.5" />
+                      <ArrowRight className="h-3.5 w-3.5" />
                       <span>{item.active ? "по настоящее время" : formatDate(item.assignedTo)}</span>
                     </div>
 
@@ -142,7 +142,7 @@ const CoachAssignmentHistoryDrawer: React.FC<Props> = ({ groupId, onClose }) => 
 
                     {!item.active && item.replacementCoach ? (
                       <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                        <UserIcon className="h-4 w-4" />
+                        <User className="h-4 w-4" />
                         <span>Работа передана:</span>
                         <CoachProfileLink coachId={item.replacementCoach.id} className="text-xs">
                           {item.replacementCoach.firstName} {item.replacementCoach.lastName}

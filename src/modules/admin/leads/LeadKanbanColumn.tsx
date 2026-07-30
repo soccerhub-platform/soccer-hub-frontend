@@ -28,13 +28,13 @@ const LeadKanbanColumn: React.FC<LeadKanbanColumnProps> = ({
 }) => {
   return (
     <section
-      className="flex h-[calc(100vh-20rem)] w-[280px] min-w-[280px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      className="flex h-[calc(100vh-20rem)] w-[280px] min-w-[280px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white"
     >
       <header
         className="sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-3"
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold tracking-wide text-slate-800">
+          <h2 className="ui-section-title tracking-wide">
             {title}
           </h2>
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${theme.badge}`}>

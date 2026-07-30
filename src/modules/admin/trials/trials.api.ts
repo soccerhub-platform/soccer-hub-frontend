@@ -75,12 +75,12 @@ export const trialStatusLabels: Record<TrialBookingStatus, string> = {
   COMPLETED: "Завершено",
 };
 
-export const trialStatusTone: Record<TrialBookingStatus, string> = {
-  SCHEDULED: "bg-cyan-50 text-cyan-700",
-  CONFIRMED: "bg-emerald-50 text-emerald-700",
-  CANCELED: "bg-rose-50 text-rose-700",
-  COMPLETED: "bg-slate-100 text-slate-600",
-};
+export const trialStatusTone = {
+  SCHEDULED: "info",
+  CONFIRMED: "success",
+  CANCELED: "danger",
+  COMPLETED: "neutral",
+} as const satisfies Record<TrialBookingStatus, "info" | "success" | "danger" | "neutral">;
 
 export const attendanceLabels: Record<TrialAttendanceStatus, string> = {
   UNMARKED: "Не отмечено",

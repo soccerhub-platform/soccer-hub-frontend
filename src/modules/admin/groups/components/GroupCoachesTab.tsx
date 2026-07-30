@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from "react";
 import {
-  UserMinusIcon,
-  ArrowPathIcon,
-  UserPlusIcon,
-  EllipsisHorizontalIcon,
-  BriefcaseIcon,
-  CalendarDaysIcon,
-  ClockIcon,
-} from "@heroicons/react/24/outline";
+  UserMinus,
+  RefreshCw,
+  UserPlus,
+  Briefcase,
+  CalendarDays,
+  Clock3,
+} from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../../shared/AuthContext";
 import { GroupApi, GroupCoachApiModel } from "../group.api";
 import AssignCoachModal from "./AssignCoachModal";
 import { useAdminBranch } from "../../BranchContext";
 import {
+  ActionMenu,
   Button,
   EmptyState,
   ErrorState,
@@ -38,7 +38,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_STYLES: Record<string, string> = {
-  MAIN: "border-cyan-100 bg-cyan-50 text-cyan-800",
+  MAIN: "border-blue-100 bg-blue-50 text-[#0066cc]",
   ASSISTANT: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
@@ -73,10 +73,10 @@ const CoachAvatar: React.FC<{ firstName: string; lastName: string; avatar?: Medi
   useEffect(() => setFailed(false), [src]);
 
   if (src && !failed) {
-    return <img src={src} alt={`Фото ${firstName} ${lastName}`} className="h-10 w-10 rounded-full border border-white object-cover shadow-sm ring-1 ring-slate-200" onError={() => setFailed(true)} />;
+    return <img src={src} alt={`Фото ${firstName} ${lastName}`} className="h-10 w-10 rounded-full border border-white object-cover ring-1 ring-slate-200" onError={() => setFailed(true)} />;
   }
 
-  return <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-cyan-100 text-xs font-bold text-slate-700 ring-1 ring-slate-200">{coachInitials(firstName, lastName)}</span>;
+  return <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-blue-100 text-xs font-bold text-slate-700 ring-1 ring-slate-200">{coachInitials(firstName, lastName)}</span>;
 };
 
 const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) => {
@@ -90,7 +90,6 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const drawer = searchParams.get("drawer");
   const selectedGroupCoachId = searchParams.get("groupCoachId");
   const preferredRole = searchParams.get("action") === "assign-main" ? "MAIN" : "ASSISTANT";
@@ -141,7 +140,6 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
   const updateCoachRole = async (coach: GroupCoachApiModel, role: "MAIN" | "ASSISTANT") => {
     if (!token || coach.coachRole === role) return;
     setUpdatingRoleId(coach.groupCoachId);
-    setOpenMenuId(null);
     try {
       await GroupApi.updateCoachRole(coach.groupCoachId, role, token);
       toast.success(role === "MAIN" ? "Назначен главный тренер" : "Роль изменена на ассистента");
@@ -163,9 +161,9 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-base font-semibold text-slate-950">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-50 text-cyan-700">
-                <UserPlusIcon className="h-4 w-4" />
+            <div className="flex items-center gap-2 ui-card-title">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]">
+                <UserPlus className="h-4 w-4" />
               </span>
               Тренеры
             </div>
@@ -176,11 +174,11 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
 
         <div className="flex flex-wrap gap-2">
           <Button type="button" size="sm" variant="secondary" onClick={() => openDrawer("coach-history")}>
-            <ClockIcon className="h-4 w-4" />
+            <Clock3 className="h-4 w-4" />
             История
           </Button>
           <Button type="button" size="sm" variant="secondary" onClick={loadCoaches} disabled={loading}>
-            <ArrowPathIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Обновить
           </Button>
           <Button
@@ -189,7 +187,7 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
             disabled={!branchId}
             onClick={() => openDrawer("assign-coach")}
           >
-            <UserPlusIcon className="h-4 w-4" />
+            <UserPlus className="h-4 w-4" />
             Назначить тренера
           </Button>
         </div>
@@ -249,58 +247,29 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
 
               <div className="min-w-0">
                 <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="inline-flex items-center gap-1.5 font-medium text-slate-700"><BriefcaseIcon className="h-4 w-4 text-slate-400" />{coach.load?.weeklySessionsCount ?? 0} из {coach.load?.maxWeeklySessions ?? 12}</span>
+                  <span className="inline-flex items-center gap-1.5 font-medium text-slate-700"><Briefcase className="h-4 w-4 text-slate-400" />{coach.load?.weeklySessionsCount ?? 0} из {coach.load?.maxWeeklySessions ?? 12}</span>
                   <span className="text-slate-400">{coach.load?.groupsCount ?? 1} гр.</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                  <div className={`h-full rounded-full ${coach.load?.status === "OVERLOADED" ? "bg-rose-500" : coach.load?.status === "HIGH" ? "bg-amber-500" : "bg-cyan-600"}`} style={{ width: `${Math.min(coach.load?.percentage ?? 0, 100)}%` }} />
+                  <div className={`h-full rounded-full ${coach.load?.status === "OVERLOADED" ? "bg-rose-500" : coach.load?.status === "HIGH" ? "bg-amber-500" : "bg-[#0066cc]"}`} style={{ width: `${Math.min(coach.load?.percentage ?? 0, 100)}%` }} />
                 </div>
               </div>
 
               <div className="text-xs">
                 {coach.nextSession ? (
-                  <Link to={`/admin/groups/${groupId}/sessions/${coach.nextSession.sessionId}`} className="group inline-flex items-start gap-2 font-medium text-slate-700 hover:text-cyan-700">
-                    <CalendarDaysIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 group-hover:text-cyan-600" />
+                  <Link to={`/admin/groups/${groupId}/sessions/${coach.nextSession.sessionId}`} className="group inline-flex items-start gap-2 font-medium text-slate-700 hover:text-[#0066cc]">
+                    <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 group-hover:text-[#0066cc]" />
                     <span><span className="block">{formatDate(coach.nextSession.sessionDate)}</span><span className="mt-0.5 block text-slate-400">{coach.nextSession.startsAt.slice(0, 5)}{coach.nextSession.endsAt ? `–${coach.nextSession.endsAt.slice(0, 5)}` : ""}</span></span>
                   </Link>
                 ) : <span className="text-slate-400">Не запланировано</span>}
               </div>
 
-              <div className="relative md:justify-self-end">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  isLoading={updatingRoleId === coach.groupCoachId}
-                  onClick={() => setOpenMenuId((current) => current === coach.groupCoachId ? null : coach.groupCoachId)}
-                  className="h-9 w-9 justify-center p-0"
-                  aria-label={`Действия с тренером ${coach.coachFirstName} ${coach.coachLastName}`}
-                  aria-expanded={openMenuId === coach.groupCoachId}
-                >
-                  <EllipsisHorizontalIcon className="h-4 w-4" />
-                </Button>
-                {openMenuId === coach.groupCoachId ? (
-                  <div className="absolute bottom-10 right-0 z-30 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-xl">
-                    {coach.coachRole !== "MAIN" && coach.capabilities?.canSetMain !== false ? (
-                      <button type="button" className="block w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-50" onClick={() => updateCoachRole(coach, "MAIN")}>Сделать главным</button>
-                    ) : null}
-                    {coach.coachRole !== "ASSISTANT" && coach.capabilities?.canSetAssistant !== false ? (
-                      <button type="button" className="block w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-50" onClick={() => updateCoachRole(coach, "ASSISTANT")}>Сделать ассистентом</button>
-                    ) : null}
-                    <button
-                      type="button"
-                      disabled={coach.capabilities?.canUnassign === false}
-                      className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300"
-                      onClick={() => {
-                        setOpenMenuId(null);
-                        openDrawer("remove-coach", coach.groupCoachId);
-                      }}
-                    >
-                      <UserMinusIcon className="h-4 w-4" />
-                      Убрать из группы
-                    </button>
-                  </div>
-                ) : null}
+              <div className="md:justify-self-end">
+                <ActionMenu compact label={`Действия с тренером ${coach.coachFirstName} ${coach.coachLastName}`} items={[
+                  ...(coach.coachRole !== "MAIN" && coach.capabilities?.canSetMain !== false ? [{ key: "main", label: "Сделать главным", disabled: updatingRoleId === coach.groupCoachId, onSelect: () => void updateCoachRole(coach, "MAIN") }] : []),
+                  ...(coach.coachRole !== "ASSISTANT" && coach.capabilities?.canSetAssistant !== false ? [{ key: "assistant", label: "Сделать ассистентом", disabled: updatingRoleId === coach.groupCoachId, onSelect: () => void updateCoachRole(coach, "ASSISTANT") }] : []),
+                  { key: "remove", label: "Убрать из группы", icon: <UserMinus />, danger: true, separatorBefore: true, disabled: coach.capabilities?.canUnassign === false, onSelect: () => openDrawer("remove-coach", coach.groupCoachId) },
+                ]} />
               </div>
             </div>
           ))}

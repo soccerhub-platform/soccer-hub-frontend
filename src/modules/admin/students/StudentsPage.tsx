@@ -1,35 +1,58 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowDownTrayIcon,
-  ArrowPathIcon,
-  CalendarDaysIcon,
-  CheckCircleIcon,
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CreditCardIcon,
-  DocumentTextIcon,
-  EllipsisVerticalIcon,
-  ExclamationTriangleIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  ArrowsUpDownIcon,
-  PhotoIcon,
-  TrashIcon,
-  UserGroupIcon,
-  WalletIcon,
-} from "@heroicons/react/24/outline";
+  useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Download,
+  RefreshCw,
+  CalendarDays,
+  CheckCircle,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  FileText,
+  MoreVertical,
+  TriangleAlert,
+  ListFilter,
+  Search,
+  ArrowUpDown,
+  Image,
+  Trash2,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import {
+  Input,
+  NativeSelect,
   Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
   EmptyState,
   ErrorState,
+  InteractiveTableRow,
   LoadingState,
+  MetricCard,
   ModalShell,
+  PageHeader,
   PageShell,
-} from "../../../shared/ui";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  StatusBadge,
+  type StatusTone,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+   } from "../../../shared/ui";
 import { useAuth } from "../../../shared/AuthContext";
 import { useAdminBranch } from "../BranchContext";
 import { GroupApi } from "../groups/group.api";
@@ -227,14 +250,14 @@ const riskLabel = (risk: StudentRisk) => {
   }
 };
 
-const riskClassName = (severity: StudentRiskSeverity) => {
+const riskTone = (severity: StudentRiskSeverity): StatusTone => {
   switch (severity) {
     case "CRITICAL":
-      return "border-rose-200 bg-rose-50 text-rose-700";
+      return "danger";
     case "WARNING":
-      return "border-amber-200 bg-amber-50 text-amber-800";
+      return "warning";
     default:
-      return "border-slate-200 bg-slate-50 text-slate-700";
+      return "neutral";
   }
 };
 
@@ -258,7 +281,7 @@ const membershipStatusLabel = (status?: string | null) => {
 const membershipStatusClassName = (status?: string | null) => {
   switch (status) {
     case "UPCOMING":
-      return "border-cyan-100 bg-cyan-50 text-cyan-800";
+      return "border-blue-100 bg-blue-50 text-[#0066cc]";
     case "ACTIVE":
       return "border-emerald-100 bg-emerald-50 text-emerald-800";
     case "TRANSFERRED":
@@ -503,36 +526,30 @@ const StudentsPage: React.FC = () => {
   }
 
   return (
-    <PageShell className="max-w-none space-y-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="heading-font text-[28px] font-semibold leading-tight text-slate-950">Ученики</h1>
-          <p className="mt-1.5 text-sm text-slate-500">
-            {summary.total} учеников
-            <span className="mx-2 text-cyan-700">• {summary.paid} оплачены</span>
-            <span className="mx-2 text-emerald-700">• {summary.withDebt} с долгом</span>
-            <span className="mx-2 text-rose-600">• {summary.withRisks} с рисками</span>
-            {branchName ? <span className="ml-2 text-slate-400">{branchName}</span> : null}
-          </p>
-        </div>
-        <Button type="button" variant="secondary" onClick={() => void loadStudents("refresh")} isLoading={refreshing}>
-          <ArrowPathIcon className="h-4 w-4" />
-          Обновить
-        </Button>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Ученики"
+        description={branchName ? `Игроки клуба, платежные статусы и риски · ${branchName}` : "Игроки клуба, платежные статусы и риски"}
+        actions={
+          <Button type="button" variant="secondary" onClick={() => void loadStudents("refresh")} isLoading={refreshing}>
+            <RefreshCw className="h-4 w-4" />
+            Обновить
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <MetricCard icon={<UserGroupIcon className="h-5 w-5" />} label="Всего" value={summary.total} tone="info" />
-        <MetricCard icon={<CheckCircleIcon className="h-5 w-5" />} label="Оплачены" value={summary.paid} tone="success" />
-        <MetricCard icon={<WalletIcon className="h-5 w-5" />} label="С долгом" value={summary.withDebt} tone="danger" />
-        <MetricCard icon={<ExclamationTriangleIcon className="h-5 w-5" />} label="С рисками" value={summary.withRisks} tone="warning" />
+        <MetricCard icon={<Users className="h-5 w-5" />} title="Всего" value={summary.total} tone="info" />
+        <MetricCard icon={<CheckCircle className="h-5 w-5" />} title="Оплачены" value={summary.paid} tone="success" />
+        <MetricCard icon={<Wallet className="h-5 w-5" />} title="С долгом" value={summary.withDebt} tone="danger" />
+        <MetricCard icon={<TriangleAlert className="h-5 w-5" />} title="С рисками" value={summary.withRisks} tone="warning" />
       </div>
 
-      <div className="relative rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="relative rounded-2xl border border-slate-200 bg-white p-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
           <div className="relative min-w-0 flex-1">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            <input
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <Input
               type="search"
               value={search}
               onChange={(event) => {
@@ -540,41 +557,28 @@ const StudentsPage: React.FC = () => {
                 setPage(0);
               }}
               placeholder="Поиск ученика, родителя, телефона или договора"
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
             />
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSortOpen((value) => !value);
-              setFiltersOpen(false);
-            }}
-            className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition ${
-              sortOpen
-                ? "border-cyan-700 bg-cyan-50 text-cyan-800"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
-            }`}
-          >
-            <ArrowsUpDownIcon className="h-4 w-4" />
-            {sort.label}
-            <ChevronDownIcon className={`h-4 w-4 transition ${sortOpen ? "rotate-180" : ""}`} />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFiltersOpen((value) => !value);
-              setSortOpen(false);
-            }}
-            className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition ${
-              filtersOpen || activeFilters.length > 0
-                ? "border-cyan-700 bg-cyan-50 text-cyan-800"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
-            }`}
-          >
-            <FunnelIcon className="h-4 w-4" />
-            Фильтры
-            <ChevronDownIcon className={`h-4 w-4 transition ${filtersOpen ? "rotate-180" : ""}`} />
-          </button>
+          <DropdownMenu open={sortOpen} onOpenChange={(open) => { setSortOpen(open); if (open) setFiltersOpen(false); }}>
+            <DropdownMenuTrigger asChild><Button type="button" variant={sortOpen ? "soft" : "secondary"}><ArrowUpDown data-icon="inline-start" />{sort.label}<ChevronDown data-icon="inline-end" /></Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[min(340px,calc(100vw-2rem))]">
+              <DropdownMenuLabel>Сортировка</DropdownMenuLabel>
+              <DropdownMenuGroup>{STUDENT_SORT_OPTIONS.map((item) => <DropdownMenuItem key={studentSortValue(item)} onSelect={() => changeSort(studentSortValue(item))} className="justify-between">{item.label}{studentSortValue(item) === studentSortValue(sort) ? <CheckCircle /> : null}</DropdownMenuItem>)}</DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Popover open={filtersOpen} onOpenChange={(open) => { setFiltersOpen(open); if (open) setSortOpen(false); }}>
+            <PopoverTrigger asChild><Button type="button" variant={filtersOpen || activeFilters.length > 0 ? "soft" : "secondary"}><ListFilter data-icon="inline-start" />Фильтры<ChevronDown data-icon="inline-end" /></Button></PopoverTrigger>
+            <PopoverContent align="end" className="w-[min(360px,calc(100vw-2rem))] p-4">
+              <div className="flex flex-col gap-3">
+                <FilterSelect label="Оплата" value={paymentStatus} onChange={(value) => { setPaymentStatus(value as PaymentFilter); setPage(0); }}><option value="all">Любая</option><option value="PAID">Оплачено</option><option value="PARTIALLY_PAID">Частично</option><option value="UNPAID">Долг</option></FilterSelect>
+                <FilterSelect label="Договор" value={contractStatus} onChange={(value) => { setContractStatus(value as ContractFilter); setPage(0); }}><option value="all">Любой</option><option value="ACTIVE">Активный</option><option value="UPCOMING">Скоро начнется</option><option value="EXPIRED">Истек</option><option value="CANCELLED">Отменен</option></FilterSelect>
+                <FilterSelect label="Группа" value={groupId} onChange={(value) => { setGroupId(value); setPage(0); }} disabled={groupsLoading}><option value="all">{groupsLoading ? "Группы загружаются..." : "Любая"}</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</FilterSelect>
+                <FilterSelect label="Посещаемость" value={risk === "LOW_ATTENDANCE" ? "LOW_ATTENDANCE" : "all"} onChange={(value) => setQuickRisk(value === "LOW_ATTENDANCE" ? "LOW_ATTENDANCE" : "all")}><option value="all">Любая</option><option value="LOW_ATTENDANCE">Низкая</option></FilterSelect>
+                <div className="flex gap-2"><Button type="button" variant="secondary" className="flex-1" onClick={resetFilters}>Сбросить</Button><Button type="button" className="flex-1" onClick={() => setFiltersOpen(false)}>Применить</Button></div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <QuickRiskFilters value={risk} summary={summary} onChange={setQuickRisk} />
@@ -583,87 +587,30 @@ const StudentsPage: React.FC = () => {
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
             <span className="text-slate-500">Активные фильтры:</span>
             {activeFilters.map((item) => (
-              <button
+              <Button
                 key={item.key}
                 type="button"
+                variant="secondary"
+                size="sm"
+                rounded="rounded-full"
                 onClick={() => {
                   item.onRemove();
                   setPage(0);
                 }}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
               >
                 {item.label}
                 <span className="text-slate-400">×</span>
-              </button>
+              </Button>
             ))}
-            <button type="button" onClick={resetFilters} className="text-sm font-semibold text-cyan-700 hover:text-cyan-900">
+            <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>
               Сбросить все
-            </button>
+            </Button>
           </div>
         ) : null}
 
-        {sortOpen ? (
-          <div className="absolute right-3 top-[64px] z-20 w-[min(340px,calc(100vw-2rem))] rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
-            <div className="px-3 py-2 text-xs font-semibold uppercase text-slate-400">Сортировка</div>
-            {STUDENT_SORT_OPTIONS.map((item) => {
-              const active = studentSortValue(item) === studentSortValue(sort);
-              return (
-                <button
-                  key={studentSortValue(item)}
-                  type="button"
-                  onClick={() => changeSort(studentSortValue(item))}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${
-                    active ? "bg-cyan-50 text-cyan-800" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  {item.label}
-                  {active ? <span className="h-2 w-2 rounded-full bg-cyan-700" /> : null}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-
-        {filtersOpen ? (
-          <div className="absolute right-3 top-[64px] z-20 w-[min(360px,calc(100vw-2rem))] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/10">
-            <FilterSelect label="Оплата" value={paymentStatus} onChange={(value) => { setPaymentStatus(value as PaymentFilter); setPage(0); }}>
-              <option value="all">Любая</option>
-              <option value="PAID">Оплачено</option>
-              <option value="PARTIALLY_PAID">Частично</option>
-              <option value="UNPAID">Долг</option>
-            </FilterSelect>
-            <FilterSelect label="Договор" value={contractStatus} onChange={(value) => { setContractStatus(value as ContractFilter); setPage(0); }}>
-              <option value="all">Любой</option>
-              <option value="ACTIVE">Активный</option>
-              <option value="UPCOMING">Скоро начнется</option>
-              <option value="EXPIRED">Истек</option>
-              <option value="CANCELLED">Отменен</option>
-            </FilterSelect>
-            <FilterSelect label="Группа" value={groupId} onChange={(value) => { setGroupId(value); setPage(0); }} disabled={groupsLoading}>
-              <option value="all">{groupsLoading ? "Группы загружаются..." : "Любая"}</option>
-              {groups.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </FilterSelect>
-            <FilterSelect label="Посещаемость" value={risk === "LOW_ATTENDANCE" ? "LOW_ATTENDANCE" : "all"} onChange={(value) => setQuickRisk(value === "LOW_ATTENDANCE" ? "LOW_ATTENDANCE" : "all")}>
-              <option value="all">Любая</option>
-              <option value="LOW_ATTENDANCE">Низкая</option>
-            </FilterSelect>
-            <div className="mt-4 flex gap-2">
-              <Button type="button" variant="secondary" className="flex-1" onClick={resetFilters}>
-                Сбросить
-              </Button>
-              <Button type="button" className="flex-1" onClick={() => setFiltersOpen(false)}>
-                Применить
-              </Button>
-            </div>
-          </div>
-        ) : null}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {error ? (
           <ErrorState message={error} onRetry={() => void loadStudents("refresh")} />
         ) : loading ? (
@@ -671,17 +618,9 @@ const StudentsPage: React.FC = () => {
         ) : students.length === 0 ? (
           <EmptyState title="Ученики не найдены" description="Измените фильтры или проверьте выбранный филиал." />
         ) : (
-          <div className="divide-y divide-slate-200 bg-white">
-            <div className="hidden grid-cols-[minmax(240px,1.25fr)_116px_minmax(130px,0.65fr)_124px_136px_136px_1fr_54px] items-center gap-4 bg-white px-5 py-4 text-sm font-semibold text-slate-500 lg:grid">
-              <span>Ученик</span>
-              <span>Создан</span>
-              <span>Группа</span>
-              <span>Оплата</span>
-              <span>Договор до</span>
-              <span>Посещаемость</span>
-              <span>Риски</span>
-              <span />
-            </div>
+          <Table className="min-w-[1120px]">
+            <TableHeader><TableRow className="hover:bg-transparent"><TableHead>Ученик</TableHead><TableHead>Создан</TableHead><TableHead>Группа</TableHead><TableHead>Оплата</TableHead><TableHead>Договор до</TableHead><TableHead>Посещаемость</TableHead><TableHead>Риски</TableHead><TableHead className="w-12" /></TableRow></TableHeader>
+            <TableBody>
             {students.map((student) => (
               <StudentRow
                 key={student.playerId}
@@ -696,7 +635,8 @@ const StudentsPage: React.FC = () => {
                 onOpenGroup={() => (student.groupId ? navigate(`/admin/groups/${student.groupId}/overview`) : undefined)}
               />
             ))}
-          </div>
+            </TableBody>
+          </Table>
         )}
       </div>
 
@@ -711,7 +651,7 @@ const StudentsPage: React.FC = () => {
             onClick={() => setPage((value) => Math.max(0, value - 1))}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 disabled:text-slate-300"
           >
-            <ChevronLeftIcon className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
           </button>
           {Array.from({ length: Math.min(totalPages, 3) }, (_, index) => index).map((index) => (
             <button
@@ -719,7 +659,7 @@ const StudentsPage: React.FC = () => {
               type="button"
               onClick={() => setPage(index)}
               className={`flex h-9 min-w-9 items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${
-                page === index ? "bg-cyan-700 text-white" : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                page === index ? "bg-[#0066cc] text-white" : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
               }`}
             >
               {index + 1}
@@ -731,7 +671,7 @@ const StudentsPage: React.FC = () => {
             onClick={() => setPage((value) => value + 1)}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 disabled:text-slate-300"
           >
-            <ChevronRightIcon className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -765,61 +705,57 @@ const StudentRow: React.FC<{
   onOpenContract: () => void | undefined;
   onOpenGroup: () => void | undefined;
 }> = ({ student, onOpen, onAvatarExpired, onOpenGroup }) => (
-  <article className="grid gap-3 bg-white px-4 py-4 transition hover:bg-slate-50 lg:grid-cols-[minmax(240px,1.25fr)_116px_minmax(130px,0.65fr)_124px_136px_136px_1fr_54px] lg:items-center lg:gap-4">
-    <div className="flex min-w-0 gap-3">
+  <InteractiveTableRow onOpen={onOpen}>
+    <TableCell><div className="flex min-w-0 gap-3">
       <StudentAvatar name={student.playerName} avatar={student.avatar} size="md" onImageError={onAvatarExpired} />
       <div className="min-w-0">
-        <button
-          type="button"
-          onClick={onOpen}
-          className="block min-w-0 truncate text-left text-[15px] font-semibold text-slate-950 transition hover:text-cyan-800"
-        >
+        <span className="block min-w-0 truncate text-left text-[15px] font-semibold text-slate-950">
           {student.playerName}
-        </button>
+        </span>
         <div className="mt-1 text-sm text-slate-500">{student.age ? `${student.age} лет` : "Возраст не указан"}</div>
         <div className="mt-1 text-xs text-slate-500">Родитель: {student.parentName}</div>
         <div className="mt-1 text-xs text-slate-500">{student.phone || "Телефон не указан"}</div>
       </div>
-    </div>
+    </div></TableCell>
 
-    <div className="text-sm">
+    <TableCell className="text-sm">
       <div className="font-semibold text-slate-900">{formatDate(student.createdAt)}</div>
       <div className="mt-1 text-xs text-slate-500 lg:hidden">Создан</div>
-    </div>
+    </TableCell>
 
-    <div className="min-w-0 text-sm">
+    <TableCell className="min-w-0 text-sm">
       <button
         type="button"
         onClick={student.groupId ? onOpenGroup : undefined}
-        className="truncate font-semibold text-slate-900 transition hover:text-cyan-800 disabled:hover:text-slate-900"
+        className="truncate font-semibold text-slate-900 transition hover:text-[#0066cc] disabled:hover:text-slate-900"
         disabled={!student.groupId}
       >
         {student.groupName || "Без группы"}
       </button>
       <div className="mt-0.5 truncate text-xs text-slate-500">{student.coachName || "Тренер не указан"}</div>
-    </div>
+    </TableCell>
 
-    <div className="text-sm">
+    <TableCell className="text-sm">
       <div className={`font-semibold ${Number(student.outstandingAmount ?? 0) > 0 ? "text-rose-600" : "text-emerald-700"}`}>
         {paymentStatusLabel(student.paymentStatus) === "Нет договора" ? "—" : paymentStatusLabel(student.paymentStatus)}
       </div>
       <div className={`mt-1 font-semibold ${Number(student.outstandingAmount ?? 0) > 0 ? "text-rose-600" : "text-emerald-700"}`}>
         {formatAmount(student.outstandingAmount)}
       </div>
-    </div>
+    </TableCell>
 
-    <div className="text-sm">
+    <TableCell className="text-sm">
       <div className="font-semibold text-slate-900">{formatDate(student.contractEndDate)}</div>
       {student.contractStatus ? (
         <div className={`mt-1 text-xs ${student.contractStatus === "EXPIRED" ? "text-rose-600" : "text-amber-600"}`}>
           {contractStatusLabel(student.contractStatus)}
         </div>
       ) : null}
-    </div>
+    </TableCell>
 
-    <AttendanceBar value={student.attendanceRate} />
+    <TableCell><AttendanceBar value={student.attendanceRate} /></TableCell>
 
-    <div className="flex flex-wrap gap-1.5">
+    <TableCell><div className="flex flex-wrap gap-1.5">
       {student.risks.length > 0 ? (
         student.risks.slice(0, 3).map((item) => <RiskBadge key={item.code} risk={item} />)
       ) : (
@@ -827,17 +763,17 @@ const StudentRow: React.FC<{
           Нет рисков
         </span>
       )}
-    </div>
+    </div></TableCell>
 
-    <button
+    <TableCell><button
       type="button"
       onClick={onOpen}
       className="ml-auto flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
       aria-label="Открыть действия ученика"
     >
-      <EllipsisVerticalIcon className="h-5 w-5" />
-    </button>
-  </article>
+      <MoreVertical className="h-5 w-5" />
+    </button></TableCell>
+  </InteractiveTableRow>
 );
 
 const QUICK_RISK_FILTERS: Array<{ value: RiskFilter; label: string; countKey?: keyof AdminStudentsSummary }> = [
@@ -869,7 +805,7 @@ const QuickRiskFilters: React.FC<{
           onClick={() => onChange(item.value)}
           className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
             active
-              ? "border-cyan-700 bg-cyan-50 text-cyan-800"
+              ? "border-[#0066cc] bg-blue-50 text-[#0066cc]"
               : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
           }`}
         >
@@ -890,14 +826,14 @@ const FilterSelect: React.FC<{
 }> = ({ label, value, onChange, disabled = false, children }) => (
   <label className="mb-3 block text-sm font-semibold text-slate-600">
     <span className="mb-1.5 block">{label}</span>
-    <select
+    <NativeSelect
       value={value}
       onChange={(event) => onChange(event.target.value)}
       disabled={disabled}
-      className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100 disabled:bg-slate-50 disabled:text-slate-400"
+      className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400"
     >
       {children}
-    </select>
+    </NativeSelect>
   </label>
 );
 
@@ -945,7 +881,7 @@ const StudentAvatar: React.FC<{
 
   return (
     <div
-      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-cyan-100 bg-cyan-50 font-semibold text-cyan-800`}
+      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-blue-100 bg-blue-50 font-semibold text-[#0066cc]`}
       aria-label={name}
     >
       {initialsFromName(name)}
@@ -1027,12 +963,12 @@ const StudentPhotoPanel: React.FC<{
         </button>
         <div className="min-w-0 flex-1 space-y-2">
           <div>
-            <div className="text-sm font-semibold text-slate-900">{student.player.fullName}</div>
+            <div className="ui-section-title">{student.player.fullName}</div>
             <div className="mt-0.5 text-xs text-slate-500">
               {student.player.avatar ? "Фото используется в списках и карточке ученика" : "Фото пока не загружено"}
             </div>
           </div>
-          <input
+          <Input
             ref={inputRef}
             type="file"
             accept="image/png,image/jpeg,image/webp"
@@ -1047,7 +983,7 @@ const StudentPhotoPanel: React.FC<{
               isLoading={busyAction === "upload"}
               onClick={() => inputRef.current?.click()}
             >
-              <PhotoIcon className="h-4 w-4" />
+              <Image className="h-4 w-4" />
               Загрузить
             </Button>
             {student.player.avatar ? (
@@ -1059,7 +995,7 @@ const StudentPhotoPanel: React.FC<{
                   isLoading={busyAction === "download"}
                   onClick={handleDownload}
                 >
-                  <ArrowDownTrayIcon className="h-4 w-4" />
+                  <Download className="h-4 w-4" />
                   Скачать
                 </Button>
                 <Button
@@ -1069,7 +1005,7 @@ const StudentPhotoPanel: React.FC<{
                   isLoading={busyAction === "delete"}
                   onClick={handleDelete}
                 >
-                  <TrashIcon className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" />
                   Удалить
                 </Button>
               </>
@@ -1133,19 +1069,19 @@ const StudentDetailsModal: React.FC<{
           <div className="flex flex-wrap gap-2">
             {student.currentContract ? (
               <Button type="button" onClick={() => onAddPayment(student.currentContract!.id)}>
-                <CreditCardIcon className="h-4 w-4" />
+                <CreditCard className="h-4 w-4" />
                 Добавить оплату
               </Button>
             ) : null}
             {student.currentContract ? (
               <Button type="button" variant="secondary" onClick={() => onOpenContract(student.currentContract!.id)}>
-                <DocumentTextIcon className="h-4 w-4" />
+                <FileText className="h-4 w-4" />
                 Открыть договор
               </Button>
             ) : null}
             {resolvedCurrentGroup ? (
               <Button type="button" variant="secondary" onClick={() => onOpenGroup(resolvedCurrentGroup.id)}>
-                <UserGroupIcon className="h-4 w-4" />
+                <Users className="h-4 w-4" />
                 Открыть группу
               </Button>
             ) : null}
@@ -1170,10 +1106,10 @@ const StudentDetailsModal: React.FC<{
             onAvatarExpired={onAvatarExpired}
           />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
-            <SummaryTile label="Остаток" value={formatAmount(student.currentContract?.outstandingAmount, student.currentContract?.currency)} icon={<CreditCardIcon className="h-5 w-5" />} />
+            <SummaryTile label="Остаток" value={formatAmount(student.currentContract?.outstandingAmount, student.currentContract?.currency)} icon={<CreditCard className="h-5 w-5" />} />
             <SummaryTile label="Оплачено" value={formatAmount(student.currentContract?.paidAmount, student.currentContract?.currency)} />
-            <SummaryTile label="Договор до" value={formatDate(student.currentContract?.endDate)} icon={<DocumentTextIcon className="h-5 w-5" />} />
-            <SummaryTile label="Посещаемость" value={student.attendanceSummary?.attendanceRate == null ? "—" : `${student.attendanceSummary.attendanceRate}%`} icon={<CalendarDaysIcon className="h-5 w-5" />} />
+            <SummaryTile label="Договор до" value={formatDate(student.currentContract?.endDate)} icon={<FileText className="h-5 w-5" />} />
+            <SummaryTile label="Посещаемость" value={student.attendanceSummary?.attendanceRate == null ? "—" : `${student.attendanceSummary.attendanceRate}%`} icon={<CalendarDays className="h-5 w-5" />} />
           </div>
         </div>
 
@@ -1315,67 +1251,32 @@ const MembershipHistoryRow: React.FC<{ membership: AdminStudentMembershipHistory
   </div>
 );
 
-const MetricCard: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  tone?: "info" | "success" | "warning" | "danger";
-}> = ({
-  icon,
-  label,
-  value,
-  tone = "info",
-}) => {
-  const toneClass =
-    tone === "success"
-      ? "bg-emerald-50 text-emerald-700"
-      : tone === "warning"
-      ? "bg-orange-50 text-orange-700"
-      : tone === "danger"
-      ? "bg-rose-50 text-rose-700"
-      : "bg-indigo-50 text-indigo-700";
-
-  return (
-    <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${toneClass}`}>
-        {icon}
-      </div>
-      <div>
-        <div className="text-2xl font-semibold leading-tight text-slate-950">{value}</div>
-        <div className="mt-1 text-sm text-slate-500">{label}</div>
-      </div>
-    </div>
-  );
-};
-
 const SummaryTile: React.FC<{ label: string; value: string; icon?: React.ReactNode }> = ({ label, value, icon }) => (
   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
     <div className="flex items-center justify-between gap-3 text-slate-500">
       <div className="text-xs font-medium uppercase">{label}</div>
       {icon}
     </div>
-    <div className="mt-2 text-xl font-semibold text-slate-900">{value}</div>
+    <div className="mt-2 ui-metric-value">{value}</div>
   </div>
 );
 
 const MiniStat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
     <div className="text-[11px] font-medium uppercase text-slate-400">{label}</div>
-    <div className="mt-1 break-words text-sm font-semibold text-slate-900">{value}</div>
+    <div className="mt-1 break-words ui-section-title">{value}</div>
   </div>
 );
 
 const Panel: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-    <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+    <h3 className="ui-section-title">{title}</h3>
     <div className="mt-3">{children}</div>
   </section>
 );
 
 const RiskBadge: React.FC<{ risk: StudentRisk }> = ({ risk }) => (
-  <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${riskClassName(risk.severity)}`}>
-    {riskLabel(risk)}
-  </span>
+  <StatusBadge tone={riskTone(risk.severity)}>{riskLabel(risk)}</StatusBadge>
 );
 
 export default StudentsPage;

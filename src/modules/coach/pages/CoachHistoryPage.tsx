@@ -41,23 +41,23 @@ const CoachHistoryPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="heading-font text-xl font-semibold text-teal-950">История</h1>
-        <p className="mt-1 text-sm text-teal-900/65">Прошедшие тренировки, посещаемость и готовность отчёта.</p>
+        <h1 className="ui-page-title">История</h1>
+        <p className="mt-1 text-sm text-slate-500">Прошедшие тренировки, посещаемость и готовность отчёта.</p>
       </div>
 
       <div className="space-y-2">
         {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-        {loading && <div className="rounded-2xl border border-teal-100 bg-white px-4 py-3 text-sm text-teal-900/70">Загрузка...</div>}
+        {loading && <div className="rounded-2xl border border-black/[0.12] bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>}
         {history.map((session) => (
           <Link
             to={`/coach/sessions/${session.id}`}
             key={session.id}
-            className="block rounded-3xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5"
+            className="block rounded-2xl border border-black/[0.12] bg-white p-4 "
           >
-            <div className="text-sm font-medium text-teal-950">{session.date} · {session.groupName}</div>
-            <div className="mt-1 text-xs text-teal-900/65">Статус: {SESSION_STATUS_META[session.status].label}</div>
-            <div className="text-xs text-teal-900/65">Посещаемость: {session.attendanceSummary}</div>
-            <div className="text-xs text-teal-900/65">Отчёт: {session.reportDone ? "заполнен" : "ожидает заполнения"}</div>
+            <div className="text-sm font-medium text-slate-950">{session.date} · {session.groupName}</div>
+            <div className="mt-1 text-xs text-slate-500">Статус: {SESSION_STATUS_META[session.status].label}</div>
+            <div className="text-xs text-slate-500">Посещаемость: {session.attendanceSummary}</div>
+            <div className="text-xs text-slate-500">Отчёт: {session.reportDone ? "заполнен" : "ожидает заполнения"}</div>
           </Link>
         ))}
         {!loading && history.length === 0 && (

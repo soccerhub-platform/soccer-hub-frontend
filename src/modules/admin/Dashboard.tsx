@@ -1,17 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  CalendarDaysIcon,
-  ChevronRightIcon,
-  CreditCardIcon,
-  EllipsisVerticalIcon,
-  ExclamationCircleIcon,
-  UserGroupIcon,
-  UserIcon,
-  UserPlusIcon,
-} from "@heroicons/react/24/outline";
+  CalendarDays,
+  ChevronRight,
+  CreditCard,
+  MoreVertical,
+  CircleAlert,
+  Users,
+  User,
+  UserPlus,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Button, EmptyState, LoadingState, PageShell } from "../../shared/ui";
+import { Button, EmptyState, LoadingState, MetricCard as SharedMetricCard, PageHeader, PageShell } from "../../shared/ui";
 import { useAdminBranch } from "./BranchContext";
 import { DashboardSummaryApi } from "./dashboard-summary.api";
 import type {
@@ -102,25 +102,25 @@ const topCardToInsight = (card: DashboardTopCard, fallbackIcon: DashboardIcon): 
 });
 
 const iconMap: Record<DashboardIcon, React.ReactNode> = {
-  leads: <UserPlusIcon className="h-8 w-8" />,
-  coach: <UserIcon className="h-8 w-8" />,
-  payment: <CreditCardIcon className="h-8 w-8" />,
-  groups: <UserGroupIcon className="h-8 w-8" />,
-  schedule: <CalendarDaysIcon className="h-8 w-8" />,
+  leads: <UserPlus className="h-8 w-8" />,
+  coach: <User className="h-8 w-8" />,
+  payment: <CreditCard className="h-8 w-8" />,
+  groups: <Users className="h-8 w-8" />,
+  schedule: <CalendarDays className="h-8 w-8" />,
 };
 
 const toneClasses = {
   danger: "border-rose-100 bg-rose-50/55 text-rose-700",
   warning: "border-amber-100 bg-amber-50/65 text-amber-700",
   success: "border-emerald-100 bg-emerald-50/65 text-emerald-700",
-  info: "border-cyan-100 bg-cyan-50/65 text-cyan-700",
+  info: "border-blue-100 bg-blue-50/65 text-[#0066cc]",
 };
 
 const dotClasses = {
   danger: "bg-rose-500",
   warning: "bg-amber-500",
   success: "bg-emerald-500",
-  info: "bg-cyan-600",
+  info: "bg-[#0066cc]",
 };
 
 const getRiskTone = (tone: DashboardRiskItem["tone"]) => {
@@ -236,13 +236,8 @@ const Dashboard: React.FC = () => {
   const scheduleItems = todaySchedule?.items ?? [];
 
   return (
-    <PageShell className="max-w-none space-y-5 px-0 pb-4">
-      <div>
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-slate-950">Панель администратора</h1>
-          <p className="mt-1 text-sm text-slate-500">Главная картина клуба на сегодня</p>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader title="Панель администратора" description="Главная картина клуба на сегодня" />
 
       {insightCards.length > 0 ? (
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
@@ -254,7 +249,7 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         {kpiCards.map((card) => (
-          <MetricCard key={card.title} {...card} loading={loadingSummary} onClick={() => navigate(card.target)} />
+          <DashboardMetricCard key={card.title} {...card} loading={loadingSummary} onClick={() => navigate(card.target)} />
         ))}
       </div>
 
@@ -268,11 +263,11 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
               <button
-                className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-admin-700"
+                className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-[#0066cc]"
                 onClick={() => navigate("/admin/leads")}
               >
                 Показать все ({attentionRows.length})
-                <ChevronRightIcon className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" />
               </button>
             </>
           ) : (
@@ -360,23 +355,23 @@ const InsightSummaryCard = ({ card, onOpen }: { card: InsightCard; onOpen: () =>
   <button
     type="button"
     onClick={onOpen}
-    className="group flex min-h-[118px] items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-[0_10px_28px_-24px_rgba(15,23,42,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-30px_rgba(15,23,42,0.45)]"
+    className="group flex min-h-[118px] items-center gap-4 rounded-2xl border border-black/[0.08] bg-white p-4 text-left transition hover:border-blue-200 hover:bg-blue-50/40"
   >
     <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full border ${toneClasses[card.tone]}`}>
       {iconMap[card.icon]}
     </div>
     <div className="min-w-0 flex-1">
-      <div className="text-base font-semibold text-slate-950">{card.title}</div>
+      <div className="ui-card-title">{card.title}</div>
       <div className="mt-1 text-sm text-slate-500">{card.description}</div>
-      <span className="mt-3 inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm">
+      <span className="mt-3 inline-flex rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-sm font-medium text-slate-700">
         {card.buttonLabel}
       </span>
     </div>
-    <ChevronRightIcon className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
+    <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
   </button>
 );
 
-const MetricCard = ({
+const DashboardMetricCard = ({
   title,
   value,
   delta,
@@ -393,23 +388,16 @@ const MetricCard = ({
   loading: boolean;
   onClick: () => void;
 }) => (
-  <button
-    type="button"
+  <SharedMetricCard
+    title={title}
+    value={value}
+    delta={delta ? `▲ ${delta}` : undefined}
+    note={loading ? "Собираем данные" : hint}
+    icon={iconMap[icon]}
+    loading={loading}
+    tone="info"
     onClick={onClick}
-    className="flex min-h-[104px] items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-[0_10px_26px_-24px_rgba(15,23,42,0.45)] transition hover:border-admin-200 hover:bg-admin-50/20"
-  >
-    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-admin-50 text-admin-700">
-      {iconMap[icon]}
-    </div>
-    <div className="min-w-0">
-      <div className="text-sm font-medium text-slate-600">{title}</div>
-      <div className="mt-1 flex items-end gap-3">
-        <span className="text-[28px] font-semibold leading-none tracking-tight text-slate-950">{loading ? "—" : value}</span>
-        {delta ? <span className="pb-1 text-sm font-semibold text-emerald-700">▲ {delta}</span> : null}
-      </div>
-      <div className="mt-1 text-sm text-slate-500">{loading ? "Собираем данные" : hint}</div>
-    </div>
-  </button>
+  />
 );
 
 const DashboardPanel = ({
@@ -425,9 +413,9 @@ const DashboardPanel = ({
   actionLabel?: string;
   onAction?: () => void;
 }) => (
-  <section className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_28px_-25px_rgba(15,23,42,0.45)] ${className}`}>
+  <section className={`rounded-2xl border border-black/[0.08] bg-white p-4 ${className}`}>
     <div className="mb-4 flex items-center justify-between gap-3">
-      <h2 className="text-base font-semibold text-slate-950">{title}</h2>
+      <h2 className="ui-card-title">{title}</h2>
       {actionLabel ? (
         <button
           type="button"
@@ -458,7 +446,7 @@ const AttentionRow = ({ item, onClick }: { item: DashboardAttentionItem; onClick
       >
         {item.action.label}
       </button>
-      <EllipsisVerticalIcon className="h-5 w-5 shrink-0 text-slate-400" />
+      <MoreVertical className="h-5 w-5 shrink-0 text-slate-400" />
     </div>
   );
 };
@@ -467,9 +455,9 @@ const QuickTile = ({ icon, label, onClick }: { icon: DashboardIcon; label: strin
   <button
     type="button"
     onClick={onClick}
-    className="flex min-h-[56px] items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-medium text-slate-700 hover:border-admin-200 hover:bg-admin-50/30"
+    className="flex min-h-[56px] items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-medium text-slate-700 hover:border-blue-200 hover:bg-blue-50/30"
   >
-    <span className="text-admin-700 [&>svg]:h-5 [&>svg]:w-5">{iconMap[icon]}</span>
+    <span className="text-[#0066cc] [&>svg]:h-5 [&>svg]:w-5">{iconMap[icon]}</span>
     {label}
   </button>
 );
@@ -477,7 +465,7 @@ const QuickTile = ({ icon, label, onClick }: { icon: DashboardIcon; label: strin
 const BranchMiniStat = ({ label, value, delta, title }: { label: string; value: string; delta?: string; title?: string }) => (
   <div className="border-l border-slate-100 pl-3 first:border-l-0 first:pl-0" title={title}>
     <div className="text-xs text-slate-500">{label}</div>
-    <div className="mt-1 flex items-center gap-2 text-base font-semibold text-slate-950">
+    <div className="mt-1 flex items-center gap-2 ui-card-title">
       {value}
       {delta ? <span className="text-xs font-semibold text-emerald-700">▲ {delta}</span> : null}
     </div>
@@ -504,14 +492,14 @@ const FunnelRows = ({ rows, conversion }: { rows: DashboardFunnelRow[]; conversi
           <div className="h-7 rounded-lg bg-slate-100">
             <div
               className={`flex h-7 items-center justify-end rounded-lg px-2 text-xs font-semibold text-white ${
-                row.status === "CONVERTED" ? "bg-emerald-600" : "bg-admin-700"
+                row.status === "CONVERTED" ? "bg-emerald-600" : "bg-[#0066cc]"
               }`}
               style={{ width: `${Math.max(row.count > 0 ? 16 : 0, (row.count / max) * 100)}%` }}
             >
               {row.count > 0 ? row.count : ""}
             </div>
           </div>
-          <div className="text-right text-sm font-semibold text-slate-900">{formatNumber(row.count)}</div>
+          <div className="text-right ui-section-title">{formatNumber(row.count)}</div>
           <div className="text-right text-xs text-slate-500">{formatNumber(row.percent)}%</div>
         </div>
       ))}
@@ -595,16 +583,16 @@ const SchedulePreview = ({
               return (
                 <div key={session.sessionId} className="relative min-w-0">
                   <div
-                    className="absolute inset-x-0 overflow-hidden rounded-lg border border-cyan-100 bg-cyan-50/90 p-3 shadow-[0_12px_24px_-22px_rgba(8,145,178,0.75)] before:absolute before:inset-y-3 before:left-0 before:w-1 before:rounded-r-full before:bg-cyan-600"
+                    className="absolute inset-x-0 overflow-hidden rounded-lg border border-blue-100 bg-blue-50/90 p-3 before:absolute before:inset-y-3 before:left-0 before:w-1 before:rounded-r-full before:bg-[#0066cc]"
                     style={{ top, height }}
                   >
                     <div className="relative min-w-0 pl-2">
-                      <div className="text-xs font-semibold text-cyan-800">{formatScheduleRange(session.startAt, session.endAt)}</div>
-                      <div className="mt-1 truncate text-[15px] font-semibold leading-5 text-admin-900">{session.groupName}</div>
+                      <div className="text-xs font-semibold text-[#0066cc]">{formatScheduleRange(session.startAt, session.endAt)}</div>
+                      <div className="mt-1 truncate text-[15px] font-semibold leading-5 text-[#0066cc]">{session.groupName}</div>
                       <div className="mt-1 truncate text-xs text-slate-600">
                         {session.coachName} · {session.scheduleType === "TEMPORARY" ? "Временная тренировка" : "Регулярная тренировка"}
                       </div>
-                      <div className="mt-2 inline-flex rounded-full border border-cyan-100 bg-white/70 px-2 py-0.5 text-[11px] font-medium text-cyan-800">
+                      <div className="mt-2 inline-flex rounded-full border border-blue-100 bg-white/70 px-2 py-0.5 text-[11px] font-medium text-[#0066cc]">
                         {scheduleStatusLabel(session.status)}
                       </div>
                     </div>
@@ -616,7 +604,7 @@ const SchedulePreview = ({
         </div>
       </div>
       <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
-        <CalendarDaysIcon className="h-4 w-4" />
+        <CalendarDays className="h-4 w-4" />
         Сегодня запланировано {formatNumber(totalCount)} тренировок
       </div>
     </div>
@@ -628,13 +616,13 @@ const RiskRow = ({ risk, onClick }: { risk: DashboardRiskItem; onClick: () => vo
   return (
     <button type="button" onClick={onClick} className="group flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-slate-50">
       <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${dotClasses[tone]}`}>
-        <ExclamationCircleIcon className="h-3.5 w-3.5 text-white" />
+        <CircleAlert className="h-3.5 w-3.5 text-white" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium text-slate-800">{risk.label}</div>
         <div className="mt-0.5 truncate text-xs text-slate-500">{risk.description || `Значение: ${formatNumber(risk.value)} ${risk.unit}`}</div>
       </div>
-      <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
+      <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
     </button>
   );
 };
@@ -683,7 +671,7 @@ const WeeklySparkline = ({ dynamics }: { dynamics: DashboardWeeklyDynamics | nul
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: seriesColor(item.code) }} />
               {item.label}
             </div>
-            <div className="mt-1 truncate text-sm font-semibold text-slate-950">{item.value}</div>
+            <div className="mt-1 truncate ui-section-title">{item.value}</div>
           </div>
         ))}
       </div>
@@ -739,13 +727,13 @@ const InsightModal = ({
   onPrimary: () => void;
 }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
-    <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+    <div className="w-full max-w-lg rounded-2xl bg-white p-5">
       <div className="flex items-start gap-4">
         <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full border ${toneClasses[card.tone]}`}>
           {iconMap[card.icon]}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-lg font-semibold text-slate-950">{card.detailTitle}</div>
+          <div className="ui-card-title">{card.detailTitle}</div>
           <div className="mt-1 text-sm text-slate-500">{card.description}</div>
         </div>
       </div>
@@ -753,7 +741,7 @@ const InsightModal = ({
         {card.detailRows.map((row) => (
           <div key={row.label} className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2">
             <span className="text-sm text-slate-500">{row.label}</span>
-            <span className="text-right text-sm font-semibold text-slate-900">{row.value}</span>
+            <span className="text-right ui-section-title">{row.value}</span>
           </div>
         ))}
       </div>

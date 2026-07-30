@@ -1,22 +1,24 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  BriefcaseIcon,
-  CheckCircleIcon,
-  MagnifyingGlassIcon,
-  UserIcon,
-} from "@heroicons/react/24/outline";
+  Briefcase,
+  CheckCircle,
+  Search,
+  User,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../../../shared/AuthContext";
 import { ApiError, getApiErrorMessage } from "../../../../shared/api";
 import {
+  Input,
   Button,
+  DatePicker,
   EmptyState,
   ErrorState,
   FormField,
   LoadingState,
   ModalShell,
   formControlClassName,
-} from "../../../../shared/ui";
+ } from "../../../../shared/ui";
 import { CoachApi, type Coach } from "../../сoaches/coach.api";
 import { GroupApi } from "../group.api";
 
@@ -135,13 +137,13 @@ const AssignCoachModal: React.FC<Props> = ({
     >
       <div className="border-b border-slate-200 bg-white px-5 py-4">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <div className="text-sm font-semibold text-slate-950">Выберите тренера</div>
+          <div className="ui-section-title">Выберите тренера</div>
           {!loading ? <span className="text-xs text-slate-500">Найдено: {coaches.length}</span> : null}
         </div>
         <FormField label="Поиск по имени или почте" className="mb-0">
           <div className="relative">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Начните вводить имя"
@@ -175,24 +177,24 @@ const AssignCoachModal: React.FC<Props> = ({
                   }}
                   className={`w-full rounded-lg border px-3 py-2.5 text-left transition ${
                     selected
-                      ? "border-cyan-300 bg-cyan-50"
+                      ? "border-blue-300 bg-blue-50"
                       : "border-transparent bg-white hover:border-slate-200 hover:bg-slate-50"
                   } disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-cyan-100 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-blue-100 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
                       {initials(coach)}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-semibold text-slate-950">{coach.firstName} {coach.lastName}</div>
+                      <div className="truncate ui-section-title">{coach.firstName} {coach.lastName}</div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
                         <span>{coach.specialization || coach.email}</span>
                         {assigned ? <span className="font-medium text-slate-600">Уже в группе</span> : null}
                         {!coach.active ? <span className="font-medium text-rose-600">Аккаунт неактивен</span> : null}
                       </div>
                     </div>
-                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-cyan-700 bg-cyan-700 text-white" : "border-slate-300 bg-white"}`}>
-                      {selected ? <CheckCircleIcon className="h-4 w-4" /> : null}
+                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-[#0066cc] bg-[#0066cc] text-white" : "border-slate-300 bg-white"}`}>
+                      {selected ? <CheckCircle className="h-4 w-4" /> : null}
                     </span>
                   </div>
                 </button>
@@ -204,8 +206,8 @@ const AssignCoachModal: React.FC<Props> = ({
         {selectedCoach ? (
           <div className="space-y-4 border-t border-slate-200 pt-5">
             <div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
-                <BriefcaseIcon className="h-4 w-4 text-cyan-700" />
+              <div className="flex items-center gap-2 ui-section-title">
+                <Briefcase className="h-4 w-4 text-[#0066cc]" />
                 Параметры назначения
               </div>
               <p className="mt-1 text-xs text-slate-500">Настройки применятся только к выбранному тренеру.</p>
@@ -220,10 +222,10 @@ const AssignCoachModal: React.FC<Props> = ({
                     type="button"
                     disabled={lockRole}
                     onClick={() => setRole(value)}
-                    className={`rounded-lg border px-3 py-3 text-left transition ${role === value ? "border-cyan-300 bg-cyan-50" : "border-slate-200 bg-white hover:border-cyan-200"} disabled:cursor-not-allowed`}
+                    className={`rounded-lg border px-3 py-3 text-left transition ${role === value ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"} disabled:cursor-not-allowed`}
                   >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                      <UserIcon className="h-4 w-4 text-cyan-700" />
+                    <div className="flex items-center gap-2 ui-section-title">
+                      <User className="h-4 w-4 text-[#0066cc]" />
                       {value === "MAIN" ? "Главный" : "Ассистент"}
                     </div>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -236,14 +238,14 @@ const AssignCoachModal: React.FC<Props> = ({
 
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField label="Дата начала" hint="С этой даты тренер закреплен за группой.">
-                <input type="date" value={assignedFrom} onChange={(event) => setAssignedFrom(event.target.value)} className={formControlClassName} />
+                <DatePicker value={assignedFrom} onValueChange={setAssignedFrom} />
               </FormField>
               <FormField label="Дата окончания" hint="Можно оставить пустой." error={dateError ?? undefined}>
-                <input type="date" min={assignedFrom} value={assignedTo} onChange={(event) => setAssignedTo(event.target.value)} className={`${formControlClassName} ${dateError ? "border-rose-300" : ""}`} />
+                <DatePicker value={assignedTo} min={assignedFrom} onValueChange={setAssignedTo} clearable aria-invalid={Boolean(dateError)} />
               </FormField>
             </div>
 
-            <div className="rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-3 text-xs leading-5 text-cyan-900">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-xs leading-5 text-[#0066cc]">
               Назначение закрепляет тренера за группой. Пересечения с другими занятиями будут проверены при создании или изменении периода расписания.
             </div>
 

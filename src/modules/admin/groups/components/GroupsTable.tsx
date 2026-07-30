@@ -1,16 +1,17 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowRightIcon,
-  CalendarDaysIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  ShieldCheckIcon,
-  UserGroupIcon,
-  UsersIcon,
-} from "@heroicons/react/24/outline";
+  ArrowRight,
+  CalendarDays,
+  CheckCircle,
+  TriangleAlert,
+  ShieldCheck,
+  Users,
+  UsersRound,
+} from "lucide-react";
 import { GroupOverviewItem } from "../group.api";
 import GroupAvatar from "./GroupAvatar";
+import { InteractiveTableRow, StatusBadge as UiStatusBadge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type StatusTone } from "../../../../shared/ui";
 
 interface Props {
   groups: GroupOverviewItem[];
@@ -28,17 +29,19 @@ const GroupsTable: React.FC<Props> = ({ groups }) => {
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_28px_-25px_rgba(15,23,42,0.45)]">
-      <div className="hidden grid-cols-[minmax(260px,1.35fr)_170px_130px_190px_170px_44px] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 lg:grid">
-        <ColumnTitle icon={<UserGroupIcon className="h-3.5 w-3.5" />} label="Группа" />
-        <ColumnTitle icon={<UsersIcon className="h-3.5 w-3.5" />} label="Состав" />
-        <ColumnTitle icon={<UserGroupIcon className="h-3.5 w-3.5" />} label="Тренеры" />
-        <ColumnTitle icon={<CalendarDaysIcon className="h-3.5 w-3.5" />} label="Следующее занятие" />
-        <ColumnTitle icon={<ShieldCheckIcon className="h-3.5 w-3.5" />} label="Состояние" />
-        <div />
-      </div>
-
-      <div className="divide-y divide-slate-100">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <Table className="min-w-[960px]">
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead><ColumnTitle icon={<Users className="h-3.5 w-3.5" />} label="Группа" /></TableHead>
+            <TableHead><ColumnTitle icon={<UsersRound className="h-3.5 w-3.5" />} label="Состав" /></TableHead>
+            <TableHead><ColumnTitle icon={<Users className="h-3.5 w-3.5" />} label="Тренеры" /></TableHead>
+            <TableHead><ColumnTitle icon={<CalendarDays className="h-3.5 w-3.5" />} label="Следующее занятие" /></TableHead>
+            <TableHead><ColumnTitle icon={<ShieldCheck className="h-3.5 w-3.5" />} label="Состояние" /></TableHead>
+            <TableHead className="w-10" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
         {groups.map((group) => (
           <GroupRow
             key={group.groupId}
@@ -58,7 +61,8 @@ const GroupsTable: React.FC<Props> = ({ groups }) => {
             }}
           />
         ))}
-      </div>
+        </TableBody>
+      </Table>
     </section>
   );
 };
@@ -78,31 +82,23 @@ const GroupRow: React.FC<{
   const isRisky = group.health !== "OK";
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onOpen();
-        }
-      }}
-      className="group grid cursor-pointer grid-cols-1 gap-3 px-4 py-4 transition hover:bg-cyan-50/40 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cyan-200 lg:grid-cols-[minmax(260px,1.35fr)_170px_130px_190px_170px_44px] lg:items-center lg:gap-4"
+    <InteractiveTableRow
+      onOpen={onOpen}
+      className="group cursor-pointer"
     >
-      <div className="flex min-w-0 items-start gap-3">
+      <TableCell><div className="flex min-w-0 items-start gap-3">
         <div className="relative shrink-0">
           <GroupAvatar name={group.name} avatar={group.avatar} />
           {isRisky ? (
             <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-amber-100 text-amber-700">
-              <ExclamationTriangleIcon className="h-3 w-3" />
+              <TriangleAlert className="h-3 w-3" />
             </span>
           ) : null}
         </div>
 
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h3 className="truncate text-base font-semibold text-slate-950">{group.name}</h3>
+            <h3 className="truncate ui-card-title">{group.name}</h3>
             <StatusBadge status={group.status} />
           </div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
@@ -110,67 +106,67 @@ const GroupRow: React.FC<{
             <span>{humanizeLevel(group.level)}</span>
           </div>
         </div>
-      </div>
+      </div></TableCell>
 
-      <button
+      <TableCell><button
         type="button"
         onClick={onOpenStudents}
-        className="text-left transition hover:text-cyan-800 lg:block"
+        className="text-left transition hover:text-[#0066cc] lg:block"
       >
         <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-500">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
-            <UsersIcon className="h-4 w-4" />
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
+            <UsersRound className="h-4 w-4" />
           </span>
           <span className="lg:hidden">Состав</span>
         </div>
         <div className="flex items-baseline justify-between gap-2 lg:block">
-          <span className="text-sm font-semibold text-slate-950">
+          <span className="ui-section-title">
             {group.studentsCount} / {group.capacity}
           </span>
           <span className="text-xs text-slate-500 lg:ml-1">учеников</span>
         </div>
         <div className="mt-2 h-1.5 rounded-full bg-slate-100">
           <div
-            className={`h-1.5 rounded-full ${capacityPercent > 100 ? "bg-rose-500" : "bg-cyan-700"}`}
+            className={`h-1.5 rounded-full ${capacityPercent > 100 ? "bg-rose-500" : "bg-[#0066cc]"}`}
             style={{ width: `${progressWidth}%` }}
           />
         </div>
-      </button>
+      </button></TableCell>
 
-      <button
+      <TableCell><button
         type="button"
         onClick={onOpenCoaches}
-        className="flex items-center justify-between gap-3 text-left transition hover:text-cyan-800 lg:block"
+        className="flex items-center justify-between gap-3 text-left transition hover:text-[#0066cc] lg:block"
       >
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-            <UserGroupIcon className="h-4 w-4" />
+            <Users className="h-4 w-4" />
           </span>
           <span className="lg:hidden">Тренеры</span>
         </div>
-        <div className="text-sm font-semibold text-slate-950">{formatCoaches(group.coachesCount)}</div>
-      </button>
+        <div className="ui-section-title">{formatCoaches(group.coachesCount)}</div>
+      </button></TableCell>
 
-      <button
+      <TableCell><button
         type="button"
         onClick={onOpenSchedule}
-        className="flex items-start justify-between gap-3 text-left transition hover:text-cyan-800 lg:block"
+        className="flex items-start justify-between gap-3 text-left transition hover:text-[#0066cc] lg:block"
       >
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
-            <CalendarDaysIcon className="h-4 w-4" />
+            <CalendarDays className="h-4 w-4" />
           </span>
           <span className="lg:hidden">Следующее</span>
         </div>
-        <div className="text-sm font-semibold text-slate-950">{formatNextSession(group.nextSessionAt)}</div>
-      </button>
+        <div className="ui-section-title">{formatNextSession(group.nextSessionAt)}</div>
+      </button></TableCell>
 
-      <HealthBadge health={group.health} />
+      <TableCell><HealthBadge health={group.health} /></TableCell>
 
-      <div className="hidden justify-end lg:flex">
-        <ArrowRightIcon className="h-5 w-5 text-slate-400 transition group-hover:text-cyan-700" />
-      </div>
-    </div>
+      <TableCell><div className="flex justify-end">
+        <ArrowRight className="h-5 w-5 text-slate-400 transition group-hover:text-[#0066cc]" />
+      </div></TableCell>
+    </InteractiveTableRow>
   );
 };
 
@@ -220,61 +216,61 @@ function humanizeLevel(level: string) {
 
 const StatusBadge = ({ status }: { status: GroupOverviewItem["status"] }) => {
   const map = {
-    ACTIVE: { label: "Активна", cls: "border-emerald-100 bg-emerald-50 text-emerald-700" },
-    PAUSED: { label: "На паузе", cls: "border-amber-100 bg-amber-50 text-amber-700" },
-    STOPPED: { label: "Остановлена", cls: "border-rose-100 bg-rose-50 text-rose-700" },
+    ACTIVE: { label: "Активна", tone: "success" },
+    PAUSED: { label: "На паузе", tone: "warning" },
+    STOPPED: { label: "Остановлена", tone: "danger" },
   };
 
   const cfg = map[status];
 
-  return <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${cfg.cls}`}>{cfg.label}</span>;
+  return <UiStatusBadge tone={cfg.tone as StatusTone}>{cfg.label}</UiStatusBadge>;
 };
 
 const HealthBadge = ({ health }: { health: GroupOverviewItem["health"] }) => {
   const map = {
     OK: {
       label: "Всё в порядке",
-      icon: <CheckCircleIcon className="h-4 w-4" />,
-      cls: "border-emerald-100 bg-emerald-50 text-emerald-700",
+      icon: <CheckCircle className="h-4 w-4" />,
+      tone: "success",
     },
     NO_COACH: {
       label: "Нет тренера",
-      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
-      cls: "border-amber-100 bg-amber-50 text-amber-700",
+      icon: <TriangleAlert className="h-4 w-4" />,
+      tone: "warning",
     },
     NO_SCHEDULE: {
       label: "Нет расписания",
-      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
-      cls: "border-amber-100 bg-amber-50 text-amber-700",
+      icon: <TriangleAlert className="h-4 w-4" />,
+      tone: "warning",
     },
     OVER_CAPACITY: {
       label: "Переполнена",
-      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
-      cls: "border-rose-100 bg-rose-50 text-rose-700",
+      icon: <TriangleAlert className="h-4 w-4" />,
+      tone: "danger",
     },
     PAUSED: {
       label: "На паузе",
-      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
-      cls: "border-amber-100 bg-amber-50 text-amber-700",
+      icon: <TriangleAlert className="h-4 w-4" />,
+      tone: "warning",
     },
     STOPPED: {
       label: "Остановлена",
-      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
-      cls: "border-rose-100 bg-rose-50 text-rose-700",
+      icon: <TriangleAlert className="h-4 w-4" />,
+      tone: "danger",
     },
   } as const;
   const cfg =
     map[health] ??
     {
       label: health,
-      icon: <ExclamationTriangleIcon className="h-4 w-4" />,
-      cls: "border-slate-200 bg-slate-50 text-slate-600",
+      icon: <TriangleAlert className="h-4 w-4" />,
+      tone: "neutral",
     };
   return (
-    <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-semibold ${cfg.cls}`}>
+    <UiStatusBadge tone={cfg.tone as StatusTone} className="w-fit gap-1.5">
       {cfg.icon}
       {cfg.label}
-    </span>
+    </UiStatusBadge>
   );
 };
 

@@ -1,7 +1,8 @@
 import React from "react";
 import classNames from "classnames";
-import { ChevronRightIcon } from "@heroicons/react/24/outline";
+import { ChevronRight } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import MetricCard from "./MetricCard";
 
 type BreadcrumbItem = {
   label: string;
@@ -16,9 +17,9 @@ export const WorkspaceBreadcrumbs: React.FC<{
     <nav aria-label="Навигационная цепочка" className="flex min-w-0 items-center gap-2 text-sm">
       {items.map((item, index) => (
         <React.Fragment key={`${item.label}-${index}`}>
-          {index > 0 ? <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-300" /> : null}
+          {index > 0 ? <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" /> : null}
           {item.to ? (
-            <NavLink to={item.to} className="truncate font-medium text-slate-500 transition hover:text-admin-700">
+            <NavLink to={item.to} className="truncate font-medium text-slate-500 transition hover:text-[#0066cc]">
               {item.label}
             </NavLink>
           ) : (
@@ -41,7 +42,7 @@ export const WorkspaceHeader: React.FC<{
   actionsClassName?: string;
   className?: string;
 }> = ({ id, children, actions, alert, actionsClassName, className }) => (
-  <section id={id} className={classNames("rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5", className)}>
+  <section id={id} className={classNames("rounded-2xl border border-black/[0.08] bg-white p-5 sm:p-6", className)}>
     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0 flex-1">{children}</div>
       {actions ? (
@@ -67,7 +68,7 @@ export const WorkspaceTabs: React.FC<{
   <nav
     aria-label="Разделы рабочего пространства"
     className={classNames(
-      "sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50/95 px-1 backdrop-blur",
+      "sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-black/[0.08] bg-[#f5f5f7]/95 px-1 backdrop-blur",
       className,
     )}
   >
@@ -79,7 +80,7 @@ export const WorkspaceTabs: React.FC<{
           classNames(
             "shrink-0 border-b-2 px-3 py-3 text-sm font-medium transition",
             isActive
-              ? "border-admin-700 text-slate-950"
+              ? "border-blue-700 text-slate-950"
               : "border-transparent text-slate-500 hover:text-slate-800",
           )
         }
@@ -98,33 +99,14 @@ export const WorkspaceMetric: React.FC<{
   note?: React.ReactNode;
   progress?: number;
   onClick?: () => void;
-}> = ({ icon, iconClassName, label, value, note, progress, onClick }) => {
-  const content = (
-    <>
-      <div className="flex items-start gap-3">
-        <span className={classNames("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-admin-50 text-admin-700 [&>svg]:h-5 [&>svg]:w-5", iconClassName)}>
-          {icon}
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-xl font-semibold text-slate-950">{value}</span>
-          <span className="mt-0.5 block text-sm text-slate-500">{label}</span>
-        </span>
-      </div>
-      {progress !== undefined ? (
-        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }} />
-        </div>
-      ) : null}
-      {note ? <div className="mt-3 truncate text-xs font-medium text-admin-700">{note}</div> : null}
-    </>
-  );
-
-  const classes = "min-h-28 rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm";
-  return onClick ? (
-    <button type="button" onClick={onClick} className={`${classes} transition hover:border-admin-200 hover:shadow`}>
-      {content}
-    </button>
-  ) : (
-    <div className={classes}>{content}</div>
-  );
-};
+}> = ({ icon, iconClassName, label, value, note, progress, onClick }) => (
+  <MetricCard
+    icon={icon}
+    iconClassName={iconClassName}
+    title={label}
+    value={value}
+    note={note}
+    progress={progress}
+    onClick={onClick}
+  />
+);

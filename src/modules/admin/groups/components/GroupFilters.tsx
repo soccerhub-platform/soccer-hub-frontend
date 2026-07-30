@@ -1,10 +1,11 @@
+import { Input, NativeSelect  } from "../../../../shared/ui";
 import React from "react";
 import {
-  AdjustmentsHorizontalIcon,
-  ChevronDownIcon,
-  MagnifyingGlassIcon,
-  ShieldCheckIcon,
-} from "@heroicons/react/24/outline";
+  SlidersHorizontal,
+  ChevronDown,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
 import { GroupHealth } from "../group.api";
 
 export type GroupHealthFilter = "all" | GroupHealth;
@@ -26,15 +27,15 @@ const GroupFilters: React.FC<Props> = ({ value, onChange }) => {
           Поиск
         </span>
         <span className="relative block">
-          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Input
             type="text"
             placeholder="Название группы"
             value={value.search}
             onChange={(e) =>
               onChange({ ...value, search: e.target.value })
             }
-            className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+            className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-[#0066cc] focus:ring-2 focus:ring-blue-100"
           />
         </span>
       </label>
@@ -44,20 +45,20 @@ const GroupFilters: React.FC<Props> = ({ value, onChange }) => {
           Статус
         </span>
         <span className="relative block">
-          <AdjustmentsHorizontalIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <select
+          <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <NativeSelect
             value={value.status}
             onChange={(e) =>
               onChange({ ...value, status: e.target.value })
             }
-            className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+            className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm outline-none transition focus:border-[#0066cc] focus:ring-2 focus:ring-blue-100"
           >
             <option value="">Все статусы</option>
             <option value="ACTIVE">Активные</option>
             <option value="PAUSED">На паузе</option>
             <option value="STOPPED">Остановленные</option>
-          </select>
-          <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          </NativeSelect>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         </span>
       </label>
 
@@ -66,13 +67,13 @@ const GroupFilters: React.FC<Props> = ({ value, onChange }) => {
           Состояние
         </span>
         <span className="relative block">
-          <ShieldCheckIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <select
+          <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <NativeSelect
             value={value.health}
             onChange={(e) =>
               onChange({ ...value, health: e.target.value as GroupHealthFilter })
             }
-            className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+            className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm outline-none transition focus:border-[#0066cc] focus:ring-2 focus:ring-blue-100"
           >
             <option value="all">Все состояния</option>
             <option value="NO_COACH">Без тренера</option>
@@ -81,8 +82,8 @@ const GroupFilters: React.FC<Props> = ({ value, onChange }) => {
             <option value="PAUSED">На паузе</option>
             <option value="STOPPED">Остановлены</option>
             <option value="OK">Без проблем</option>
-          </select>
-          <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          </NativeSelect>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         </span>
       </label>
     </div>

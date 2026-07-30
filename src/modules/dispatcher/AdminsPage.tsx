@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  BuildingOfficeIcon,
-  EnvelopeIcon,
-  KeyIcon,
-  PencilSquareIcon,
-  PhoneIcon,
-  PlusIcon,
-  TrashIcon,
-  UserPlusIcon,
-} from "@heroicons/react/24/outline";
+  Building2,
+  Mail,
+  KeyRound,
+  Pencil,
+  Phone,
+  Plus,
+  Trash2,
+  UserPlus,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 import { useAuth } from "../../shared/AuthContext";
@@ -19,17 +19,27 @@ import {
   normalizePhoneForSubmit,
 } from "../../shared/phone";
 import {
+  Input,
+  NativeSelect,
   Button,
   EmptyState,
   ErrorState,
   FormField,
   LoadingState,
+  MetricCard,
   ModalShell,
   PageHeader,
   PageShell,
   SectionCard,
+  StatusBadge,
   formControlClassName,
-} from "../../shared/ui";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+   } from "../../shared/ui";
 
 interface BranchAssignment {
   branchId: string;
@@ -376,22 +386,22 @@ const AdminsPage: React.FC = () => {
         description="Управление доступом администраторов и привязкой к филиалам."
         actions={
           <Button type="button" onClick={() => setShowCreateModal(true)}>
-            <PlusIcon className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Добавить администратора
           </Button>
         }
       />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <MetricCard label="Всего" value={totalAdmins} />
-        <MetricCard label="Активны" value={activeAdmins} tone="success" />
-        <MetricCard label="Без филиала" value={unassignedAdmins} tone={unassignedAdmins ? "warning" : "neutral"} />
+        <MetricCard title="Всего" value={totalAdmins} tone="neutral" />
+        <MetricCard title="Активны" value={activeAdmins} tone="success" />
+        <MetricCard title="Без филиала" value={unassignedAdmins} tone={unassignedAdmins ? "warning" : "neutral"} />
       </div>
 
       <SectionCard>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_260px]">
           <FormField label="Поиск">
-            <input
+            <Input
               type="text"
               placeholder="Имя, email или телефон"
               className={formControlClassName}
@@ -413,7 +423,7 @@ const AdminsPage: React.FC = () => {
                   onClick={() => setStatusFilter(value as StatusFilter)}
                   className={`flex-1 rounded-lg px-2 py-2 text-xs transition sm:text-sm ${
                     statusFilter === value
-                      ? "bg-white text-slate-900 shadow-sm"
+                      ? "bg-white text-slate-900"
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
@@ -450,29 +460,29 @@ const AdminsPage: React.FC = () => {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+            <Table className="min-w-full divide-y divide-slate-200">
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
                     Администратор
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
                     Контакты
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
                     Филиалы
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
                     Статус
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">
                     Действия
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-slate-200">
                 {filteredAdmins.map((admin) => (
-                  <tr
+                  <TableRow
                     key={admin.adminId}
                     className="transition-colors hover:bg-slate-50"
                     onClick={() => {
@@ -480,9 +490,9 @@ const AdminsPage: React.FC = () => {
                       setShowDetailsModal(true);
                     }}
                   >
-                    <td className="px-4 py-3 text-sm">
+                    <TableCell className="px-4 py-3 text-sm">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-xs font-semibold text-cyan-800">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-xs font-semibold text-[#0066cc]">
                           {getInitials(admin)}
                         </div>
                         <div className="min-w-0">
@@ -492,26 +502,26 @@ const AdminsPage: React.FC = () => {
                           <div className="text-xs text-slate-400">ID: {admin.adminId.slice(0, 8)}...</div>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-slate-600">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5">
-                          <EnvelopeIcon className="h-4 w-4 text-slate-400" />
+                          <Mail className="h-4 w-4 text-slate-400" />
                           {admin.email || "Email не указан"}
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <PhoneIcon className="h-4 w-4 text-slate-400" />
+                          <Phone className="h-4 w-4 text-slate-400" />
                           {admin.phone || "Телефон не указан"}
                         </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-slate-600">
                       <BranchBadges branches={admin.branches} />
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <StatusBadge active={admin.active} />
-                    </td>
-                    <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-sm">
+                      <StatusBadge tone={admin.active ? "success" : "danger"}>{admin.active ? "Активен" : "Отключен"}</StatusBadge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
                       <Button
                         type="button"
                         size="sm"
@@ -523,11 +533,11 @@ const AdminsPage: React.FC = () => {
                       >
                         Открыть
                       </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </SectionCard>
@@ -633,34 +643,6 @@ const AdminsPage: React.FC = () => {
   );
 };
 
-const MetricCard: React.FC<{
-  label: string;
-  value: number;
-  tone?: "neutral" | "success" | "warning";
-}> = ({ label, value, tone = "neutral" }) => {
-  const valueClass =
-    tone === "success" ? "text-emerald-700" : tone === "warning" ? "text-amber-700" : "text-slate-900";
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <div className="text-xs font-medium uppercase text-slate-500">{label}</div>
-      <div className={`mt-1 text-2xl font-semibold ${valueClass}`}>{value}</div>
-    </div>
-  );
-};
-
-const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
-  <span
-    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-      active
-        ? "border border-emerald-100 bg-emerald-50 text-emerald-700"
-        : "border border-rose-100 bg-rose-50 text-rose-700"
-    }`}
-  >
-    {active ? "Активен" : "Отключен"}
-  </span>
-);
-
 const BranchBadges: React.FC<{ branches: BranchAssignment[] }> = ({ branches }) => {
   if (branches.length === 0) {
     return <span className="text-xs text-slate-400">Не привязан к филиалам</span>;
@@ -670,7 +652,7 @@ const BranchBadges: React.FC<{ branches: BranchAssignment[] }> = ({ branches }) 
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      <span className="inline-flex rounded-full border border-cyan-100 bg-cyan-50 px-2 py-0.5 text-xs text-cyan-800">
+      <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-xs text-[#0066cc]">
         {firstBranch.branchName}
       </span>
       {branches.length > 1 ? (
@@ -700,16 +682,16 @@ const AdminDetailsModal: React.FC<{
     footer={
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
         <Button type="button" variant="softDanger" onClick={onDelete}>
-          <TrashIcon className="h-4 w-4" />
+          <Trash2 className="h-4 w-4" />
           Удалить
         </Button>
         <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onEdit}>
-            <PencilSquareIcon className="h-4 w-4" />
+            <Pencil className="h-4 w-4" />
             Редактировать
           </Button>
           <Button type="button" variant="secondary" onClick={onResetPassword}>
-            <KeyIcon className="h-4 w-4" />
+            <KeyRound className="h-4 w-4" />
             Сбросить пароль
           </Button>
           <Button type="button" variant={admin.active ? "softDanger" : "soft"} onClick={onToggleStatus}>
@@ -722,7 +704,7 @@ const AdminDetailsModal: React.FC<{
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 text-sm font-semibold text-cyan-800">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-[#0066cc]">
             {getInitials(admin)}
           </div>
           <div>
@@ -732,22 +714,22 @@ const AdminDetailsModal: React.FC<{
             <div className="text-sm text-slate-500">{admin.email || "Email не указан"}</div>
           </div>
         </div>
-        <StatusBadge active={admin.active} />
+        <StatusBadge tone={admin.active ? "success" : "danger"}>{admin.active ? "Активен" : "Отключен"}</StatusBadge>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <InfoBox label="Email" value={admin.email || "Не указан"} icon={<EnvelopeIcon className="h-4 w-4" />} />
-        <InfoBox label="Телефон" value={admin.phone || "Не указан"} icon={<PhoneIcon className="h-4 w-4" />} />
+        <InfoBox label="Email" value={admin.email || "Не указан"} icon={<Mail className="h-4 w-4" />} />
+        <InfoBox label="Телефон" value={admin.phone || "Не указан"} icon={<Phone className="h-4 w-4" />} />
       </div>
 
       <section>
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
-            <div className="text-sm font-semibold text-slate-900">Филиалы</div>
+            <div className="ui-section-title">Филиалы</div>
             <div className="text-xs text-slate-500">К каким филиалам у администратора есть доступ</div>
           </div>
           <Button type="button" size="sm" onClick={onAssign}>
-            <UserPlusIcon className="h-4 w-4" />
+            <UserPlus className="h-4 w-4" />
             Назначить
           </Button>
         </div>
@@ -765,7 +747,7 @@ const AdminDetailsModal: React.FC<{
                 className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3"
               >
                 <div className="flex items-center gap-2">
-                  <BuildingOfficeIcon className="h-5 w-5 text-slate-400" />
+                  <Building2 className="h-5 w-5 text-slate-400" />
                   <div>
                     <div className="text-sm font-medium text-slate-900">{branch.branchName}</div>
                     <div className="text-xs text-slate-500">{branch.clubName || "Клуб не указан"}</div>
@@ -835,7 +817,7 @@ const CreateAdminModal: React.FC<{
   >
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <FormField label="Email*">
-        <input
+        <Input
           type="email"
           placeholder="admin@mail.com"
           className={formControlClassName}
@@ -844,7 +826,7 @@ const CreateAdminModal: React.FC<{
         />
       </FormField>
       <FormField label="Телефон">
-        <input
+        <Input
           type="tel"
           placeholder="+7 777 123 45 67"
           className={formControlClassName}
@@ -856,7 +838,7 @@ const CreateAdminModal: React.FC<{
         />
       </FormField>
       <FormField label="Имя*">
-        <input
+        <Input
           type="text"
           placeholder="Имя"
           className={formControlClassName}
@@ -865,7 +847,7 @@ const CreateAdminModal: React.FC<{
         />
       </FormField>
       <FormField label="Фамилия*">
-        <input
+        <Input
           type="text"
           placeholder="Фамилия"
           className={formControlClassName}
@@ -874,7 +856,7 @@ const CreateAdminModal: React.FC<{
         />
       </FormField>
       <FormField label="Филиал*" className="sm:col-span-2">
-        <select
+        <NativeSelect
           className={formControlClassName}
           value={form.assignedBranch}
           onChange={(event) => onChange({ ...form, assignedBranch: event.target.value })}
@@ -885,7 +867,7 @@ const CreateAdminModal: React.FC<{
               {branch.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </FormField>
     </div>
   </ModalShell>
@@ -916,7 +898,7 @@ const EditAdminModal: React.FC<{
   >
     <div className="space-y-4">
       <FormField label="Имя*">
-        <input
+        <Input
           type="text"
           className={formControlClassName}
           value={form.firstName}
@@ -924,7 +906,7 @@ const EditAdminModal: React.FC<{
         />
       </FormField>
       <FormField label="Фамилия*">
-        <input
+        <Input
           type="text"
           className={formControlClassName}
           value={form.lastName}
@@ -932,7 +914,7 @@ const EditAdminModal: React.FC<{
         />
       </FormField>
       <FormField label="Телефон">
-        <input
+        <Input
           type="tel"
           placeholder="+7 777 123 45 67"
           className={formControlClassName}
@@ -972,14 +954,14 @@ const AssignBranchModal: React.FC<{
     }
   >
     <FormField label="Филиал">
-      <select className={formControlClassName} value={branchId} onChange={(event) => onChange(event.target.value)}>
+      <NativeSelect className={formControlClassName} value={branchId} onChange={(event) => onChange(event.target.value)}>
         <option value="">Выберите филиал</option>
         {branches.map((branch) => (
           <option key={branch.branchId} value={branch.branchId}>
             {branch.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </FormField>
   </ModalShell>
 );
@@ -1003,7 +985,7 @@ const PasswordResultModal: React.FC<{
     }
   >
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <code className="text-sm font-semibold text-slate-900">{password}</code>
+      <code className="ui-section-title">{password}</code>
     </div>
     <p className="mt-2 text-xs text-rose-600">Повторно этот пароль показан не будет.</p>
   </ModalShell>
@@ -1075,7 +1057,7 @@ const DeleteAdminModal: React.FC<{
         <code className="text-xs text-slate-700">{admin.adminId}</code>
       </div>
       <FormField label="ID администратора">
-        <input
+        <Input
           type="text"
           placeholder="Введите ID"
           className={formControlClassName}

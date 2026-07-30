@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Button, ModalShell } from "../../../shared/ui";
+import { Button, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "../../../shared/ui";
 import { Lead, LeadLossReason } from "./types";
 
 interface LeadLossModalProps {
@@ -97,23 +97,10 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
             <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
               Причина <span className="text-rose-500">*</span>
             </span>
-            <select
-              value={lostReasonCode}
-              onChange={(event) => setLostReasonCode(event.target.value)}
-              className={`w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition focus:ring-4 ${
-                fieldErrors.reasonError && submitAttempted
-                  ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                  : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
-              }`}
-              disabled={loadingReasons || submitting}
-            >
-              <option value="">Выберите причину</option>
-              {reasons.map((reason) => (
-                <option key={reason.code} value={reason.code}>
-                  {reason.name || reason.code}
-                </option>
-              ))}
-            </select>
+            <Select value={lostReasonCode} onValueChange={setLostReasonCode} disabled={loadingReasons || submitting}>
+              <SelectTrigger className={fieldErrors.reasonError && submitAttempted ? "border-rose-300 focus:ring-rose-100" : ""}><SelectValue placeholder="Выберите причину" /></SelectTrigger>
+              <SelectContent>{reasons.map((reason) => <SelectItem key={reason.code} value={reason.code}>{reason.name || reason.code}</SelectItem>)}</SelectContent>
+            </Select>
             {submitAttempted && fieldErrors.reasonError ? (
               <p className="text-xs text-rose-600">{fieldErrors.reasonError}</p>
             ) : null}
@@ -127,18 +114,13 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
               Комментарий
               {isOther ? <span className="ml-1 text-rose-500">*</span> : null}
             </span>
-            <textarea
+            <Textarea
               value={lostComment}
               onChange={(event) => setLostComment(event.target.value)}
-              rows={4}
               placeholder={
                 isOther ? "Опишите причину подробнее" : "Комментарий (необязательно)"
               }
-              className={`w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition focus:ring-4 ${
-                fieldErrors.commentError && submitAttempted
-                  ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                  : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
-              }`}
+              className={fieldErrors.commentError && submitAttempted ? "border-rose-300 focus:ring-rose-100" : ""}
               disabled={submitting}
             />
             {submitAttempted && fieldErrors.commentError ? (

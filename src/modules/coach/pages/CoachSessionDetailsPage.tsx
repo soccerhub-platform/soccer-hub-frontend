@@ -1,15 +1,17 @@
+import { Button, Input, StatusBadge, Textarea, ToggleGroup, ToggleGroupItem, type StatusTone } from "../../../shared/ui";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { CoachApi, CoachSessionDetailsResponse, CoachStudentAttendance } from "../coach.api";
 import { ATTENDANCE_LABELS, SESSION_STATUS_META } from "../coach.labels";
 import toast from "react-hot-toast";
 
-const primaryButtonClassName =
-  "inline-flex h-11 w-full items-center justify-center rounded-xl bg-teal-950 px-4 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-60";
-const secondaryButtonClassName =
-  "inline-flex h-11 w-full items-center justify-center rounded-xl border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60";
-const saveButtonClassName =
-  "inline-flex h-10 w-full items-center justify-center rounded-xl px-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60";
+const sessionStatusTones: Record<CoachSessionDetailsResponse["status"], StatusTone> = {
+  PLANNED: "neutral",
+  IN_PROGRESS: "info",
+  COMPLETED: "success",
+  CANCELLED: "danger",
+  OVERDUE: "warning",
+};
 
 const CoachSessionDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -65,20 +67,20 @@ const CoachSessionDetailsPage: React.FC = () => {
     return (
       <div className="space-y-3">
         <div className="text-sm text-rose-600">Тренировка не найдена</div>
-        <Link to="/coach/today" className="text-sm text-cyan-700">Вернуться на сегодня</Link>
+        <Link to="/coach/today" className="text-sm text-[#0066cc]">Вернуться на сегодня</Link>
       </div>
     );
   }
 
   if (loading) {
-    return <div className="rounded-2xl border border-teal-100 bg-white px-4 py-3 text-sm text-teal-900/70">Загрузка...</div>;
+    return <div className="rounded-2xl border border-black/[0.12] bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>;
   }
 
   if (error || !session) {
     return (
       <div className="space-y-3">
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error ?? "Не удалось загрузить тренировку"}</div>
-        <Link to="/coach/today" className="text-sm text-cyan-700">Вернуться на сегодня</Link>
+        <Link to="/coach/today" className="text-sm text-[#0066cc]">Вернуться на сегодня</Link>
       </div>
     );
   }
@@ -162,9 +164,6 @@ const CoachSessionDetailsPage: React.FC = () => {
   const canStart = isPlanned;
   const canComplete = isInProgress || isOverdue;
   const canCancel = isPlanned || isInProgress;
-  const hasReportData = Boolean(
-    topic.trim() || comment.trim() || incidents.trim() || homework.trim()
-  );
   const hasRequiredReportFields = Boolean(topic.trim());
   const hasUnmarkedStudents = students.some((student) => !student.attendance);
   const canSaveAttendance = canEditAttendance && !hasUnmarkedStudents;
@@ -233,31 +232,31 @@ const CoachSessionDetailsPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-3xl border border-teal-100 bg-white p-5 shadow-sm shadow-teal-900/5">
+      <div className="rounded-2xl border border-black/[0.12] bg-white p-5 ">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="heading-font text-xl font-semibold text-teal-950">Карточка тренировки</h1>
-            <p className="mt-1 text-sm text-teal-900/65">Группа: {session.groupName}</p>
+            <h1 className="ui-page-title">Карточка тренировки</h1>
+            <p className="mt-1 text-sm text-slate-500">Группа: {session.groupName}</p>
           </div>
-          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusMeta.tone}`}>{statusMeta.label}</span>
+          <StatusBadge tone={sessionStatusTones[session.status]}>{statusMeta.label}</StatusBadge>
         </div>
-        <div className="mt-4 rounded-2xl bg-cyan-50/80 px-4 py-3 text-sm text-cyan-900">
+        <div className="mt-4 rounded-2xl bg-blue-50/80 px-4 py-3 text-sm text-[#0066cc]">
           {nextStepText}
         </div>
         {(primaryActionLabel || canCancel) && (
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
             {primaryActionLabel ? (
-              <button
+              <Button
                 disabled={saving || (canComplete && !canCompleteNow)}
                 onClick={runPrimaryAction}
-                className={primaryButtonClassName}
+                className="w-full"
                 title={canComplete && !canCompleteNow ? "Сначала заполните отчет" : undefined}
               >
                 {saving ? "Сохранение..." : primaryActionLabel}
-              </button>
+              </Button>
             ) : null}
             {canCancel ? (
-              <button
+              <Button
                 disabled={saving}
                 onClick={() =>
                   runStatusAction(
@@ -265,48 +264,50 @@ const CoachSessionDetailsPage: React.FC = () => {
                     "Тренировка отменена"
                   )
                 }
-                className={secondaryButtonClassName}
+                variant="softDanger"
+                className="w-full"
               >
                 Отменить
-              </button>
+              </Button>
             ) : null}
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-teal-100 bg-white p-3 text-sm shadow-sm shadow-teal-900/5">
+      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-black/[0.12] bg-white p-3 text-sm ">
         <div>
-          <div className="text-[11px] uppercase text-teal-900/45">Дата</div>
-          <div className="mt-1 font-medium text-teal-950">{session.date}</div>
+          <div className="text-[11px] uppercase text-slate-700/45">Дата</div>
+          <div className="mt-1 font-medium text-slate-950">{session.date}</div>
         </div>
         <div>
-          <div className="text-[11px] uppercase text-teal-900/45">Время</div>
-          <div className="mt-1 font-medium text-teal-950">{session.time}</div>
+          <div className="text-[11px] uppercase text-slate-700/45">Время</div>
+          <div className="mt-1 font-medium text-slate-950">{session.time}</div>
         </div>
         <div>
-          <div className="text-[11px] uppercase text-teal-900/45">Было</div>
-          <div className="mt-1 font-medium text-teal-950">{attendanceSummary}</div>
+          <div className="text-[11px] uppercase text-slate-700/45">Было</div>
+          <div className="mt-1 font-medium text-slate-950">{attendanceSummary}</div>
         </div>
       </div>
 
       {canEditAttendance && (
-        <div className="rounded-3xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5">
+        <div className="rounded-2xl border border-black/[0.12] bg-white p-4 ">
           <div className="mb-2 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-teal-950">Посещаемость</h2>
+              <h2 className="ui-section-title">Посещаемость</h2>
               {isOverdue ? (
                 <p className="mt-1 text-xs text-amber-700">
                   Проверьте перед закрытием тренировки.
                 </p>
               ) : null}
             </div>
-            <button
+            <Button
               onClick={handleMarkAllPresent}
               disabled={saving}
-              className="rounded-xl border border-teal-100 px-3 py-2 text-xs font-medium text-teal-900 hover:bg-teal-50 disabled:opacity-60"
+              variant="secondary"
+              size="sm"
             >
               Все были
-            </button>
+            </Button>
           </div>
           {hasUnmarkedStudents ? (
             <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -315,70 +316,60 @@ const CoachSessionDetailsPage: React.FC = () => {
           ) : null}
           <div className="space-y-3">
             {students.map((student) => (
-              <div key={student.id} className="rounded-xl border border-teal-50 bg-[#fbfdfb] p-3">
-                <div className="text-sm text-teal-950">{student.name}</div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(Object.keys(ATTENDANCE_LABELS) as CoachStudentAttendance["attendance"][]).map((state) => (
-                    <button
-                      key={state}
-                      onClick={() => updateAttendance(student.id, state)}
-                      className={`rounded-lg px-2 py-1 text-xs ${
-                        student.attendance === state ? "bg-teal-950 text-white" : "bg-teal-50 text-teal-900"
-                      }`}
-                    >
-                      {ATTENDANCE_LABELS[state]}
-                    </button>
-                  ))}
-                </div>
+              <div key={student.id} className="rounded-xl border border-black/[0.06] bg-[#fbfdfb] p-3">
+                <div className="text-sm text-slate-950">{student.name}</div>
+                <ToggleGroup type="single" value={student.attendance ?? ""} onValueChange={(value) => value && updateAttendance(student.id, value as CoachStudentAttendance["attendance"])} variant="outline" className="mt-2 flex-wrap justify-start">
+                  {(Object.keys(ATTENDANCE_LABELS) as CoachStudentAttendance["attendance"][]).map((state) => <ToggleGroupItem key={state} value={state} size="sm">{ATTENDANCE_LABELS[state]}</ToggleGroupItem>)}
+                </ToggleGroup>
               </div>
             ))}
           </div>
-          <button
+          <Button
             disabled={saving || !canSaveAttendance}
             onClick={persistAttendance}
-            className={`${saveButtonClassName} mt-3 bg-teal-800 hover:bg-teal-700`}
+            className="mt-3 w-full"
             title={!canSaveAttendance ? "Отметьте всех учеников" : undefined}
           >
             Сохранить посещаемость
-          </button>
+          </Button>
         </div>
       )}
 
       {canEditReport ? (
-      <div className="space-y-3 rounded-3xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5">
+      <div className="space-y-3 rounded-2xl border border-black/[0.12] bg-white p-4 ">
         <div>
-          <h2 className="text-sm font-semibold text-teal-950">Отчет тренера</h2>
+          <h2 className="ui-section-title">Отчет тренера</h2>
         </div>
-        <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Тема тренировки" className="w-full rounded-xl border border-teal-100 px-3 py-2.5 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" />
+        <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Тема тренировки" className="w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100" />
         {!hasRequiredReportFields ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             Укажите тему тренировки перед сохранением отчета.
           </div>
         ) : null}
-        <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Комментарий тренера" className="w-full rounded-xl border border-teal-100 px-3 py-2.5 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" rows={3} />
-        <textarea value={incidents} onChange={(e) => setIncidents(e.target.value)} placeholder="Инциденты или важные заметки" className="w-full rounded-xl border border-teal-100 px-3 py-2.5 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" rows={2} />
-        <textarea value={homework} onChange={(e) => setHomework(e.target.value)} placeholder="Домашнее задание" className="w-full rounded-xl border border-teal-100 px-3 py-2.5 text-sm outline-none focus:border-teal-700 focus:ring-4 focus:ring-teal-100" rows={2} />
-        <button
+        <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Комментарий тренера" className="w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100" rows={3} />
+        <Textarea value={incidents} onChange={(e) => setIncidents(e.target.value)} placeholder="Инциденты или важные заметки" className="w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100" rows={2} />
+        <Textarea value={homework} onChange={(e) => setHomework(e.target.value)} placeholder="Домашнее задание" className="w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100" rows={2} />
+        <Button
           disabled={saving || !canSaveReport}
           onClick={saveReport}
-          className={`${saveButtonClassName} bg-slate-800 hover:bg-slate-700`}
+          className="w-full"
           title={!canSaveReport ? "Укажите тему тренировки" : undefined}
         >
           Сохранить отчет
-        </button>
+        </Button>
       </div>
       ) : isCompleted ? (
-        <div className="space-y-3 rounded-3xl border border-teal-100 bg-white p-4 text-sm shadow-sm shadow-teal-900/5">
-          <h2 className="text-sm font-semibold text-teal-950">Отчет тренера</h2>
-          <div className="space-y-2 text-teal-900/75">
-            <div><span className="font-medium text-teal-950">Тема:</span> {topic || "Не указано"}</div>
-            <div><span className="font-medium text-teal-950">Комментарий:</span> {comment || "Не указано"}</div>
-            <div><span className="font-medium text-teal-950">Инциденты:</span> {incidents || "Нет"}</div>
-            <div><span className="font-medium text-teal-950">Домашнее задание:</span> {homework || "Не указано"}</div>
+        <div className="space-y-3 rounded-2xl border border-black/[0.12] bg-white p-4 text-sm ">
+          <h2 className="ui-section-title">Отчет тренера</h2>
+          <div className="space-y-2 text-slate-600">
+            <div><span className="font-medium text-slate-950">Тема:</span> {topic || "Не указано"}</div>
+            <div><span className="font-medium text-slate-950">Комментарий:</span> {comment || "Не указано"}</div>
+            <div><span className="font-medium text-slate-950">Инциденты:</span> {incidents || "Нет"}</div>
+            <div><span className="font-medium text-slate-950">Домашнее задание:</span> {homework || "Не указано"}</div>
           </div>
         </div>
       ) : isCancelled ? (
-        <div className="rounded-3xl border border-rose-100 bg-white p-4 text-sm shadow-sm shadow-teal-900/5">
+        <div className="rounded-2xl border border-rose-100 bg-white p-4 text-sm ">
           <h2 className="text-sm font-semibold text-rose-900">Причина отмены</h2>
           <div className="mt-2 text-rose-800/75">{cancelReason || "Не указано"}</div>
         </div>

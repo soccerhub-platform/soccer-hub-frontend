@@ -1,6 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { apiClient } from "../../shared/api";
 import { Role } from "../../shared/types";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  PageShell,
+  SectionCard,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../shared/ui";
 
 interface UserRow {
   id: string;
@@ -37,42 +51,44 @@ const UsersPage: React.FC = () => {
   }, []);
 
   return (
-    <div>
-      <h2 className="text-xl font-bold text-admin-700 mb-4">Пользователи</h2>
-      {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 bg-white shadow rounded">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Логин</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Роль</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Активность</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {loading && (
-              <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">Загрузка...</td>
-              </tr>
-            )}
-            {!loading && users.map((user) => (
-              <tr key={user.id} className="hover:bg-admin-100">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.username}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{roleLabels[user.role] ?? user.role}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.active ? "Активен" : "Заблокирован"}</td>
-              </tr>
-            ))}
-            {!loading && users.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">Нет данных</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <PageShell className="space-y-5">
+      <PageHeader title="Пользователи" description="Системные пользователи и их доступы." />
+
+      <SectionCard className="p-0">
+        {error ? (
+          <div className="p-5"><ErrorState message={error} /></div>
+        ) : loading ? (
+          <div className="p-5"><LoadingState label="Загрузка пользователей..." /></div>
+        ) : users.length === 0 ? (
+          <div className="p-5"><EmptyState title="Пользователей пока нет" /></div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Логин</TableHead>
+                <TableHead>Роль</TableHead>
+                <TableHead>Активность</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="whitespace-nowrap font-mono text-xs text-slate-500">{user.id}</TableCell>
+                  <TableCell className="whitespace-nowrap font-medium text-slate-900">{user.username}</TableCell>
+                  <TableCell className="whitespace-nowrap text-slate-700">{roleLabels[user.role] ?? user.role}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${user.active ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
+                      {user.active ? "Активен" : "Заблокирован"}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </SectionCard>
+    </PageShell>
   );
 };
 

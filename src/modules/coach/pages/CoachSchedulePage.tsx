@@ -43,21 +43,21 @@ const CoachSchedulePage: React.FC = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="heading-font text-xl font-semibold text-teal-950">Расписание</h1>
-        <p className="mt-1 text-sm text-teal-900/65">Тренировки сгруппированы по дням недели.</p>
+        <h1 className="ui-page-title">Расписание</h1>
+        <p className="mt-1 text-sm text-slate-500">Тренировки сгруппированы по дням недели.</p>
       </div>
 
       {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-      {loading && <div className="rounded-2xl border border-teal-100 bg-white px-4 py-3 text-sm text-teal-900/70">Загрузка...</div>}
+      {loading && <div className="rounded-2xl border border-black/[0.12] bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>}
 
       {days.map((day) => (
-        <div key={day.date} className="rounded-3xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/5">
-          <div className="text-sm font-semibold text-teal-950">{day.date}</div>
+        <div key={day.date} className="rounded-2xl border border-black/[0.12] bg-white p-4 ">
+          <div className="ui-section-title">{day.date}</div>
           <div className="mt-2 space-y-2">
             {day.sessions.map((session) => (
-              <div key={session.id} className="rounded-2xl bg-teal-50/70 px-3 py-3 text-sm">
-                <div className="font-medium text-teal-950">{session.time} — {session.groupName}</div>
-                <div className="mt-1 text-xs text-teal-900/65">Статус: {SESSION_STATUS_META[session.status].label}</div>
+              <div key={session.id} className="rounded-2xl bg-[#f5f5f7] px-3 py-3 text-sm">
+                <div className="font-medium text-slate-950">{session.time} — {session.groupName}</div>
+                <div className="mt-1 text-xs text-slate-500">Статус: {SESSION_STATUS_META[session.status].label}</div>
               </div>
             ))}
           </div>
@@ -65,7 +65,7 @@ const CoachSchedulePage: React.FC = () => {
       ))}
 
       {!loading && days.length === 0 && (
-        <div className="rounded-2xl border border-teal-100 bg-white p-4 text-sm text-teal-900/65">Расписание на выбранную неделю пустое.</div>
+        <div className="rounded-2xl border border-black/[0.12] bg-white p-4 text-sm text-slate-500">Расписание на выбранную неделю пустое.</div>
       )}
     </div>
   );

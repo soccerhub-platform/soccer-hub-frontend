@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  CheckCircleIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ExclamationTriangleIcon,
-} from "@heroicons/react/24/outline";
+  useNavigate, useSearchParams } from "react-router-dom";
+import {
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  TriangleAlert,
+} from "lucide-react";
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import type { MediaAsset } from "../../../shared/media.types";
-import { EmptyState, ErrorState, LoadingState, SectionCard, formControlClassName } from "../../../shared/ui";
+import { NativeSelect, EmptyState, ErrorState, LoadingState, SectionCard, formControlClassName   } from "../../../shared/ui";
 import { StudentApi } from "./student.api";
 import type {
   AdminStudentAttendanceResponse,
@@ -119,13 +120,13 @@ const StudentAttendanceTab: React.FC<Props> = ({ playerId, memberships }) => {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center justify-between gap-2 sm:justify-start">
-          <button type="button" aria-label="Предыдущий месяц" onClick={() => updateFilter("month", shiftMonth(month, -1))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"><ChevronLeftIcon className="h-4 w-4" /></button>
+          <button type="button" aria-label="Предыдущий месяц" onClick={() => updateFilter("month", shiftMonth(month, -1))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"><ChevronLeft className="h-4 w-4" /></button>
           <div className="min-w-40 text-center text-sm font-semibold capitalize text-slate-950">{monthLabel(month)}</div>
-          <button type="button" aria-label="Следующий месяц" onClick={() => updateFilter("month", shiftMonth(month, 1))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"><ChevronRightIcon className="h-4 w-4" /></button>
+          <button type="button" aria-label="Следующий месяц" onClick={() => updateFilter("month", shiftMonth(month, 1))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"><ChevronRight className="h-4 w-4" /></button>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <select aria-label="Фильтр по группе" value={groupId} onChange={(event) => updateFilter("groupId", event.target.value)} className={`${formControlClassName} min-w-48 py-2`}><option value="all">Все группы</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
-          <select aria-label="Фильтр по статусу" value={status} onChange={(event) => updateFilter("status", event.target.value)} className={`${formControlClassName} min-w-48 py-2`}>{STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+          <NativeSelect aria-label="Фильтр по группе" value={groupId} onChange={(event) => updateFilter("groupId", event.target.value)} className={`${formControlClassName} min-w-48 py-2`}><option value="all">Все группы</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</NativeSelect>
+          <NativeSelect aria-label="Фильтр по статусу" value={status} onChange={(event) => updateFilter("status", event.target.value)} className={`${formControlClassName} min-w-48 py-2`}>{STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</NativeSelect>
         </div>
       </div>
 
@@ -135,7 +136,7 @@ const StudentAttendanceTab: React.FC<Props> = ({ playerId, memberships }) => {
             <div className="grid lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)]">
               <div className="border-b border-slate-100 p-5 lg:border-b-0 lg:border-r">
                 <div className="text-xs font-medium text-slate-500">Посещаемость за {monthLabel(month)}</div>
-                <div className="mt-2 text-4xl font-semibold text-slate-950">{data.summary.attendanceRate}%</div>
+                <div className="mt-2 ui-metric-value">{data.summary.attendanceRate}%</div>
                 <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
                   <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, data.summary.attendanceRate)}%` }} />
                 </div>
@@ -153,7 +154,7 @@ const StudentAttendanceTab: React.FC<Props> = ({ playerId, memberships }) => {
           {data.summary.absentCount > 0 || data.summary.unmarkedCount > 0 ? (
             <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
-                <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+                <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
                 <div>
                   <div className="text-sm font-semibold text-amber-950">Требует внимания</div>
                   <div className="mt-0.5 text-sm text-amber-800">
@@ -173,7 +174,7 @@ const StudentAttendanceTab: React.FC<Props> = ({ playerId, memberships }) => {
             </div>
           ) : (
             <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-              <CheckCircleIcon className="h-5 w-5 shrink-0 text-emerald-700" /> Нет пропусков и незаполненных занятий
+              <CheckCircle className="h-5 w-5 shrink-0 text-emerald-700" /> Нет пропусков и незаполненных занятий
             </div>
           )}
 
@@ -183,7 +184,7 @@ const StudentAttendanceTab: React.FC<Props> = ({ playerId, memberships }) => {
                 <div className="hidden grid-cols-[150px_minmax(190px,1fr)_180px_minmax(160px,0.8fr)_40px] gap-4 bg-slate-50/80 px-4 py-3 text-[11px] font-semibold uppercase text-slate-500 lg:grid"><span>Дата и время</span><span>Группа</span><span>Посещаемость</span><span>Комментарий</span><span /></div>
                 {data.items.map((item) => {
                   const image = avatarUrl(item.group.avatar);
-                  return <button key={item.sessionId} type="button" onClick={() => navigate(`/admin/groups/${item.group.id}/sessions/${item.sessionId}`)} className="grid w-full grid-cols-1 gap-3 px-4 py-4 text-left transition hover:bg-slate-50 lg:grid-cols-[150px_minmax(190px,1fr)_180px_minmax(160px,0.8fr)_40px] lg:items-center lg:gap-4"><div><div className="text-sm font-semibold text-slate-950">{formatDate(item.sessionDate)}</div><div className="mt-1 text-xs text-slate-500">{formatTime(item.startsAt)}–{formatTime(item.endsAt)}</div></div><div className="flex min-w-0 items-center gap-3">{image ? <img src={resolveApiUrl(image)} alt="" className="h-9 w-9 shrink-0 rounded-lg border border-slate-200 object-cover" /> : <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-admin-50 text-xs font-semibold text-admin-700">{item.group.name.slice(0,2).toUpperCase()}</span>}<div className="min-w-0"><div className="truncate text-sm font-semibold text-slate-950">{item.group.name}</div><div className="mt-0.5 text-xs text-slate-500">{item.effectiveSessionStatus}</div></div></div><div><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClassName(item.attendanceStatus)}`}>{statusLabel(item.attendanceStatus)}</span></div><div className="truncate text-sm text-slate-500">{item.comment || "—"}</div><ChevronRightIcon className="hidden h-4 w-4 text-slate-400 lg:block" /></button>;
+                  return <button key={item.sessionId} type="button" onClick={() => navigate(`/admin/groups/${item.group.id}/sessions/${item.sessionId}`)} className="grid w-full grid-cols-1 gap-3 px-4 py-4 text-left transition hover:bg-slate-50 lg:grid-cols-[150px_minmax(190px,1fr)_180px_minmax(160px,0.8fr)_40px] lg:items-center lg:gap-4"><div><div className="ui-section-title">{formatDate(item.sessionDate)}</div><div className="mt-1 text-xs text-slate-500">{formatTime(item.startsAt)}–{formatTime(item.endsAt)}</div></div><div className="flex min-w-0 items-center gap-3">{image ? <img src={resolveApiUrl(image)} alt="" className="h-9 w-9 shrink-0 rounded-lg border border-slate-200 object-cover" /> : <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-xs font-semibold text-[#0066cc]">{item.group.name.slice(0,2).toUpperCase()}</span>}<div className="min-w-0"><div className="truncate ui-section-title">{item.group.name}</div><div className="mt-0.5 text-xs text-slate-500">{item.effectiveSessionStatus}</div></div></div><div><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClassName(item.attendanceStatus)}`}>{statusLabel(item.attendanceStatus)}</span></div><div className="truncate text-sm text-slate-500">{item.comment || "—"}</div><ChevronRight className="hidden h-4 w-4 text-slate-400 lg:block" /></button>;
                 })}
               </div>
             )}
@@ -196,7 +197,7 @@ const StudentAttendanceTab: React.FC<Props> = ({ playerId, memberships }) => {
 
 const AttendanceValue: React.FC<{ label: string; value: number; tone: string }> = ({ label, value, tone }) => (
   <div className="flex min-h-28 flex-col justify-center px-4 py-5">
-    <div className={`text-2xl font-semibold ${tone}`}>{value}</div>
+    <div className={`ui-metric-value ${tone}`}>{value}</div>
     <div className="mt-1 text-xs text-slate-500">{label}</div>
   </div>
 );

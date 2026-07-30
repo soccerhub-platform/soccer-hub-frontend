@@ -1,11 +1,12 @@
+import { NativeSelect } from "../../../shared/ui";
 import React, { useMemo, useState } from "react";
 import {
-  CalendarDaysIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  Cog6ToothIcon,
-  MapPinIcon,
-} from "@heroicons/react/24/outline";
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Settings,
+  MapPin,
+} from "lucide-react";
 
 import { resolveApiUrl } from "../../../shared/api";
 import type { CoachProfile, CoachUpcomingSession, CoachWeeklyScheduleItem } from "./coach.api";
@@ -126,27 +127,27 @@ const CoachScheduleTab: React.FC<CoachScheduleTabProps> = ({ profile, onNavigate
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="rounded-lg border border-slate-200 bg-white p-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">Расписание тренера</h2>
+            <h2 className="ui-card-title">Расписание тренера</h2>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
                 {([['day', 'День'], ['week', 'Неделя'], ['month', 'Месяц']] as const).map(([value, label]) => (
-                  <button key={value} type="button" onClick={() => setView(value)} className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${view === value ? "bg-emerald-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-950"}`}>{label}</button>
+                  <button key={value} type="button" onClick={() => setView(value)} className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${view === value ? "bg-[#0066cc] text-white" : "text-slate-600 hover:text-slate-950"}`}>{label}</button>
                 ))}
               </div>
               <div className="min-w-48 text-sm font-semibold capitalize text-slate-900">{periodLabel}</div>
               <div className="flex gap-1.5">
-                <button type="button" onClick={() => navigatePeriod(-1)} aria-label="Предыдущий период" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700"><ChevronLeftIcon className="h-4 w-4" /></button>
-                <button type="button" onClick={() => setAnchorDate(new Date())} className="rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700">Сегодня</button>
-                <button type="button" onClick={() => navigatePeriod(1)} aria-label="Следующий период" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700"><ChevronRightIcon className="h-4 w-4" /></button>
+                <button type="button" onClick={() => navigatePeriod(-1)} aria-label="Предыдущий период" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:text-[#0066cc]"><ChevronLeft className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setAnchorDate(new Date())} className="rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-blue-200 hover:text-[#0066cc]">Сегодня</button>
+                <button type="button" onClick={() => navigatePeriod(1)} aria-label="Следующий период" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:text-[#0066cc]"><ChevronRight className="h-4 w-4" /></button>
               </div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/availability`)} className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"><Cog6ToothIcon className="h-4 w-4" />Настройки расписания</button>
-            <button type="button" onClick={() => onNavigate(`/admin/schedule?coachId=${profile.coachId}`)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"><CalendarDaysIcon className="h-4 w-4" />Открыть календарь</button>
+            <button type="button" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/availability`)} className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3.5 text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:text-[#0066cc]"><Settings className="h-4 w-4" />Настройки расписания</button>
+            <button type="button" onClick={() => onNavigate(`/admin/schedule?coachId=${profile.coachId}`)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#0066cc] px-3.5 text-sm font-semibold text-white transition hover:bg-[#004b99]"><CalendarDays className="h-4 w-4" />Открыть календарь</button>
           </div>
         </div>
 
@@ -185,34 +186,34 @@ const CoachScheduleTab: React.FC<CoachScheduleTabProps> = ({ profile, onNavigate
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-4 py-3"><h2 className="text-base font-semibold text-slate-950">Ближайшие занятия</h2></div>
+        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div className="border-b border-slate-200 px-4 py-3"><h2 className="ui-card-title">Ближайшие занятия</h2></div>
           {filteredSessions.length ? (
             <div className="divide-y divide-slate-100">
               {filteredSessions.map((session) => {
                 const assignment = profile.groups.find((group) => group.groupId === session.groupId);
                 return (
                   <button key={session.sessionId} type="button" onClick={() => openSession(session)} className={`grid w-full gap-3 border-l-2 px-4 py-3 text-left transition hover:bg-slate-50 md:grid-cols-[130px_minmax(200px,1fr)_150px_120px_100px_24px] md:items-center ${roleAccent(assignment?.role)}`}>
-                    <span><span className="block text-sm font-semibold text-slate-900">{dateLabel(asDate(session.sessionDate))} · {dayNames[asDate(session.sessionDate).getDay()]}</span><span className="mt-0.5 block text-xs text-slate-500">{shortTime(session.startTime)}–{shortTime(session.endTime)}</span></span>
-                    <span className="flex min-w-0 items-center gap-3"><GroupAvatar profile={profile} groupId={session.groupId} name={session.groupName} /><span className="min-w-0"><span className="block truncate text-sm font-semibold text-slate-900">{session.groupName}</span><span className="mt-0.5 block text-xs text-slate-500">{sessionTypeLabel(session.scheduleType)}</span></span></span>
+                    <span><span className="block ui-section-title">{dateLabel(asDate(session.sessionDate))} · {dayNames[asDate(session.sessionDate).getDay()]}</span><span className="mt-0.5 block text-xs text-slate-500">{shortTime(session.startTime)}–{shortTime(session.endTime)}</span></span>
+                    <span className="flex min-w-0 items-center gap-3"><GroupAvatar profile={profile} groupId={session.groupId} name={session.groupName} /><span className="min-w-0"><span className="block truncate ui-section-title">{session.groupName}</span><span className="mt-0.5 block text-xs text-slate-500">{sessionTypeLabel(session.scheduleType)}</span></span></span>
                     <span className="truncate text-sm text-slate-600">{session.groupName}</span>
-                    <span className="inline-flex items-center gap-1.5 truncate text-sm text-slate-600"><MapPinIcon className="h-4 w-4 shrink-0 text-slate-400" />{session.location?.name || "Не указано"}</span>
+                    <span className="inline-flex items-center gap-1.5 truncate text-sm text-slate-600"><MapPin className="h-4 w-4 shrink-0 text-slate-400" />{session.location?.name || "Не указано"}</span>
                     <span className={`w-fit rounded-full px-2 py-1 text-[11px] font-semibold ${rolePill(assignment?.role)}`}>{roleShort(assignment?.role)}</span>
-                    <ChevronRightIcon className="h-4 w-4 text-slate-400" />
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
                   </button>
                 );
               })}
             </div>
           ) : <div className="px-4 py-12 text-center text-sm text-slate-500">По выбранным фильтрам занятий нет</div>}
-          <button type="button" onClick={() => onNavigate(`/admin/schedule?coachId=${profile.coachId}`)} className="m-4 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:text-emerald-800">Смотреть полный календарь<ChevronRightIcon className="h-4 w-4" /></button>
+          <button type="button" onClick={() => onNavigate(`/admin/schedule?coachId=${profile.coachId}`)} className="m-4 inline-flex items-center gap-2 text-sm font-semibold text-[#0066cc] hover:text-[#004b99]">Смотреть полный календарь<ChevronRight className="h-4 w-4" /></button>
         </section>
 
-        <aside className="h-fit rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-950">Фильтры</h2>
+        <aside className="h-fit rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="ui-section-title">Фильтры</h2>
           <div className="mt-4 space-y-3">
-            <label className="block text-xs font-medium text-slate-500">Группа<select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} className="mt-1.5 h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700"><option value="ALL">Все группы</option>{profile.groups.map((group) => <option key={group.groupId} value={group.groupId}>{group.groupName}</option>)}</select></label>
-            <label className="block text-xs font-medium text-slate-500">Тип занятия<select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="mt-1.5 h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700"><option value="ALL">Все типы</option><option value="REGULAR">Регулярное</option><option value="TRIAL">Пробное</option><option value="INDIVIDUAL">Индивидуальное</option></select></label>
-            <label className="block text-xs font-medium text-slate-500">Место<select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="mt-1.5 h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700"><option value="ALL">Все места</option>{locations.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+            <label className="block text-xs font-medium text-slate-500">Группа<NativeSelect value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} className="mt-1.5 h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700"><option value="ALL">Все группы</option>{profile.groups.map((group) => <option key={group.groupId} value={group.groupId}>{group.groupName}</option>)}</NativeSelect></label>
+            <label className="block text-xs font-medium text-slate-500">Тип занятия<NativeSelect value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="mt-1.5 h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700"><option value="ALL">Все типы</option><option value="REGULAR">Регулярное</option><option value="TRIAL">Пробное</option><option value="INDIVIDUAL">Индивидуальное</option></NativeSelect></label>
+            <label className="block text-xs font-medium text-slate-500">Место<NativeSelect value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="mt-1.5 h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700"><option value="ALL">Все места</option>{locations.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</NativeSelect></label>
           </div>
           <div className="mt-5 border-t border-slate-100 pt-4">
             <h3 className="text-xs font-semibold uppercase text-slate-400">Легенда</h3>

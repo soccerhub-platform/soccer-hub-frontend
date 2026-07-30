@@ -1,17 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { DocumentTextIcon, ExclamationTriangleIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import {
+  useNavigate, useSearchParams } from "react-router-dom";
+import { FileText, TriangleAlert, Users } from "lucide-react";
 import { getApiErrorMessage } from "../../../shared/api";
 import { useAuth } from "../../../shared/AuthContext";
 import {
+  Textarea,
+  NativeSelect,
   Button,
+  DatePicker,
   EmptyState,
   FormField,
   formControlClassName,
   LoadingState,
   ModalShell,
-} from "../../../shared/ui";
+   } from "../../../shared/ui";
 import { useAdminBranch } from "../BranchContext";
 import {
   GroupApi,
@@ -59,9 +63,9 @@ const ReasonSelect: React.FC<{
   onChange: (value: GroupMembershipReason) => void;
   options: Array<{ value: GroupMembershipReason; label: string }>;
 }> = ({ value, onChange, options }) => (
-  <select value={value} onChange={(event) => onChange(event.target.value)} className={formControlClassName}>
+  <NativeSelect value={value} onChange={(event) => onChange(event.target.value)} className={formControlClassName}>
     {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-  </select>
+  </NativeSelect>
 );
 
 interface Props {
@@ -232,10 +236,10 @@ const StudentMembershipDrawers: React.FC<Props> = ({ playerId, playerName, membe
             <EmptyState title="Нет доступных групп" description="Ученик уже состоит во всех активных группах или в филиале нет доступных вариантов." />
           ) : (
             <div className="space-y-4">
-              <FormField label="Группа"><select value={addForm.groupId} onChange={(event) => setAddForm((current) => ({ ...current, groupId: event.target.value }))} className={formControlClassName}>{addGroups.map((group) => <option key={group.groupId} value={group.groupId}>{group.name} · {group.ageFrom}-{group.ageTo} лет</option>)}</select></FormField>
-              <FormField label="Дата вступления"><input type="date" value={addForm.joinedAt} onChange={(event) => setAddForm((current) => ({ ...current, joinedAt: event.target.value }))} className={formControlClassName} /></FormField>
+              <FormField label="Группа"><NativeSelect value={addForm.groupId} onChange={(event) => setAddForm((current) => ({ ...current, groupId: event.target.value }))} className={formControlClassName}>{addGroups.map((group) => <option key={group.groupId} value={group.groupId}>{group.name} · {group.ageFrom}-{group.ageTo} лет</option>)}</NativeSelect></FormField>
+              <FormField label="Дата вступления"><DatePicker value={addForm.joinedAt} onValueChange={(joinedAt) => setAddForm((current) => ({ ...current, joinedAt }))} /></FormField>
               <FormField label="Причина"><ReasonSelect value={addForm.reason} onChange={(reason) => setAddForm((current) => ({ ...current, reason }))} options={ADD_REASONS} /></FormField>
-              <FormField label="Комментарий" hint="Необязательно"><textarea rows={4} value={addForm.comment} onChange={(event) => setAddForm((current) => ({ ...current, comment: event.target.value }))} className={formControlClassName} placeholder="Контекст для истории участия" /></FormField>
+              <FormField label="Комментарий" hint="Необязательно"><Textarea rows={4} value={addForm.comment} onChange={(event) => setAddForm((current) => ({ ...current, comment: event.target.value }))} className={formControlClassName} placeholder="Контекст для истории участия" /></FormField>
             </div>
           )}
         </ModalShell>
@@ -254,11 +258,11 @@ const StudentMembershipDrawers: React.FC<Props> = ({ playerId, playerName, membe
         >
           {!selectedMembership ? <EmptyState title="Участие не найдено" description="Закройте окно и обновите страницу." /> : groupsLoading ? <LoadingState label="Загрузка групп..." /> : transferGroups.length === 0 ? <EmptyState title="Нет доступной группы для перевода" /> : (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-admin-700"><UserGroupIcon className="h-5 w-5" /></span><div><div className="text-xs text-slate-500">Текущая группа</div><div className="mt-0.5 text-sm font-semibold text-slate-950">{selectedMembership.group.name}</div><div className="mt-0.5 text-xs text-slate-500">с {formatDate(selectedMembership.joinedAt)}</div></div></div>
-              <FormField label="Новая группа"><select value={transferForm.targetGroupId} onChange={(event) => setTransferForm((current) => ({ ...current, targetGroupId: event.target.value }))} className={formControlClassName}>{transferGroups.map((group) => <option key={group.groupId} value={group.groupId}>{group.name} · {group.ageFrom}-{group.ageTo} лет</option>)}</select></FormField>
-              <FormField label="Дата перевода"><input type="date" value={transferForm.transferDate} min={selectedMembership.joinedAt} onChange={(event) => setTransferForm((current) => ({ ...current, transferDate: event.target.value }))} className={formControlClassName} /></FormField>
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#0066cc]"><Users className="h-5 w-5" /></span><div><div className="text-xs text-slate-500">Текущая группа</div><div className="mt-0.5 ui-section-title">{selectedMembership.group.name}</div><div className="mt-0.5 text-xs text-slate-500">с {formatDate(selectedMembership.joinedAt)}</div></div></div>
+              <FormField label="Новая группа"><NativeSelect value={transferForm.targetGroupId} onChange={(event) => setTransferForm((current) => ({ ...current, targetGroupId: event.target.value }))} className={formControlClassName}>{transferGroups.map((group) => <option key={group.groupId} value={group.groupId}>{group.name} · {group.ageFrom}-{group.ageTo} лет</option>)}</NativeSelect></FormField>
+              <FormField label="Дата перевода"><DatePicker value={transferForm.transferDate} min={selectedMembership.joinedAt} onValueChange={(transferDate) => setTransferForm((current) => ({ ...current, transferDate }))} /></FormField>
               <FormField label="Причина"><ReasonSelect value={transferForm.reason} onChange={(reason) => setTransferForm((current) => ({ ...current, reason }))} options={TRANSFER_REASONS} /></FormField>
-              <FormField label="Комментарий" hint="Необязательно"><textarea rows={4} value={transferForm.comment} onChange={(event) => setTransferForm((current) => ({ ...current, comment: event.target.value }))} className={formControlClassName} /></FormField>
+              <FormField label="Комментарий" hint="Необязательно"><Textarea rows={4} value={transferForm.comment} onChange={(event) => setTransferForm((current) => ({ ...current, comment: event.target.value }))} className={formControlClassName} /></FormField>
             </div>
           )}
         </ModalShell>
@@ -273,16 +277,16 @@ const StudentMembershipDrawers: React.FC<Props> = ({ playerId, playerName, membe
           maxWidthClassName="max-w-lg"
           closeDisabled={saving}
           onClose={close}
-          footer={<div className="flex justify-end gap-2"><Button variant="secondary" disabled={saving} onClick={close}>Отмена</Button>{linkedContractId ? <Button variant="danger" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(linkedContractId)}/overview?drawer=cancel`)}><DocumentTextIcon className="h-4 w-4" /> Перейти к договору</Button> : <Button variant="danger" disabled={!selectedMembership || !removeForm.leftAt} isLoading={saving} onClick={() => void submitRemove()}>Исключить</Button>}</div>}
+          footer={<div className="flex justify-end gap-2"><Button variant="secondary" disabled={saving} onClick={close}>Отмена</Button>{linkedContractId ? <Button variant="danger" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(linkedContractId)}/overview?drawer=cancel`)}><FileText className="h-4 w-4" /> Перейти к договору</Button> : <Button variant="danger" disabled={!selectedMembership || !removeForm.leftAt} isLoading={saving} onClick={() => void submitRemove()}>Исключить</Button>}</div>}
         >
           {!selectedMembership ? <EmptyState title="Участие не найдено" description="Закройте окно и обновите страницу." /> : linkedContractId ? (
-            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"><ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><div><div className="text-sm font-semibold text-amber-950">Участие связано с действующим договором</div><p className="mt-1 text-sm leading-6 text-amber-800">Чтобы завершить обучение без рассинхронизации данных, отмените договор. Система автоматически завершит участие ученика в группе.</p></div></div>
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"><TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><div><div className="text-sm font-semibold text-amber-950">Участие связано с действующим договором</div><p className="mt-1 text-sm leading-6 text-amber-800">Чтобы завершить обучение без рассинхронизации данных, отмените договор. Система автоматически завершит участие ученика в группе.</p></div></div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4"><ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><div><div className="text-sm font-semibold text-amber-950">История будет сохранена</div><p className="mt-1 text-xs leading-5 text-amber-800">Ученик исчезнет из активного состава после выбранной даты, но membership останется в истории.</p></div></div>
-              <FormField label="Последний день в группе"><input type="date" value={removeForm.leftAt} min={selectedMembership.joinedAt} onChange={(event) => setRemoveForm((current) => ({ ...current, leftAt: event.target.value }))} className={formControlClassName} /></FormField>
+              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4"><TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><div><div className="text-sm font-semibold text-amber-950">История будет сохранена</div><p className="mt-1 text-xs leading-5 text-amber-800">Ученик исчезнет из активного состава после выбранной даты, но membership останется в истории.</p></div></div>
+              <FormField label="Последний день в группе"><DatePicker value={removeForm.leftAt} min={selectedMembership.joinedAt} onValueChange={(leftAt) => setRemoveForm((current) => ({ ...current, leftAt }))} /></FormField>
               <FormField label="Причина"><ReasonSelect value={removeForm.reason} onChange={(reason) => setRemoveForm((current) => ({ ...current, reason }))} options={REMOVE_REASONS} /></FormField>
-              <FormField label="Комментарий" hint="Необязательно"><textarea rows={4} value={removeForm.comment} onChange={(event) => setRemoveForm((current) => ({ ...current, comment: event.target.value }))} className={formControlClassName} /></FormField>
+              <FormField label="Комментарий" hint="Необязательно"><Textarea rows={4} value={removeForm.comment} onChange={(event) => setRemoveForm((current) => ({ ...current, comment: event.target.value }))} className={formControlClassName} /></FormField>
             </div>
           )}
         </ModalShell>

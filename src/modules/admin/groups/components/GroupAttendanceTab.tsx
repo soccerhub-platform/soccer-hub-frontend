@@ -1,25 +1,26 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowPathIcon,
-  ArrowRightIcon,
-  CalendarDaysIcon,
-  CheckBadgeIcon,
-  CheckCircleIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ClipboardDocumentCheckIcon,
-  ClockIcon,
-  ExclamationCircleIcon,
-  NoSymbolIcon,
-  UserGroupIcon,
-} from "@heroicons/react/24/outline";
+  RefreshCw,
+  ArrowRight,
+  CalendarDays,
+  BadgeCheck,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardCheck,
+  Clock3,
+  CircleAlert,
+  Ban,
+  Users,
+} from "lucide-react";
 import { useAuth } from "../../../../shared/AuthContext";
 import {
   Button,
   EmptyState,
   ErrorState,
   LoadingState,
+  MetricCard,
 } from "../../../../shared/ui";
 import {
   AdminGroupAttendanceOutput,
@@ -220,46 +221,46 @@ const GroupAttendanceTab: React.FC<{ groupId: string }> = ({ groupId }) => {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-base font-semibold text-slate-950">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-50 text-cyan-700">
-              <ClipboardDocumentCheckIcon className="h-4 w-4" />
+          <div className="flex items-center gap-2 ui-card-title">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]">
+              <ClipboardCheck className="h-4 w-4" />
             </span>
             Посещаемость
           </div>
           <div className="mt-1.5 flex items-center gap-2 text-sm text-slate-500">
-            <CalendarDaysIcon className="h-4 w-4" />
+            <CalendarDays className="h-4 w-4" />
             {formatRange(range.from, range.to)} · {currentSessions.length} занятий · прошло: {displaySummary.dueSessionsCount} · предстоит: {displaySummary.upcomingSessionsCount}
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
           <Button type="button" variant="secondary" size="sm" className="h-9 w-9 p-0" rounded="rounded-lg" title="Предыдущий месяц" onClick={() => shiftMonth(-1)} aria-label="Предыдущий месяц">
-            <ChevronLeftIcon className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-[154px] px-3 text-center text-sm font-semibold capitalize text-slate-950">
             {formatMonth(month)}
           </div>
           <Button type="button" variant="secondary" size="sm" className="h-9 w-9 p-0" rounded="rounded-lg" title="Следующий месяц" onClick={() => shiftMonth(1)} aria-label="Следующий месяц">
-            <ChevronRightIcon className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" />
           </Button>
           <Button type="button" variant="secondary" size="sm" rounded="rounded-lg" onClick={openCurrentMonth}>
             Сегодня
           </Button>
           <Button type="button" variant="ghost" size="sm" className="h-9 w-9 p-0" rounded="rounded-lg" title="Обновить данные" aria-label="Обновить данные" onClick={load}>
-            <ArrowPathIcon className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="grid overflow-hidden rounded-xl border border-slate-200 bg-slate-50/60 xl:grid-cols-3">
-        <Metric icon={<CheckCircleIcon className="h-5 w-5" />} label="Средняя явка" value={`${displaySummary.averageAttendanceRate}%`} hint="среди отмеченных учеников" tone="emerald" />
-        <Metric icon={<ClipboardDocumentCheckIcon className="h-5 w-5" />} label="Прошедшие журналы" value={`${displaySummary.recordedSessionsCount} из ${displaySummary.dueSessionsCount}`} hint="заполнено полностью" tone="cyan" />
-        <Metric icon={<ExclamationCircleIcon className="h-5 w-5" />} label="Не отмечено" value={displaySummary.totalUnmarked} hint="учеников в прошедших занятиях" tone={displaySummary.totalUnmarked > 0 ? "amber" : "slate"} />
+      <div className="grid gap-3 xl:grid-cols-3">
+        <MetricCard icon={<CheckCircle />} title="Средняя явка" value={`${displaySummary.averageAttendanceRate}%`} note="среди отмеченных учеников" tone="success" />
+        <MetricCard icon={<ClipboardCheck />} title="Прошедшие журналы" value={`${displaySummary.recordedSessionsCount} из ${displaySummary.dueSessionsCount}`} note="заполнено полностью" tone="info" />
+        <MetricCard icon={<CircleAlert />} title="Не отмечено" value={displaySummary.totalUnmarked} note="учеников в прошедших занятиях" tone={displaySummary.totalUnmarked > 0 ? "warning" : "neutral"} />
       </div>
 
       {displaySummary.pendingSessionsCount > 0 ? (
         <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          <ExclamationCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+          <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
           <div>
             <div className="font-semibold">{displaySummary.pendingSessionsCount} {displaySummary.pendingSessionsCount === 1 ? "журнал требует" : "журнала требуют"} заполнения</div>
             <div className="mt-0.5 text-amber-800">
@@ -269,7 +270,7 @@ const GroupAttendanceTab: React.FC<{ groupId: string }> = ({ groupId }) => {
         </div>
       ) : displaySummary.dueSessionsCount > 0 ? (
         <div className="flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900">
-          <CheckBadgeIcon className="h-5 w-5 shrink-0 text-emerald-700" />
+          <BadgeCheck className="h-5 w-5 shrink-0 text-emerald-700" />
           <div>
             <span className="font-semibold">Все прошедшие журналы заполнены.</span>
             <span className="ml-1 text-emerald-800">Новых действий по посещаемости пока нет.</span>
@@ -281,14 +282,14 @@ const GroupAttendanceTab: React.FC<{ groupId: string }> = ({ groupId }) => {
         <div className="inline-flex w-fit rounded-lg border border-slate-200 bg-slate-100/70 p-1">
           <AttendanceViewButton
             active={attendanceView === "current"}
-            icon={<CalendarDaysIcon className="h-4 w-4" />}
+            icon={<CalendarDays className="h-4 w-4" />}
             label="Актуальные"
             count={currentSessions.length}
             onClick={() => setAttendanceView("current")}
           />
           <AttendanceViewButton
             active={attendanceView === "cancelled"}
-            icon={<NoSymbolIcon className="h-4 w-4" />}
+            icon={<Ban className="h-4 w-4" />}
             label="История отмен"
             count={cancelledSessions.length}
             onClick={() => setAttendanceView("cancelled")}
@@ -307,10 +308,10 @@ const GroupAttendanceTab: React.FC<{ groupId: string }> = ({ groupId }) => {
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <div className="hidden grid-cols-[minmax(220px,1.35fr)_minmax(230px,1fr)_150px_130px_100px] gap-4 border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 lg:grid">
-            <ColumnTitle icon={<CalendarDaysIcon className="h-3.5 w-3.5" />} label="Дата и время" />
-            <ColumnTitle icon={<ClipboardDocumentCheckIcon className="h-3.5 w-3.5" />} label="Журнал" />
-            <ColumnTitle icon={<UserGroupIcon className="h-3.5 w-3.5" />} label="Явка" />
-            <ColumnTitle icon={<CheckBadgeIcon className="h-3.5 w-3.5" />} label="Состояние" />
+            <ColumnTitle icon={<CalendarDays className="h-3.5 w-3.5" />} label="Дата и время" />
+            <ColumnTitle icon={<ClipboardCheck className="h-3.5 w-3.5" />} label="Журнал" />
+            <ColumnTitle icon={<Users className="h-3.5 w-3.5" />} label="Явка" />
+            <ColumnTitle icon={<BadgeCheck className="h-3.5 w-3.5" />} label="Состояние" />
             <div className="text-right">Действие</div>
           </div>
 
@@ -339,38 +340,12 @@ const AttendanceViewButton: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className={`flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${active ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+    className={`flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${active ? "bg-white text-slate-950" : "text-slate-500 hover:text-slate-800"}`}
   >
     {icon}
     <span>{label}</span>
-    <span className={`rounded px-1.5 py-0.5 text-xs ${active ? "bg-cyan-50 text-cyan-700" : "bg-slate-200/70 text-slate-500"}`}>{count}</span>
+    <span className={`rounded px-1.5 py-0.5 text-xs ${active ? "bg-blue-50 text-[#0066cc]" : "bg-slate-200/70 text-slate-500"}`}>{count}</span>
   </button>
-);
-
-const metricToneClassNames = {
-  emerald: "bg-emerald-50 text-emerald-700",
-  cyan: "bg-cyan-50 text-cyan-700",
-  amber: "bg-amber-50 text-amber-700",
-  slate: "bg-slate-100 text-slate-600",
-};
-
-const Metric: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  hint: string;
-  tone: keyof typeof metricToneClassNames;
-}> = ({ icon, label, value, hint, tone }) => (
-  <div className="flex min-w-0 items-center gap-3 border-b border-slate-200 px-4 py-4 last:border-b-0 xl:border-b-0 xl:border-r xl:last:border-r-0">
-    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${metricToneClassNames[tone]}`}>{icon}</span>
-    <div className="min-w-0">
-      <div className="flex items-baseline gap-2">
-        <span className="text-xl font-semibold text-slate-950">{value}</span>
-        <span className="text-sm font-medium text-slate-600">{label}</span>
-      </div>
-      <div className="mt-0.5 text-xs text-slate-400">{hint}</div>
-    </div>
-  </div>
 );
 
 const ColumnTitle: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
@@ -399,7 +374,7 @@ const AttendanceSessionRow: React.FC<{
     : future
       ? { label: "Предстоит", className: "bg-blue-50 text-blue-700" }
       : inProgress
-        ? { label: "Идёт сейчас", className: "bg-cyan-50 text-cyan-700" }
+        ? { label: "Идёт сейчас", className: "bg-blue-50 text-[#0066cc]" }
     : total > 0 && marked >= total
       ? { label: "Заполнено", className: "bg-emerald-50 text-emerald-700" }
       : marked > 0
@@ -410,24 +385,24 @@ const AttendanceSessionRow: React.FC<{
     <button
       type="button"
       onClick={onOpen}
-      className={`group grid w-full grid-cols-1 gap-3 px-4 py-3.5 text-left transition hover:bg-cyan-50/40 lg:grid-cols-[minmax(220px,1.35fr)_minmax(230px,1fr)_150px_130px_100px] lg:items-center lg:gap-4 ${future || cancelled ? "bg-slate-50/35" : "bg-white"}`}
+      className={`group grid w-full grid-cols-1 gap-3 px-4 py-3.5 text-left transition hover:bg-blue-50/40 lg:grid-cols-[minmax(220px,1.35fr)_minmax(230px,1fr)_150px_130px_100px] lg:items-center lg:gap-4 ${future || cancelled ? "bg-slate-50/35" : "bg-white"}`}
     >
       <div className="flex min-w-0 items-center gap-3">
         <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${future ? "bg-blue-50 text-blue-600" : cancelled ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-700"}`}>
-          <CalendarDaysIcon className="h-4 w-4" />
+          <CalendarDays className="h-4 w-4" />
         </span>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-semibold text-slate-950">{formatFullDate(session.startsAt)}</span>
-            {today ? <span className="rounded bg-cyan-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-cyan-700">Сегодня</span> : null}
+            <span className="truncate ui-section-title">{formatFullDate(session.startsAt)}</span>
+            {today ? <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[#0066cc]">Сегодня</span> : null}
           </div>
-          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500"><ClockIcon className="h-3.5 w-3.5" />{formatTime(session.startsAt)}-{formatTime(session.endsAt)}</div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500"><Clock3 className="h-3.5 w-3.5" />{formatTime(session.startsAt)}-{formatTime(session.endsAt)}</div>
         </div>
       </div>
 
       {future ? (
         <div className="flex items-center gap-2 text-sm text-slate-500">
-          <ClockIcon className="h-4 w-4 shrink-0 text-slate-400" />
+          <Clock3 className="h-4 w-4 shrink-0 text-slate-400" />
           <span>Откроется после начала занятия</span>
         </div>
       ) : cancelled ? (
@@ -448,9 +423,9 @@ const AttendanceSessionRow: React.FC<{
       </div>
       <div><span className={`inline-flex rounded px-2 py-1 text-xs font-semibold ${journalStatus.className}`}>{journalStatus.label}</span></div>
 
-      <div className="flex items-center justify-start gap-1 text-sm font-semibold text-cyan-800 lg:justify-end">
+      <div className="flex items-center justify-start gap-1 text-sm font-semibold text-[#0066cc] lg:justify-end">
         {future || cancelled ? "Детали" : session.capabilities.canOpenAttendance ? (marked ? "Открыть" : "Заполнить") : "Открыть"}
-        <ArrowRightIcon className="h-4 w-4 transition group-hover:translate-x-0.5" />
+        <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
       </div>
     </button>
   );

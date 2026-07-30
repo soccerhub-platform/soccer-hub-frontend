@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import {
+  Plus } from "lucide-react";
 import { useAuth } from "../../../shared/AuthContext";
 import CreateLeadModal from "./CreateLeadModal";
 import { DispatcherLeadsApi } from "./leads.api";
 import { DispatcherBranchOption, DispatcherLead } from "./types";
 import {
+  NativeSelect,
   Button,
   EmptyState,
   ErrorState,
@@ -13,8 +15,14 @@ import {
   PageHeader,
   PageShell,
   SectionCard,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
   formControlClassName,
-} from "../../../shared/ui";
+  } from "../../../shared/ui";
 
 const formatDate = (value: string) => {
   const date = new Date(value);
@@ -151,7 +159,7 @@ const DispatcherLeadsPage: React.FC = () => {
             onClick={() => setShowCreateModal(true)}
             disabled={!selectedBranchId}
           >
-            <PlusIcon className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Новый лид
           </Button>
         }
@@ -160,7 +168,7 @@ const DispatcherLeadsPage: React.FC = () => {
       <SectionCard>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <FormField label="Филиал" className="sm:w-80">
-            <select
+            <NativeSelect
               value={selectedBranchId}
               onChange={(event) => setSelectedBranchId(event.target.value)}
               className={formControlClassName}
@@ -171,7 +179,7 @@ const DispatcherLeadsPage: React.FC = () => {
                   {branch.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </FormField>
           <div className="text-sm text-slate-500">
             {selectedBranchId ? `Лидов: ${leads.length}` : "Выберите филиал для просмотра"}
@@ -197,55 +205,37 @@ const DispatcherLeadsPage: React.FC = () => {
             description="Создайте первого лида для выбранного филиала."
             action={
               <Button type="button" size="sm" onClick={() => setShowCreateModal(true)}>
-                <PlusIcon className="h-4 w-4" />
+                <Plus className="h-4 w-4" />
                 Новый лид
               </Button>
             }
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Родитель
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Телефон
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Дети
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Статус
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Создан
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
+            <Table className="min-w-[760px]">
+              <TableHeader><TableRow className="hover:bg-transparent"><TableHead>Родитель</TableHead><TableHead>Телефон</TableHead><TableHead>Дети</TableHead><TableHead>Статус</TableHead><TableHead>Создан</TableHead></TableRow></TableHeader>
+              <TableBody>
                 {leads.map((lead) => (
-                  <tr key={lead.id} className="transition-colors hover:bg-slate-50">
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                  <TableRow key={lead.id}>
+                    <TableCell className="text-sm font-medium text-slate-900">
                       {lead.parentName}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{lead.phone}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-600">{lead.phone}</TableCell>
+                    <TableCell className="text-sm text-slate-600">
                       {lead.children.length}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-800">
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#0066cc]">
                         {statusLabel(lead.status)}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-600">
                       {formatDate(lead.createdAt)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </SectionCard>

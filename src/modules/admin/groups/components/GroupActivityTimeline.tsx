@@ -1,19 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowPathIcon,
-  CalendarDaysIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  PencilSquareIcon,
-  UserCircleIcon,
-  UserGroupIcon,
-  XCircleIcon,
-} from "@heroicons/react/24/outline";
+  RefreshCw,
+  CalendarDays,
+  CheckCircle,
+  Clock3,
+  TriangleAlert,
+  Pencil,
+  CircleUserRound,
+  Users,
+  CircleX,
+} from "lucide-react";
 import { getApiErrorMessage } from "../../../../shared/api";
 import { useAuth } from "../../../../shared/AuthContext";
-import { Button } from "../../../../shared/ui";
+import { Button, Skeleton } from "../../../../shared/ui";
 import { GroupActivityItem, GroupApi } from "../group.api";
 
 interface Props {
@@ -108,7 +108,7 @@ const getActorName = (activity: GroupActivityItem) =>
 const getActivityMeta = (type: string) => {
   if (type.includes("STUDENT_ADDED") || type.includes("COACH_ASSIGNED")) {
     return {
-      icon: CheckCircleIcon,
+      icon: CheckCircle,
       dotClassName: "bg-emerald-500",
       iconClassName: "text-emerald-600",
     };
@@ -116,7 +116,7 @@ const getActivityMeta = (type: string) => {
 
   if (type.includes("REMOVED") || type.includes("CANCELLED") || type.includes("UNASSIGNED")) {
     return {
-      icon: XCircleIcon,
+      icon: CircleX,
       dotClassName: "bg-rose-500",
       iconClassName: "text-rose-600",
     };
@@ -124,15 +124,15 @@ const getActivityMeta = (type: string) => {
 
   if (type.includes("SESSION") || type.includes("ATTENDANCE")) {
     return {
-      icon: CalendarDaysIcon,
-      dotClassName: "bg-cyan-600",
-      iconClassName: "text-cyan-700",
+      icon: CalendarDays,
+      dotClassName: "bg-[#0066cc]",
+      iconClassName: "text-[#0066cc]",
     };
   }
 
   if (type.includes("GROUP")) {
     return {
-      icon: PencilSquareIcon,
+      icon: Pencil,
       dotClassName: "bg-amber-500",
       iconClassName: "text-amber-600",
     };
@@ -140,14 +140,14 @@ const getActivityMeta = (type: string) => {
 
   if (type.includes("STUDENT")) {
     return {
-      icon: UserGroupIcon,
+      icon: Users,
       dotClassName: "bg-blue-500",
       iconClassName: "text-blue-600",
     };
   }
 
   return {
-    icon: ClockIcon,
+    icon: Clock3,
     dotClassName: "bg-slate-400",
     iconClassName: "text-slate-500",
   };
@@ -329,7 +329,7 @@ const GroupActivityTimeline: React.FC<Props> = ({ groupId, limit = 5 }) => {
     return (
       <div className="divide-y divide-slate-100">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-14 animate-pulse bg-slate-50" />
+          <Skeleton key={index} className="h-14 rounded-none" />
         ))}
       </div>
     );
@@ -339,11 +339,11 @@ const GroupActivityTimeline: React.FC<Props> = ({ groupId, limit = 5 }) => {
     return (
       <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3">
         <div className="flex items-start gap-2 text-sm text-rose-700">
-          <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
         <Button type="button" size="sm" variant="secondary" className="mt-3" onClick={loadActivity}>
-          <ArrowPathIcon className="h-4 w-4" />
+          <RefreshCw className="h-4 w-4" />
           Повторить
         </Button>
       </div>
@@ -380,7 +380,7 @@ const GroupActivityTimeline: React.FC<Props> = ({ groupId, limit = 5 }) => {
             </div>
             <div className="hidden shrink-0 items-center gap-4 text-xs text-slate-500 sm:flex">
                 <span className="inline-flex items-center gap-1">
-                  <UserCircleIcon className="h-3.5 w-3.5" />
+                  <CircleUserRound className="h-3.5 w-3.5" />
                   {getActorName(activity)}
                 </span>
                 <span>{formatDateTime(occurredAt)}</span>

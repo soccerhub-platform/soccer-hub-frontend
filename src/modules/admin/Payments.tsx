@@ -1,25 +1,38 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ArrowPathIcon,
-  CreditCardIcon,
-  ExclamationTriangleIcon,
-  EyeIcon,
-  NoSymbolIcon,
-  UserCircleIcon,
-} from "@heroicons/react/24/outline";
+  RefreshCw,
+  CreditCard,
+  TriangleAlert,
+  Eye,
+  Ban,
+  CircleUserRound,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../../shared/api";
 import {
+  Input,
+  Textarea,
+  NativeSelect,
   Button,
+  Badge,
+  DatePicker,
   EmptyState,
   ErrorState,
   LoadingState,
+  MetricCard,
   ModalShell,
   PageHeader,
   PageShell,
   SectionCard,
-} from "../../shared/ui";
+  StatusBadge,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+   } from "../../shared/ui";
 import { useAuth } from "../../shared/AuthContext";
 import { useAdminBranch } from "./BranchContext";
 import { ContractsApi } from "./contracts/contracts.api";
@@ -60,23 +73,14 @@ const paymentMethodLabel = (method: PaymentMethod) => {
 
 const paymentStatusLabel = (status: PaymentStatus) => (status === "CANCELLED" ? "Отменен" : "Зафиксирован");
 
-const paymentStatusBadgeClassName = (status: PaymentStatus) =>
-  status === "CANCELLED"
-    ? "border-rose-100 bg-rose-50 text-rose-700"
-    : "border-emerald-100 bg-emerald-50 text-emerald-800";
-
-const paymentMethodToneClassName = (method: PaymentMethod) => {
+const paymentMethodVariant = (method: PaymentMethod): "default" | "warning" | "secondary" => {
   switch (method) {
     case "KASPI":
-      return "border-cyan-100 bg-cyan-50 text-cyan-800";
+      return "default";
     case "CASH":
-      return "border-amber-100 bg-amber-50 text-amber-800";
-    case "CARD":
-      return "border-violet-100 bg-violet-50 text-violet-800";
-    case "BANK_TRANSFER":
-      return "border-slate-200 bg-slate-100 text-slate-700";
+      return "warning";
     default:
-      return "border-slate-200 bg-slate-50 text-slate-700";
+      return "secondary";
   }
 };
 
@@ -218,45 +222,45 @@ const PaymentsPage: React.FC = () => {
         description={`Журнал оплат по договорам${branchName ? ` филиала ${branchName}` : ""}. Создание платежей выполняется из карточки договора.`}
         actions={
           <Button type="button" variant="secondary" onClick={() => void loadPayments("refresh")} isLoading={refreshing}>
-            <ArrowPathIcon className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4" />
             Обновить
           </Button>
         }
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <MetricCard label="Всего" value={summary.total} />
-        <MetricCard label="Активны" value={summary.active} tone="success" />
-        <MetricCard label="Отменены" value={summary.cancelled} tone="danger" />
-        <MetricCard label="Сумма" value={formatAmount(summary.amount)} tone="info" />
+        <MetricCard title="Всего" value={summary.total} icon={<CreditCard />} tone="info" />
+        <MetricCard title="Активны" value={summary.active} icon={<CreditCard />} tone="success" />
+        <MetricCard title="Отменены" value={summary.cancelled} icon={<Ban />} tone="danger" />
+        <MetricCard title="Сумма" value={formatAmount(summary.amount)} icon={<CreditCard />} tone="info" />
       </div>
 
       <SectionCard
         title="Фильтры"
         description="Поиск по договору, клиенту, игроку, идентификатору платежа или комментарию. Дополнительно можно сузить по статусу, методу и диапазону дат."
-        icon={<CreditCardIcon className="h-4 w-4" />}
+        icon={<CreditCard className="h-4 w-4" />}
       >
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-          <input
+          <Input
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Номер договора, клиент, игрок, идентификатор платежа, комментарий"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
           />
-          <select
+          <NativeSelect
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
           >
             <option value="all">Все статусы</option>
             <option value="PAID">Зафиксирован</option>
             <option value="CANCELLED">Отменен</option>
-          </select>
-          <select
+          </NativeSelect>
+          <NativeSelect
             value={methodFilter}
             onChange={(event) => setMethodFilter(event.target.value as MethodFilter)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
           >
             <option value="all">Все методы</option>
             <option value="KASPI">Kaspi</option>
@@ -265,25 +269,15 @@ const PaymentsPage: React.FC = () => {
             <option value="CASH">Наличные</option>
             <option value="GOVERNMENT">Государственная оплата</option>
             <option value="OTHER">Другое</option>
-          </select>
+          </NativeSelect>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1 text-xs font-medium text-slate-500">
               <span>С даты</span>
-              <input
-                type="date"
-                value={paidFrom}
-                onChange={(event) => setPaidFrom(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-              />
+              <DatePicker value={paidFrom} onValueChange={setPaidFrom} clearable placeholder="Любая дата" />
             </label>
             <label className="block space-y-1 text-xs font-medium text-slate-500">
               <span>По дату</span>
-              <input
-                type="date"
-                value={paidTo}
-                onChange={(event) => setPaidTo(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
-              />
+              <DatePicker value={paidTo} min={paidFrom || undefined} onValueChange={setPaidTo} clearable placeholder="Любая дата" />
             </label>
           </div>
         </div>
@@ -293,7 +287,7 @@ const PaymentsPage: React.FC = () => {
       <SectionCard
         title="Журнал платежей"
         description="Список ручных оплат с быстрым переходом в договор и отменой записи."
-        icon={<CreditCardIcon className="h-4 w-4" />}
+        icon={<CreditCard className="h-4 w-4" />}
       >
         {error ? (
           <ErrorState message={error} onRetry={() => void loadPayments("refresh")} />
@@ -305,36 +299,25 @@ const PaymentsPage: React.FC = () => {
             description="Измените фильтры или откройте карточку договора, чтобы зафиксировать оплату."
           />
         ) : (
-          <div className="space-y-3">
+          <Table className="min-w-[1080px]">
+            <TableHeader><TableRow className="hover:bg-transparent"><TableHead>Плательщик</TableHead><TableHead>Договор</TableHead><TableHead>Сумма</TableHead><TableHead>Дата</TableHead><TableHead>Зафиксировал</TableHead><TableHead>Действия</TableHead></TableRow></TableHeader>
+            <TableBody>
             {payments.map((payment) => (
-              <article
+              <TableRow
                 key={payment.id}
-                className={`rounded-2xl border px-4 py-4 shadow-sm transition ${
-                  payment.status === "CANCELLED"
-                    ? "border-rose-200 bg-rose-50/60"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
+                className={payment.status === "CANCELLED" ? "bg-rose-50/60" : ""}
               >
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 flex-1">
+                <TableCell><div className="min-w-0">
                     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                      <div className="text-lg font-semibold text-slate-900">
+                      <div className="font-semibold text-slate-900">
                         {payment.playerName || payment.clientName || "Платеж"}
                       </div>
-                      <span
-                        className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold ${paymentStatusBadgeClassName(
-                          payment.status
-                        )}`}
-                      >
+                      <StatusBadge tone={payment.status === "CANCELLED" ? "danger" : "success"}>
                         {paymentStatusLabel(payment.status)}
-                      </span>
-                      <span
-                        className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold ${paymentMethodToneClassName(
-                          payment.method
-                        )}`}
-                      >
+                      </StatusBadge>
+                      <Badge variant={paymentMethodVariant(payment.method)}>
                         {paymentMethodLabel(payment.method)}
-                      </span>
+                      </Badge>
                     </div>
 
                     <div className="mt-2 flex flex-col gap-1 text-sm text-slate-600">
@@ -345,36 +328,19 @@ const PaymentsPage: React.FC = () => {
                         Клиент: <span className="font-medium text-slate-900">{payment.clientName || "Не указан"}</span>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="shrink-0 text-left lg:text-right">
-                    <div className="text-2xl font-semibold text-slate-900">{formatAmount(payment.amount, payment.currency)}</div>
-                    <div className="mt-1 text-sm text-slate-500">{formatDateTime(payment.paidAt)}</div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500">
-                  <div>Зафиксировал: {payment.recordedByName || payment.recordedBy || "Система"}</div>
-                  {payment.externalReference ? <div>Идентификатор платежа: {payment.externalReference}</div> : null}
-                  {payment.comment ? <div>Комментарий: {payment.comment}</div> : null}
-                </div>
-
-                {payment.status === "CANCELLED" && (payment.cancelReason || payment.cancelComment) ? (
-                  <div className="mt-3 rounded-xl border border-rose-200 bg-white px-3 py-3 text-sm text-rose-700">
-                    <div className="font-medium">Платеж отменен</div>
-                    {payment.cancelReason ? <div className="mt-1">Причина: {payment.cancelReason}</div> : null}
-                    {payment.cancelComment ? <div className="mt-1">{payment.cancelComment}</div> : null}
-                  </div>
-                ) : null}
-
-                <div className="mt-4 flex flex-wrap gap-2">
+                  </div></TableCell>
+                <TableCell><div className="text-sm"><div className="font-medium text-slate-900">{payment.contractNumber || payment.contractId}</div><div className="mt-1 text-xs text-slate-500">{payment.clientName || "Не указан"}</div></div></TableCell>
+                <TableCell><div className="font-semibold text-slate-900">{formatAmount(payment.amount, payment.currency)}</div><div className="mt-1 text-xs text-slate-500">{payment.comment || payment.externalReference || "Без комментария"}</div></TableCell>
+                <TableCell><div className="text-sm text-slate-700">{formatDateTime(payment.paidAt)}</div>{payment.status === "CANCELLED" && (payment.cancelReason || payment.cancelComment) ? <div className="mt-1 text-xs text-rose-700">Платеж отменен</div> : null}</TableCell>
+                <TableCell className="text-sm text-slate-600">{payment.recordedByName || payment.recordedBy || "Система"}</TableCell>
+                <TableCell><div className="flex flex-wrap gap-2">
                   <ActionButton
-                    icon={<EyeIcon className="h-4 w-4" />}
+                    icon={<Eye className="h-4 w-4" />}
                     label="Открыть"
                     onClick={() => void openPayment(payment.id)}
                   />
                   <ActionButton
-                    icon={<CreditCardIcon className="h-4 w-4" />}
+                    icon={<CreditCard className="h-4 w-4" />}
                     label="Договор"
                     onClick={() =>
                       navigate(`/admin/contracts/${encodeURIComponent(payment.contractId)}/payments`)
@@ -382,14 +348,14 @@ const PaymentsPage: React.FC = () => {
                   />
                   {payment.playerId ? (
                     <ActionButton
-                      icon={<UserCircleIcon className="h-4 w-4" />}
+                      icon={<CircleUserRound className="h-4 w-4" />}
                       label="Ученик"
                       onClick={() => navigate(`/admin/students/${encodeURIComponent(payment.playerId!)}/overview`)}
                     />
                   ) : null}
                   {payment.status !== "CANCELLED" ? (
                     <ActionButton
-                      icon={<NoSymbolIcon className="h-4 w-4" />}
+                      icon={<Ban className="h-4 w-4" />}
                       label="Отменить"
                       onClick={() => {
                         setSelectedPayment(payment);
@@ -400,10 +366,11 @@ const PaymentsPage: React.FC = () => {
                       danger
                     />
                   ) : null}
-                </div>
-              </article>
+                </div></TableCell>
+              </TableRow>
             ))}
-          </div>
+            </TableBody>
+          </Table>
         )}
       </SectionCard>
 
@@ -436,28 +403,6 @@ const PaymentsPage: React.FC = () => {
   );
 };
 
-const MetricCard: React.FC<{
-  label: string;
-  value: string | number;
-  tone?: "neutral" | "success" | "danger" | "info";
-}> = ({ label, value, tone = "neutral" }) => {
-  const valueClass =
-    tone === "success"
-      ? "text-emerald-700"
-      : tone === "danger"
-      ? "text-rose-700"
-      : tone === "info"
-      ? "text-cyan-700"
-      : "text-slate-900";
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <div className="text-xs font-medium uppercase text-slate-500">{label}</div>
-      <div className={`mt-1 text-2xl font-semibold ${valueClass}`}>{value}</div>
-    </div>
-  );
-};
-
 const ActionButton: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -481,7 +426,7 @@ const ActionButton: React.FC<{
 const DetailBlock: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
     <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</div>
-    <div className="mt-1 text-sm font-semibold text-slate-900 break-all">{value}</div>
+    <div className="mt-1 ui-section-title break-all">{value}</div>
   </div>
 );
 
@@ -522,7 +467,7 @@ const PaymentDetailsModal: React.FC<{
       <div className="flex flex-wrap items-center justify-end gap-3">
         {onOpenStudent ? (
           <Button type="button" variant="secondary" onClick={onOpenStudent}>
-            <UserCircleIcon className="h-4 w-4" />
+            <CircleUserRound className="h-4 w-4" />
             Открыть ученика
           </Button>
         ) : null}
@@ -552,7 +497,7 @@ const PaymentDetailsModal: React.FC<{
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-sm font-semibold text-slate-900">Комментарий и чек</div>
+          <div className="ui-section-title">Комментарий и чек</div>
           <div className="mt-3 space-y-2 text-sm text-slate-700">
             <div>Номер чека / перевода: {payment.externalReference || "—"}</div>
             <div>Комментарий: {payment.comment || "—"}</div>
@@ -564,18 +509,18 @@ const PaymentDetailsModal: React.FC<{
         {payment.status !== "CANCELLED" ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
             <div className="flex items-center gap-2 text-rose-700">
-              <ExclamationTriangleIcon className="h-5 w-5" />
+              <TriangleAlert className="h-5 w-5" />
               <div className="text-sm font-semibold">Отмена платежа</div>
             </div>
             <div className="mt-3 space-y-3">
-              <input
+              <Input
                 type="text"
                 value={cancelReason}
                 onChange={(event) => setCancelReason(event.target.value)}
                 placeholder="Причина отмены"
                 className="w-full rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-rose-500 focus:ring-4 focus:ring-rose-100"
               />
-              <textarea
+              <Textarea
                 value={cancelComment}
                 onChange={(event) => setCancelComment(event.target.value)}
                 rows={4}

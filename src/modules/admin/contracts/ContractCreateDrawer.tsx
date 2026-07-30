@@ -1,7 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CheckCircleIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { CheckCircle, FileText } from "lucide-react";
 import { getApiErrorMessage } from "../../../shared/api";
-import { Button, ModalShell, formControlClassName } from "../../../shared/ui";
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  DatePicker,
+  EntitySheet,
+  Input,
+  SearchableSelect,
+  Textarea,
+} from "../../../shared/ui";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../../../shared/ui/shadcn/form";
 import { ClientApi } from "../clients/client.api";
 import type { ClientListItem } from "../clients/client.types";
 import { ContractsApi } from "./contracts.api";
@@ -14,6 +35,20 @@ const monthLater = () => {
   return date.toISOString().slice(0, 10);
 };
 
+const contractSchema = z.object({
+  clientId: z.string().min(1, "Выберите клиента"),
+  playerId: z.string().min(1, "Выберите связанного ученика"),
+  startDate: z.string().min(1, "Укажите дату начала"),
+  endDate: z.string(),
+  amount: z.string().refine((value) => value !== "" && Number(value) >= 0, "Укажите корректную стоимость"),
+  notes: z.string(),
+}).refine((values) => !values.endDate || values.endDate >= values.startDate, {
+  path: ["endDate"],
+  message: "Дата окончания не может быть раньше даты начала",
+});
+
+type ContractFormValues = z.infer<typeof contractSchema>;
+
 const ContractCreateDrawer: React.FC<{
   branchId: string;
   initialClientId?: string;
@@ -22,17 +57,26 @@ const ContractCreateDrawer: React.FC<{
 }> = ({ branchId, initialClientId, onClose, onCreated }) => {
   const [clients, setClients] = useState<ClientListItem[]>([]);
   const [students, setStudents] = useState<ContractParticipantOption[]>([]);
-  const [clientId, setClientId] = useState(initialClientId ?? "");
-  const [playerId, setPlayerId] = useState("");
-  const [startDate, setStartDate] = useState(today());
-  const [endDate, setEndDate] = useState(monthLater());
-  const [amount, setAmount] = useState("30000");
-  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [saving, setSaving] = useState<"draft" | "activate" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const form = useForm<ContractFormValues>({
+    resolver: zodResolver(contractSchema),
+    defaultValues: {
+      clientId: initialClientId ?? "",
+      playerId: "",
+      startDate: today(),
+      endDate: monthLater(),
+      amount: "30000",
+      notes: "",
+    },
+  });
+
+  const clientId = form.watch("clientId");
+  const playerId = form.watch("playerId");
+  const startDate = form.watch("startDate");
   const client = useMemo(() => clients.find((item) => item.id === clientId), [clientId, clients]);
   const student = useMemo(() => students.find((item) => item.id === playerId), [playerId, students]);
 
@@ -46,46 +90,34 @@ const ContractCreateDrawer: React.FC<{
   useEffect(() => {
     if (!clientId) {
       setStudents([]);
-      setPlayerId("");
+      form.setValue("playerId", "");
       return;
     }
+
     setStudentsLoading(true);
-    setPlayerId("");
+    form.setValue("playerId", "");
     ContractsApi.listParticipants(branchId, clientId)
       .then((items) => {
         setStudents(items);
-        if (items.length === 1) setPlayerId(items[0].id);
+        if (items.length === 1) form.setValue("playerId", items[0].id, { shouldValidate: true });
       })
       .catch((reason) => setError(getApiErrorMessage(reason, "Не удалось загрузить учеников клиента")))
       .finally(() => setStudentsLoading(false));
-  }, [branchId, clientId]);
+  }, [branchId, clientId, form]);
 
-  const submit = async (activate: boolean) => {
-    if (!clientId || !playerId) {
-      setError("Выберите клиента и связанного ученика");
-      return;
-    }
-    if (!startDate || (endDate && endDate < startDate)) {
-      setError("Проверьте период действия договора");
-      return;
-    }
-    if (!amount || Number(amount) < 0) {
-      setError("Укажите корректную стоимость");
-      return;
-    }
-
+  const submit = async (values: ContractFormValues, activate: boolean) => {
     setSaving(activate ? "activate" : "draft");
     setError(null);
     try {
       const created = await ContractsApi.create({
         branchId,
-        clientId,
-        playerId,
-        startDate,
-        endDate: endDate || undefined,
-        amount: Number(amount),
+        clientId: values.clientId,
+        playerId: values.playerId,
+        startDate: values.startDate,
+        endDate: values.endDate || undefined,
+        amount: Number(values.amount),
         currency: "KZT",
-        notes: notes.trim() || undefined,
+        notes: values.notes.trim() || undefined,
       });
       const result = activate ? await ContractsApi.activate(created.id) : created;
       onCreated(result.id);
@@ -96,72 +128,154 @@ const ContractCreateDrawer: React.FC<{
     }
   };
 
+  const handleSubmit = (activate: boolean) => form.handleSubmit((values) => submit(values, activate))();
+
   return (
-    <ModalShell
+    <EntitySheet
       title="Новый договор"
-      eyebrow="Коммерческие условия"
-      description="Договор связывает существующего клиента с учеником. Зачисление в группу выполняется отдельно."
-      placement="right"
-      maxWidthClassName="max-w-xl"
+      description="Свяжите существующего клиента с учеником. Зачисление в группу выполняется отдельно."
+      contentClassName="sm:max-w-xl"
       closeDisabled={saving !== null}
       onClose={onClose}
-      footer={
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="secondary" rounded="rounded-lg" disabled={saving !== null} onClick={onClose}>Отмена</Button>
-          <Button variant="secondary" rounded="rounded-lg" isLoading={saving === "draft"} disabled={saving !== null} onClick={() => void submit(false)}>
-            <DocumentTextIcon className="h-4 w-4" /> Сохранить черновик
+      footer={(
+        <div className="flex w-full flex-wrap justify-end gap-2">
+          <Button type="button" variant="secondary" disabled={saving !== null} onClick={onClose}>Отмена</Button>
+          <Button
+            type="button"
+            variant="secondary"
+            isLoading={saving === "draft"}
+            disabled={saving !== null}
+            onClick={() => void handleSubmit(false)}
+          >
+            <FileText className="h-4 w-4" /> Сохранить черновик
           </Button>
-          <Button rounded="rounded-lg" isLoading={saving === "activate"} disabled={saving !== null} onClick={() => void submit(true)}>
-            <CheckCircleIcon className="h-4 w-4" /> Создать и активировать
+          <Button
+            type="button"
+            isLoading={saving === "activate"}
+            disabled={saving !== null}
+            onClick={() => void handleSubmit(true)}
+          >
+            <CheckCircle className="h-4 w-4" /> Создать и активировать
           </Button>
         </div>
-      }
+      )}
     >
-      <div className="space-y-5">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <div>
-            <div className="text-xs font-semibold uppercase text-admin-700">Клиент</div>
-            <div className="mt-1 text-sm font-semibold text-slate-950">{client?.fullName || "Не выбран"}</div>
-            <div className="mt-1 text-xs text-slate-500">заключает и оплачивает</div>
-          </div>
-          <span className="text-slate-300">→</span>
-          <div>
-            <div className="text-xs font-semibold uppercase text-cyan-700">Ученик</div>
-            <div className="mt-1 text-sm font-semibold text-slate-950">{student?.fullName || "Не выбран"}</div>
-            <div className="mt-1 text-xs text-slate-500">получает услугу</div>
-          </div>
-        </div>
+      <Form {...form}>
+        <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
+          <section className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-xl border border-black/[0.08] bg-[#f5f5f7] p-4">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#0066cc]">Клиент</div>
+              <div className="mt-1 font-semibold text-slate-950">{client?.fullName || "Не выбран"}</div>
+              <div className="mt-1 text-xs text-slate-500">заключает и оплачивает</div>
+            </div>
+            <span className="text-slate-300" aria-hidden="true">→</span>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#0066cc]">Ученик</div>
+              <div className="mt-1 font-semibold text-slate-950">{student?.fullName || "Не выбран"}</div>
+              <div className="mt-1 text-xs text-slate-500">получает услугу</div>
+            </div>
+          </section>
 
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Клиент *</span>
-          <select className={formControlClassName} value={clientId} disabled={loading || Boolean(initialClientId)} onChange={(event) => setClientId(event.target.value)}>
-            <option value="">{loading ? "Загрузка..." : "Выберите клиента"}</option>
-            {clients.map((item) => <option key={item.id} value={item.id}>{item.fullName}{item.phone ? ` · ${item.phone}` : ""}</option>)}
-          </select>
-        </label>
+          <FormField control={form.control} name="clientId" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Клиент *</FormLabel>
+              <FormControl>
+                <SearchableSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  loading={loading}
+                  disabled={Boolean(initialClientId)}
+                  placeholder="Выберите клиента"
+                  searchPlaceholder="Поиск по имени, телефону или email..."
+                  emptyText="Клиенты не найдены"
+                  options={clients.map((item) => ({
+                    value: item.id,
+                    label: item.fullName,
+                    description: item.phone || item.email || "Контакты не указаны",
+                    keywords: `${item.phone ?? ""} ${item.email ?? ""}`,
+                  }))}
+                />
+              </FormControl>
+              <FormDescription>Клиент будет стороной договора и плательщиком.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )} />
 
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Связанный ученик *</span>
-          <select className={formControlClassName} value={playerId} disabled={!clientId || studentsLoading} onChange={(event) => setPlayerId(event.target.value)}>
-            <option value="">{studentsLoading ? "Загрузка..." : students.length ? "Выберите ученика" : "Нет связанных учеников"}</option>
-            {students.map((item) => <option key={item.id} value={item.id}>{item.fullName}</option>)}
-          </select>
+          <FormField control={form.control} name="playerId" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Связанный ученик *</FormLabel>
+              <FormControl>
+                <SearchableSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  loading={studentsLoading}
+                  disabled={!clientId}
+                  placeholder={clientId ? "Выберите ученика" : "Сначала выберите клиента"}
+                  searchPlaceholder="Поиск ученика..."
+                  emptyText="Связанные ученики не найдены"
+                  options={students.map((item) => ({ value: item.id, label: item.fullName }))}
+                />
+              </FormControl>
+              <FormDescription>Услугу по договору будет получать выбранный ученик.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )} />
+
           {clientId && !studentsLoading && !students.length ? (
-            <p className="mt-2 text-xs text-amber-700">Сначала свяжите ученика с клиентом в Client Workspace.</p>
+            <Alert>
+              <AlertDescription>Сначала свяжите ученика с клиентом в карточке клиента.</AlertDescription>
+            </Alert>
           ) : null}
-        </label>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Начало *</span><input type="date" className={formControlClassName} value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
-          <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Окончание</span><input type="date" min={startDate} className={formControlClassName} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
-        </div>
-        <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Стоимость, KZT *</span><input inputMode="numeric" className={formControlClassName} value={amount} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ""))} /></label>
-        <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Комментарий</span><textarea className={`${formControlClassName} min-h-24 resize-none`} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
-        {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div> : null}
-      </div>
-    </ModalShell>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField control={form.control} name="startDate" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Начало *</FormLabel>
+                <FormControl><DatePicker value={field.value} onValueChange={field.onChange} aria-invalid={Boolean(form.formState.errors.startDate)} /></FormControl>
+                <FormDescription>Первый день действия договора.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="endDate" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Окончание</FormLabel>
+                <FormControl><DatePicker value={field.value} onValueChange={field.onChange} min={startDate} clearable placeholder="Без даты окончания" aria-invalid={Boolean(form.formState.errors.endDate)} /></FormControl>
+                <FormDescription>Оставьте пустым для бессрочного договора.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </div>
+
+          <FormField control={form.control} name="amount" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Стоимость, KZT *</FormLabel>
+              <FormControl>
+                <Input
+                  inputMode="numeric"
+                  placeholder="Например, 30000"
+                  className="tabular-nums"
+                  {...field}
+                  onChange={(event) => field.onChange(event.target.value.replace(/\D/g, ""))}
+                />
+              </FormControl>
+              <FormDescription>Полная стоимость договора в тенге.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="notes" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Комментарий</FormLabel>
+              <FormControl><Textarea className="min-h-24 resize-y" placeholder="Условия, скидка или важное примечание" {...field} /></FormControl>
+              <FormDescription>Внутренняя заметка для администраторов.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )} />
+
+          {error ? <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div> : null}
+        </form>
+      </Form>
+    </EntitySheet>
   );
 };
 
 export default ContractCreateDrawer;
-

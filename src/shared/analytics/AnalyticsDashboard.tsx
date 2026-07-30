@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ArrowPathIcon,
-  ChartBarIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  UserGroupIcon,
-} from "@heroicons/react/24/outline";
+  RefreshCw,
+  ChartBar,
+  Clock3,
+  TriangleAlert,
+  Users,
+} from "lucide-react";
 import { getApiErrorMessage } from "../api";
 import {
   AnalyticsApi,
@@ -18,6 +18,18 @@ import {
   RetentionAnalytics,
   SlaAnalytics,
 } from "./analytics.api";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  DatePicker,
+  MetricCard,
+  NativeSelect,
+  Skeleton,
+} from "../ui";
 
 const STATUS_LABELS: Record<string, string> = {
   NEW: "Новые",
@@ -146,50 +158,47 @@ const AnalyticsDashboard: React.FC<Props> = ({ scope, branchId, title = "Опе�
 
   if (!branchId) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
         Выберите филиал, чтобы увидеть аналитику.
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h3 className="heading-font text-lg font-semibold text-slate-900">{title}</h3>
+          <h3 className="ui-card-title">{title}</h3>
           <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-500">
             Ежедневный управленческий срез: продажи, потери лидов, загрузка тренеров, удержание групп и скорость обработки заявок.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-          <input
-            type="date"
+          <DatePicker
             value={dateFrom}
-            onChange={(event) => setDateFrom(event.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            onValueChange={setDateFrom}
           />
-          <input
-            type="date"
+          <DatePicker
             value={dateTo}
-            onChange={(event) => setDateTo(event.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            min={dateFrom}
+            onValueChange={setDateTo}
           />
-          <select
+          <NativeSelect
             value={groupBy}
             onChange={(event) => setGroupBy(event.target.value as AnalyticsGroupBy)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
           >
             <option value="DAY">День</option>
             <option value="WEEK">Неделя</option>
             <option value="MONTH">Месяц</option>
-          </select>
+          </NativeSelect>
           <button
             type="button"
             onClick={() => setReloadKey((value) => value + 1)}
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            <ArrowPathIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Обновить
           </button>
         </div>
@@ -204,10 +213,10 @@ const AnalyticsDashboard: React.FC<Props> = ({ scope, branchId, title = "Опе�
       ) : (
         <div className="mt-5 space-y-5">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-            <MetricCard title="Лиды всего" value={formatNumber(totalLeads)} icon={<UserGroupIcon className="h-5 w-5" />} />
-            <MetricCard title="Стали клиентами" value={formatNumber(wonLeads)} icon={<ChartBarIcon className="h-5 w-5" />} />
-            <MetricCard title="Потеряны" value={formatNumber(lostLeads)} icon={<ExclamationTriangleIcon className="h-5 w-5" />} />
-            <MetricCard title="Win Rate" value={formatPercent(winRate)} icon={<ClockIcon className="h-5 w-5" />} />
+            <MetricCard title="Лиды всего" value={formatNumber(totalLeads)} icon={<Users className="h-5 w-5" />} />
+            <MetricCard title="Стали клиентами" value={formatNumber(wonLeads)} icon={<ChartBar className="h-5 w-5" />} />
+            <MetricCard title="Потеряны" value={formatNumber(lostLeads)} icon={<TriangleAlert className="h-5 w-5" />} />
+            <MetricCard title="Win Rate" value={formatPercent(winRate)} icon={<Clock3 className="h-5 w-5" />} />
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -245,16 +254,6 @@ const AnalyticsDashboard: React.FC<Props> = ({ scope, branchId, title = "Опе�
   );
 };
 
-const MetricCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
-  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-    <div className="flex items-center justify-between gap-3 text-slate-500">
-      <div className="text-xs">{title}</div>
-      {icon}
-    </div>
-    <div className="mt-2 text-2xl font-semibold text-slate-900">{value}</div>
-  </div>
-);
-
 const Panel = ({
   title,
   description,
@@ -290,7 +289,7 @@ const FunnelTotals = ({ totals }: { totals: Record<string, number> }) => {
             <span className="font-medium text-slate-900">{formatNumber(value)}</span>
           </div>
           <div className="h-2 rounded-full bg-slate-100">
-            <div className="h-2 rounded-full bg-cyan-700" style={{ width: `${Math.max(4, (Number(value) / max) * 100)}%` }} />
+            <div className="h-2 rounded-full bg-[#0066cc]" style={{ width: `${Math.max(4, (Number(value) / max) * 100)}%` }} />
           </div>
         </div>
       ))}
@@ -336,7 +335,7 @@ const FunnelTrend = ({ rows }: { rows: Array<Record<string, string | number>> })
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: metric.color }} />
                     {metric.label}
                   </div>
-                  <div className="text-lg font-semibold text-slate-900">{formatNumber(value)}</div>
+                  <div className="ui-card-title">{formatNumber(value)}</div>
                 </div>
                 <div className="mt-3 h-2 rounded-full bg-white">
                   <div
@@ -413,30 +412,28 @@ const CoachLoadTable = ({ rows }: { rows: Array<Record<string, unknown>> }) => {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full text-sm">
-        <thead className="text-xs text-slate-500">
-          <tr>
-            <th className="px-2 py-1 text-left">Тренер</th>
-            <th className="px-2 py-1 text-left">Группы</th>
-            <th className="px-2 py-1 text-left">Занятия</th>
-            <th className="px-2 py-1 text-left">Ученики</th>
-            <th className="px-2 py-1 text-left">Отчеты</th>
-          </tr>
-        </thead>
-        <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Тренер</TableHead>
+          <TableHead>Группы</TableHead>
+          <TableHead>Занятия</TableHead>
+          <TableHead>Ученики</TableHead>
+          <TableHead>Отчеты</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
           {rows.map((row) => (
-            <tr key={String(row.coachId ?? row.coachName)} className="border-t border-slate-100">
-              <td className="px-2 py-2 font-medium text-slate-800">{String(row.coachName ?? "Тренер")}</td>
-              <td className="px-2 py-2">{formatNumber(Number(row.groups ?? 0))}</td>
-              <td className="px-2 py-2">{formatNumber(Number(row.completedSessions ?? row.scheduledSlots ?? row.plannedSessions ?? 0))}</td>
-              <td className="px-2 py-2">{formatNumber(Number(row.students ?? 0))}</td>
-              <td className="px-2 py-2">{formatNumber(Number(row.overdueReports ?? 0))}</td>
-            </tr>
+            <TableRow key={String(row.coachId ?? row.coachName)}>
+              <TableCell className="font-medium text-slate-900">{String(row.coachName ?? "Тренер")}</TableCell>
+              <TableCell>{formatNumber(Number(row.groups ?? 0))}</TableCell>
+              <TableCell>{formatNumber(Number(row.completedSessions ?? row.scheduledSlots ?? row.plannedSessions ?? 0))}</TableCell>
+              <TableCell>{formatNumber(Number(row.students ?? 0))}</TableCell>
+              <TableCell>{formatNumber(Number(row.overdueReports ?? 0))}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+      </TableBody>
+    </Table>
   );
 };
 
@@ -469,28 +466,26 @@ const RetentionTable = ({ rows }: { rows: Array<Record<string, unknown>> }) => {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full text-sm">
-        <thead className="text-xs text-slate-500">
-          <tr>
-            <th className="px-2 py-1 text-left">Группа</th>
-            <th className="px-2 py-1 text-left">Retention</th>
-            <th className="px-2 py-1 text-left">Слотов</th>
-            <th className="px-2 py-1 text-left">Отмен</th>
-          </tr>
-        </thead>
-        <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Группа</TableHead>
+          <TableHead>Retention</TableHead>
+          <TableHead>Слотов</TableHead>
+          <TableHead>Отмен</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
           {rows.map((row) => (
-            <tr key={String(row.groupId ?? row.groupName)} className="border-t border-slate-100">
-              <td className="px-2 py-2 font-medium text-slate-800">{String(row.groupName ?? "Группа")}</td>
-              <td className="px-2 py-2">{formatPercent(Number(row.retentionIndex ?? 0))}</td>
-              <td className="px-2 py-2">{formatNumber(Number(row.totalSchedules ?? 0))}</td>
-              <td className="px-2 py-2">{formatNumber(Number(row.cancelled ?? 0))}</td>
-            </tr>
+            <TableRow key={String(row.groupId ?? row.groupName)}>
+              <TableCell className="font-medium text-slate-900">{String(row.groupName ?? "Группа")}</TableCell>
+              <TableCell>{formatPercent(Number(row.retentionIndex ?? 0))}</TableCell>
+              <TableCell>{formatNumber(Number(row.totalSchedules ?? 0))}</TableCell>
+              <TableCell>{formatNumber(Number(row.cancelled ?? 0))}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+      </TableBody>
+    </Table>
   );
 };
 
@@ -508,7 +503,7 @@ const SlaSummary = ({ sla, trialConversion }: { sla: SlaAnalytics | null; trialC
       {cards.map(([label, value]) => (
         <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
           <div className="text-xs text-slate-500">{label}</div>
-          <div className="mt-1 text-lg font-semibold text-slate-900">{value}</div>
+          <div className="mt-1 ui-card-title">{value}</div>
         </div>
       ))}
     </div>
@@ -519,12 +514,12 @@ const AnalyticsSkeleton = () => (
   <div className="mt-5 space-y-4">
     <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="h-24 animate-pulse rounded-xl bg-slate-100" />
+        <Skeleton key={index} className="h-24 rounded-xl" />
       ))}
     </div>
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-      <div className="h-64 animate-pulse rounded-xl bg-slate-100" />
-      <div className="h-64 animate-pulse rounded-xl bg-slate-100 xl:col-span-2" />
+      <Skeleton className="h-64 rounded-xl" />
+      <Skeleton className="h-64 rounded-xl xl:col-span-2" />
     </div>
   </div>
 );

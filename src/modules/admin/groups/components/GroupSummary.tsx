@@ -1,10 +1,10 @@
 import React from "react";
 import {
-  UserGroupIcon,
-  CalendarDaysIcon,
-  ClockIcon,
-  UsersIcon,
-} from "@heroicons/react/24/outline";
+  Users,
+  CalendarDays,
+  Clock3,
+  UsersRound,
+} from "lucide-react";
 
 interface Props {
   coachesCount: number;
@@ -54,17 +54,17 @@ const GroupSummary: React.FC<Props> = ({
   }) => (
     <div
       className={`
-        rounded-2xl border bg-white p-4 shadow-sm
-        ${highlight ? "border-cyan-200" : "border-slate-200"}
+        rounded-2xl border bg-white p-4
+        ${highlight ? "border-blue-200" : "border-slate-200"}
       `}
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50">
-          <Icon className="h-5 w-5 text-cyan-800" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+          <Icon className="h-5 w-5 text-[#0066cc]" />
         </div>
         <div className="min-w-0">
           <div className="text-xs text-slate-500">{label}</div>
-          <div className="truncate text-sm font-semibold text-slate-900">
+          <div className="truncate ui-section-title">
             {value}
           </div>
           {hint && (
@@ -80,26 +80,26 @@ const GroupSummary: React.FC<Props> = ({
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Item
-        icon={UsersIcon}
+        icon={UsersRound}
         label="Тренеры"
         value={coachesCount}
       />
 
       <Item
-        icon={CalendarDaysIcon}
+        icon={CalendarDays}
         label="Занятий в неделю"
         value={sessionsPerWeek}
         hint={scheduleActive ? "расписание активно" : "расписание выключено"}
       />
 
       <Item
-        icon={ClockIcon}
+        icon={Clock3}
         label="Ближайшая тренировка"
         value={formatDateTime(nextSession)}
       />
 
       <Item
-        icon={UserGroupIcon}
+        icon={Users}
         label="Участники"
         value={`${studentsCount} / ${capacity}`}
         hint={`${progress}% заполнено`}

@@ -10,11 +10,11 @@ const AdminProfilePage: React.FC = () => {
       workspaceTitle="Мой филиал"
       helpText="Филиалы, роль и критичные права меняются через SUPER_ADMIN или владельца клуба."
       theme={{
-        text: "text-admin-700",
-        border: "border-cyan-100",
-        softBg: "bg-cyan-50",
-        button: "bg-admin-500 hover:bg-admin-700",
-        ring: "text-admin-600 focus:ring-cyan-100",
+        text: "text-[#0066cc]",
+        border: "border-blue-100",
+        softBg: "bg-blue-50",
+        button: "bg-blue-500 hover:bg-[#0066cc]",
+        ring: "text-[#0066cc] focus:ring-blue-100",
       }}
     />
   );

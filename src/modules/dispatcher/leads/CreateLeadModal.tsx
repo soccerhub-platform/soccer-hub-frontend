@@ -1,5 +1,6 @@
+import { Input, Textarea, NativeSelect  } from "../../../shared/ui";
 import React, { useMemo, useState } from "react";
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Plus, Trash2 } from "lucide-react";
 import { DispatcherLeadsApi } from "./leads.api";
 import {
   CreateDispatcherLeadPayload,
@@ -135,10 +136,10 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white shadow-2xl">
+      <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <div>
-            <h3 className="heading-font text-xl font-semibold text-slate-900">
+            <h3 className="ui-modal-title">
               Новый лид
             </h3>
             <p className="mt-1 text-sm text-slate-500">
@@ -161,7 +162,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 Имя родителя
                 <span className="ml-1 text-rose-500">*</span>
               </span>
-              <input
+              <Input
                 type="text"
                 value={parentName}
                 onChange={(event) => setParentName(event.target.value)}
@@ -170,7 +171,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 className={`${inputBaseClassName} ${
                   validation.fieldErrors.parentName
                     ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                    : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
+                    : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
                 }`}
               />
               {validation.fieldErrors.parentName ? (
@@ -183,7 +184,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 Телефон
                 <span className="ml-1 text-rose-500">*</span>
               </span>
-              <input
+              <Input
                 type="tel"
                 value={phone}
                 onChange={(event) => setPhone(formatPhoneInput(event.target.value))}
@@ -194,7 +195,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 className={`${inputBaseClassName} ${
                   validation.fieldErrors.phone
                     ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                    : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
+                    : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
                 }`}
               />
               {validation.fieldErrors.phone ? (
@@ -207,13 +208,13 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 Филиал
                 <span className="ml-1 text-rose-500">*</span>
               </span>
-              <select
+              <NativeSelect
                 value={branchId}
                 onChange={(event) => setBranchId(event.target.value)}
                 className={`${inputBaseClassName} ${
                   validation.fieldErrors.branchId
                     ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                    : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
+                    : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
                 }`}
               >
                 <option value="">Выберите филиал</option>
@@ -222,7 +223,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                     {branch.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
               {validation.fieldErrors.branchId ? (
                 <p className="text-xs text-rose-600">{validation.fieldErrors.branchId}</p>
               ) : null}
@@ -232,7 +233,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
                 Email
               </span>
-              <input
+              <Input
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -241,7 +242,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 className={`${inputBaseClassName} ${
                   validation.fieldErrors.email
                     ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                    : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
+                    : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
                 }`}
               />
               {validation.fieldErrors.email ? (
@@ -254,12 +255,12 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
             <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
               Комментарий
             </span>
-            <textarea
+            <Textarea
               value={comment}
               onChange={(event) => setComment(event.target.value)}
               rows={4}
               maxLength={MAX_COMMENT_LENGTH}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
             />
             <div className="text-right text-xs text-slate-400">
               {comment.length}/{MAX_COMMENT_LENGTH}
@@ -276,7 +277,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                 onClick={() => setChildren((prev) => [...prev, EMPTY_CHILD])}
                 className={buttonStyles("soft", "sm", "rounded-full")}
               >
-                <PlusIcon className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5" />
                 Добавить ребенка
               </button>
             </div>
@@ -292,7 +293,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                       <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Имя ребенка
                       </span>
-                      <input
+                      <Input
                         type="text"
                         value={child.childName}
                         onChange={(event) =>
@@ -306,7 +307,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                         className={`${inputBaseClassName} ${
                           validation.childErrors[index]
                             ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                            : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
+                            : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
                         }`}
                       />
                     </label>
@@ -315,7 +316,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                       <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Возраст
                       </span>
-                      <input
+                      <Input
                         type="number"
                         min={1}
                         max={25}
@@ -330,7 +331,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                         className={`${inputBaseClassName} ${
                           validation.childErrors[index]
                             ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                            : "border-slate-200 focus:border-cyan-700 focus:ring-cyan-100"
+                            : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
                         }`}
                       />
                     </label>
@@ -343,7 +344,7 @@ const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
                         }
                         className={buttonStyles("softDanger", "md", "h-[46px] w-full rounded-xl px-0 text-slate-500 hover:text-rose-600")}
                       >
-                        <TrashIcon className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                     {validation.childErrors[index] ? (

@@ -1,15 +1,26 @@
 import React, { useMemo, useState } from "react";
 import {
-  AcademicCapIcon,
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  CheckIcon,
-  UserIcon,
-  UserPlusIcon,
-} from "@heroicons/react/24/outline";
+  GraduationCap,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  User,
+  UserPlus,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../../../shared/api";
-import { Button, ModalShell, formControlClassName } from "../../../shared/ui";
+import {
+  Button,
+  DatePicker,
+  EntitySheet,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from "../../../shared/ui";
 import { ClientApi } from "./client.api";
 import { clientSourceLabels, type ClientSource, type ClientStudentRelationshipType } from "./client.types";
 
@@ -79,48 +90,46 @@ const ClientOnboardingDrawer: React.FC<{
   const labels: Record<Step, string> = { scenario: "Сценарий", client: "Клиент", student: "Ученик", review: "Проверка" };
 
   return (
-    <ModalShell
+    <EntitySheet
       title="Оформление клиента"
-      eyebrow="Клиенты"
       description="Создайте коммерческую роль клиента и при необходимости профиль ученика. Договор оформляется отдельным следующим шагом."
-      placement="right"
-      maxWidthClassName="max-w-2xl"
+      contentClassName="sm:max-w-2xl"
       onClose={onClose}
       closeDisabled={saving}
-      footer={<div className="flex justify-between gap-2"><Button variant="secondary" rounded="rounded-lg" disabled={saving} onClick={() => index ? setIndex((value) => value - 1) : onClose()}><ArrowLeftIcon className="h-4 w-4" /> {index ? "Назад" : "Отмена"}</Button>{step === "review" ? <Button rounded="rounded-lg" isLoading={saving} onClick={() => void submit()}><CheckIcon className="h-4 w-4" /> Создать</Button> : <Button rounded="rounded-lg" onClick={next}>Продолжить <ArrowRightIcon className="h-4 w-4" /></Button>}</div>}
+      footer={<div className="flex w-full justify-between gap-2"><Button variant="secondary" disabled={saving} onClick={() => index ? setIndex((value) => value - 1) : onClose()}><ArrowLeft className="h-4 w-4" /> {index ? "Назад" : "Отмена"}</Button>{step === "review" ? <Button isLoading={saving} onClick={() => void submit()}><Check className="h-4 w-4" /> Создать</Button> : <Button onClick={next}>Продолжить <ArrowRight className="h-4 w-4" /></Button>}</div>}
     >
       <div className="space-y-6">
-        <ol className="grid gap-2" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>{steps.map((item, stepIndex) => <li key={item}><div className={`h-1 rounded-full ${stepIndex <= index ? "bg-admin-700" : "bg-slate-200"}`} /><span className="mt-2 block truncate text-xs text-slate-500">{labels[item]}</span></li>)}</ol>
+        <ol className="grid gap-2" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>{steps.map((item, stepIndex) => <li key={item}><div className={`h-1 rounded-full ${stepIndex <= index ? "bg-[#0066cc]" : "bg-slate-200"}`} /><span className="mt-2 block truncate text-xs text-slate-500">{labels[item]}</span></li>)}</ol>
 
         {step === "scenario" ? <div className="space-y-3">
-          <Scenario selected={mode === "DEPENDENT"} icon={<AcademicCapIcon />} title="Клиент оформляет ученика" description="Родитель или представитель оплачивает обучение другого человека." onClick={() => { setMode("DEPENDENT"); setIndex(0); }} />
-          <Scenario selected={mode === "SELF"} icon={<UserIcon />} title="Клиент занимается сам" description="Создаются роли Client и Student с явной связью SELF." onClick={() => { setMode("SELF"); setIndex(0); }} />
-          <Scenario selected={mode === "CLIENT_ONLY"} icon={<UserPlusIcon />} title="Только клиент" description="Ученика можно связать позже из Client Workspace." onClick={() => { setMode("CLIENT_ONLY"); setIndex(0); }} />
+          <Scenario selected={mode === "DEPENDENT"} icon={<GraduationCap />} title="Клиент оформляет ученика" description="Родитель или представитель оплачивает обучение другого человека." onClick={() => { setMode("DEPENDENT"); setIndex(0); }} />
+          <Scenario selected={mode === "SELF"} icon={<User />} title="Клиент занимается сам" description="Создаются роли Client и Student с явной связью SELF." onClick={() => { setMode("SELF"); setIndex(0); }} />
+          <Scenario selected={mode === "CLIENT_ONLY"} icon={<UserPlus />} title="Только клиент" description="Ученика можно связать позже из Client Workspace." onClick={() => { setMode("CLIENT_ONLY"); setIndex(0); }} />
         </div> : null}
 
         {step === "client" ? <div className="grid gap-4 sm:grid-cols-2">
-          <label><span className="mb-1.5 block text-sm font-medium">Имя *</span><input autoFocus className={formControlClassName} value={client.firstName} onChange={(event) => setClient((value) => ({ ...value, firstName: event.target.value }))} /></label>
-          <label><span className="mb-1.5 block text-sm font-medium">Фамилия</span><input className={formControlClassName} value={client.lastName} onChange={(event) => setClient((value) => ({ ...value, lastName: event.target.value }))} /></label>
-          <label><span className="mb-1.5 block text-sm font-medium">Телефон *</span><input className={formControlClassName} value={client.phone} onChange={(event) => setClient((value) => ({ ...value, phone: event.target.value }))} /></label>
-          <label><span className="mb-1.5 block text-sm font-medium">Email</span><input type="email" className={formControlClassName} value={client.email} onChange={(event) => setClient((value) => ({ ...value, email: event.target.value }))} /></label>
-          <label className="sm:col-span-2"><span className="mb-1.5 block text-sm font-medium">Источник</span><select className={formControlClassName} value={client.source} onChange={(event) => setClient((value) => ({ ...value, source: event.target.value as ClientSource }))}>{Object.entries(clientSourceLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-          {client.source === "OTHER" ? <label className="sm:col-span-2"><span className="mb-1.5 block text-sm font-medium">Уточнение источника</span><input className={formControlClassName} value={client.sourceDetails} onChange={(event) => setClient((value) => ({ ...value, sourceDetails: event.target.value }))} /></label> : null}
-          <label className="sm:col-span-2"><span className="mb-1.5 block text-sm font-medium">Комментарий</span><textarea className={`${formControlClassName} min-h-24`} value={client.comments} onChange={(event) => setClient((value) => ({ ...value, comments: event.target.value }))} /></label>
+          <label className="space-y-1.5"><span className="block text-sm font-medium">Имя *</span><Input autoFocus value={client.firstName} placeholder="Например, Мария" onChange={(event) => setClient((value) => ({ ...value, firstName: event.target.value }))} /><span className="block text-xs leading-5 text-slate-500">Имя контактного лица и будущего плательщика.</span></label>
+          <label className="space-y-1.5"><span className="block text-sm font-medium">Фамилия</span><Input value={client.lastName} placeholder="Например, Иванова" onChange={(event) => setClient((value) => ({ ...value, lastName: event.target.value }))} /><span className="block text-xs leading-5 text-slate-500">Можно заполнить позже.</span></label>
+          <label className="space-y-1.5"><span className="block text-sm font-medium">Телефон *</span><Input type="tel" value={client.phone} placeholder="+7 700 000 00 00" onChange={(event) => setClient((value) => ({ ...value, phone: event.target.value }))} /><span className="block text-xs leading-5 text-slate-500">Основной номер для связи.</span></label>
+          <label className="space-y-1.5"><span className="block text-sm font-medium">Email</span><Input type="email" value={client.email} placeholder="client@example.com" onChange={(event) => setClient((value) => ({ ...value, email: event.target.value }))} /><span className="block text-xs leading-5 text-slate-500">Необязательно, используется для документов.</span></label>
+          <label className="space-y-1.5 sm:col-span-2"><span className="block text-sm font-medium">Источник</span><Select value={client.source} onValueChange={(value) => setClient((current) => ({ ...current, source: value as ClientSource }))}><SelectTrigger><SelectValue placeholder="Выберите источник" /></SelectTrigger><SelectContent>{Object.entries(clientSourceLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select><span className="block text-xs leading-5 text-slate-500">Нужен для аналитики привлечения клиентов.</span></label>
+          {client.source === "OTHER" ? <label className="space-y-1.5 sm:col-span-2"><span className="block text-sm font-medium">Уточнение источника</span><Input value={client.sourceDetails} placeholder="Например, школьный турнир" onChange={(event) => setClient((value) => ({ ...value, sourceDetails: event.target.value }))} /><span className="block text-xs leading-5 text-slate-500">Коротко укажите конкретный источник.</span></label> : null}
+          <label className="space-y-1.5 sm:col-span-2"><span className="block text-sm font-medium">Комментарий</span><Textarea className="min-h-24 resize-y" value={client.comments} placeholder="Предпочтения, договорённости или важный контекст" onChange={(event) => setClient((value) => ({ ...value, comments: event.target.value }))} /><span className="block text-xs leading-5 text-slate-500">Внутренняя заметка для сотрудников клуба.</span></label>
         </div> : null}
 
         {step === "student" ? <div className="space-y-4">
-          {mode === "SELF" ? <div className="rounded-lg border border-admin-200 bg-admin-50 p-4 text-sm text-admin-900">Профиль ученика будет создан для {clientName}. Связь: SELF.</div> : <div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-1.5 block text-sm font-medium">Имя ученика *</span><input className={formControlClassName} value={student.firstName} onChange={(event) => setStudent((value) => ({ ...value, firstName: event.target.value }))} /></label><label><span className="mb-1.5 block text-sm font-medium">Фамилия</span><input className={formControlClassName} value={student.lastName} onChange={(event) => setStudent((value) => ({ ...value, lastName: event.target.value }))} /></label></div>}
-          <div className="grid gap-4 sm:grid-cols-2"><label><span className="mb-1.5 block text-sm font-medium">Дата рождения *</span><input type="date" className={formControlClassName} value={student.birthDate} onChange={(event) => setStudent((value) => ({ ...value, birthDate: event.target.value }))} /></label>{mode === "DEPENDENT" ? <label><span className="mb-1.5 block text-sm font-medium">Тип связи</span><select className={formControlClassName} value={relationshipType} onChange={(event) => setRelationshipType(event.target.value as typeof relationshipType)}><option value="MOTHER">Мать</option><option value="FATHER">Отец</option><option value="GUARDIAN">Представитель</option><option value="OTHER">Другое</option></select></label> : null}</div>
+          {mode === "SELF" ? <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-[#0066cc]">Профиль ученика будет создан для {clientName}. Связь: SELF.</div> : <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-1.5"><span className="block text-sm font-medium">Имя ученика *</span><Input value={student.firstName} placeholder="Например, Арман" onChange={(event) => setStudent((value) => ({ ...value, firstName: event.target.value }))} /><span className="block text-xs leading-5 text-slate-500">Имя в профиле ученика.</span></label><label className="space-y-1.5"><span className="block text-sm font-medium">Фамилия</span><Input value={student.lastName} placeholder="Например, Садыков" onChange={(event) => setStudent((value) => ({ ...value, lastName: event.target.value }))} /><span className="block text-xs leading-5 text-slate-500">Помогает отличать одноимённых учеников.</span></label></div>}
+          <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-1.5"><span className="block text-sm font-medium">Дата рождения *</span><DatePicker value={student.birthDate} onValueChange={(birthDate) => setStudent((value) => ({ ...value, birthDate }))} /><span className="block text-xs leading-5 text-slate-500">Используется для возрастных групп.</span></label>{mode === "DEPENDENT" ? <label className="space-y-1.5"><span className="block text-sm font-medium">Тип связи</span><Select value={relationshipType} onValueChange={(value) => setRelationshipType(value as typeof relationshipType)}><SelectTrigger><SelectValue placeholder="Выберите тип связи" /></SelectTrigger><SelectContent><SelectItem value="MOTHER">Мать</SelectItem><SelectItem value="FATHER">Отец</SelectItem><SelectItem value="GUARDIAN">Представитель</SelectItem><SelectItem value="OTHER">Другое</SelectItem></SelectContent></Select><span className="block text-xs leading-5 text-slate-500">Кем клиент приходится ученику.</span></label> : null}</div>
         </div> : null}
 
         {step === "review" ? <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 px-4"><Review label="Клиент" value={clientName} note={client.phone} />{mode !== "CLIENT_ONLY" ? <Review label="Ученик" value={studentName} note={mode === "SELF" ? "SELF" : relationshipType} /> : null}<Review label="Следующий шаг" value="Создать договор" note="Откроется из Client Workspace после сохранения" /></div> : null}
         {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div> : null}
       </div>
-    </ModalShell>
+    </EntitySheet>
   );
 };
 
-const Scenario: React.FC<{ selected: boolean; icon: React.ReactNode; title: string; description: string; onClick: () => void }> = ({ selected, icon, title, description, onClick }) => <button type="button" onClick={onClick} className={`flex w-full gap-3 rounded-lg border p-4 text-left transition ${selected ? "border-admin-500 bg-admin-50" : "border-slate-200 hover:border-slate-300"}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-admin-700 [&>svg]:h-5 [&>svg]:w-5">{icon}</span><span><span className="block text-sm font-semibold text-slate-950">{title}</span><span className="mt-1 block text-sm text-slate-500">{description}</span></span></button>;
-const Review: React.FC<{ label: string; value: string; note?: string }> = ({ label, value, note }) => <div className="grid gap-1 py-4 sm:grid-cols-[140px_1fr]"><span className="text-xs font-semibold uppercase text-slate-500">{label}</span><span><span className="block text-sm font-semibold text-slate-950">{value}</span>{note ? <span className="mt-1 block text-xs text-slate-500">{note}</span> : null}</span></div>;
+const Scenario: React.FC<{ selected: boolean; icon: React.ReactNode; title: string; description: string; onClick: () => void }> = ({ selected, icon, title, description, onClick }) => <button type="button" onClick={onClick} className={`flex w-full gap-3 rounded-lg border p-4 text-left transition ${selected ? "border-blue-500 bg-blue-50" : "border-slate-200 hover:border-slate-300"}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-[#0066cc] [&>svg]:h-5 [&>svg]:w-5">{icon}</span><span><span className="block ui-section-title">{title}</span><span className="mt-1 block text-sm text-slate-500">{description}</span></span></button>;
+const Review: React.FC<{ label: string; value: string; note?: string }> = ({ label, value, note }) => <div className="grid gap-1 py-4 sm:grid-cols-[140px_1fr]"><span className="text-xs font-semibold uppercase text-slate-500">{label}</span><span><span className="block ui-section-title">{value}</span>{note ? <span className="mt-1 block text-xs text-slate-500">{note}</span> : null}</span></div>;
 
 export default ClientOnboardingDrawer;

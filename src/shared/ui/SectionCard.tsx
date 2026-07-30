@@ -21,12 +21,12 @@ const SectionCard: React.FC<SectionCardProps> = ({
   bodyClassName,
 }) => {
   return (
-    <section id={id} className={classNames("rounded-lg border border-slate-200 bg-white p-4 shadow-sm", className)}>
+    <section id={id} className={classNames("rounded-2xl border border-black/[0.08] bg-white p-5", className)}>
       {title ? (
         <div className="mb-4 flex items-start gap-2">
           {icon ? <div className="mt-0.5 shrink-0 text-slate-500">{icon}</div> : null}
           <div>
-            <div className="text-sm font-semibold text-slate-900">{title}</div>
+            <div className="ui-section-title">{title}</div>
             {description ? <div className="mt-1 text-xs leading-5 text-slate-500">{description}</div> : null}
           </div>
         </div>

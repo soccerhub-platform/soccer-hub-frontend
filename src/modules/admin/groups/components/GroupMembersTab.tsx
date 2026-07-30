@@ -1,31 +1,38 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowPathIcon,
-  CakeIcon,
-  CalendarDaysIcon,
-  ChartBarIcon,
-  CheckCircleIcon,
-  EllipsisHorizontalIcon,
-  ExclamationTriangleIcon,
-  DocumentTextIcon,
-  MagnifyingGlassIcon,
-  ShieldCheckIcon,
-  UserPlusIcon,
-  UsersIcon,
-} from "@heroicons/react/24/outline";
+  useNavigate, useSearchParams } from "react-router-dom";
+import {
+  RefreshCw,
+  Cake,
+  CalendarDays,
+  ChartBar,
+  CheckCircle,
+  TriangleAlert,
+  FileText,
+  Search,
+  ShieldCheck,
+  UserPlus,
+  UsersRound,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { ApiError, getApiErrorMessage } from "../../../../shared/api";
 import { useAuth } from "../../../../shared/AuthContext";
 import {
+  Input,
+  Textarea,
+  NativeSelect,
   Button,
+  ActionMenu,
+  DatePicker,
   EmptyState,
   ErrorState,
   FormField,
   formControlClassName,
   LoadingState,
   ModalShell,
-} from "../../../../shared/ui";
+  StatusBadge,
+  type StatusTone,
+   } from "../../../../shared/ui";
 import {
   GroupApi,
   GroupApiModel,
@@ -76,12 +83,12 @@ const statusLabels: Record<string, string> = {
   REMOVED: "Исключен",
 };
 
-const statusClasses: Record<string, string> = {
-  UPCOMING: "border-cyan-100 bg-cyan-50 text-cyan-800",
-  ACTIVE: "border-emerald-100 bg-emerald-50 text-emerald-700",
-  TRANSFERRED: "border-blue-100 bg-blue-50 text-blue-700",
-  COMPLETED: "border-slate-200 bg-slate-50 text-slate-600",
-  REMOVED: "border-rose-100 bg-rose-50 text-rose-700",
+const statusTones: Record<string, StatusTone> = {
+  UPCOMING: "info",
+  ACTIVE: "success",
+  TRANSFERRED: "info",
+  COMPLETED: "neutral",
+  REMOVED: "danger",
 };
 
 const contractStatusLabels: Record<string, string> = {
@@ -150,10 +157,10 @@ const MemberAvatar: React.FC<{ name: string; avatar?: MediaAsset | null }> = ({ 
   useEffect(() => setFailed(false), [src]);
 
   if (src && !failed) {
-    return <img src={src} alt="" className="h-9 w-9 shrink-0 rounded-full border border-white object-cover shadow-sm ring-1 ring-slate-200" onError={() => setFailed(true)} />;
+    return <img src={src} alt="" className="h-9 w-9 shrink-0 rounded-full border border-white object-cover ring-1 ring-slate-200" onError={() => setFailed(true)} />;
   }
 
-  return <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-100 to-emerald-100 text-xs font-bold text-cyan-800 ring-1 ring-cyan-200">{initials(name)}</div>;
+  return <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-emerald-100 text-xs font-bold text-[#0066cc] ring-1 ring-blue-200">{initials(name)}</div>;
 };
 
 const ColumnTitle: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
@@ -206,7 +213,6 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
   const [error, setError] = useState<string | null>(null);
   const [memberSearch, setMemberSearch] = useState("");
 
-  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [groups, setGroups] = useState<GroupApiModel[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
@@ -364,7 +370,6 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
     next.delete("membershipId");
     next.delete("drawer");
     setSearchParams(next, { replace: true });
-    setMenuOpenFor(null);
   };
 
   const openAdd = () => {
@@ -393,7 +398,6 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
     next.set("drawer", nextAction === "transfer" ? "transfer-student" : "remove-student");
     next.set("membershipId", item.membershipId);
     setSearchParams(next);
-    setMenuOpenFor(null);
     if (nextAction === "transfer") {
       const transferDate = todayIso();
       setTransferForm({
@@ -562,9 +566,9 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
       <div className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-base font-semibold text-slate-950">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-50 text-cyan-700">
-                <UsersIcon className="h-4 w-4" />
+            <div className="flex items-center gap-2 ui-card-title">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]">
+                <UsersRound className="h-4 w-4" />
               </span>
               Ученики
             </div>
@@ -587,10 +591,10 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
               aria-label="Обновить список учеников"
               title="Обновить список"
             >
-              <ArrowPathIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
             <Button type="button" size="sm" onClick={openAdd}>
-              <UserPlusIcon className="h-4 w-4" />
+              <UserPlus className="h-4 w-4" />
               Добавить ученика
             </Button>
           </div>
@@ -599,8 +603,8 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
         <div className="max-w-sm">
           <FormField label="Поиск по составу" className="mb-0">
             <div className="relative">
-              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
                 value={memberSearch}
                 onChange={(event) => setMemberSearch(event.target.value)}
                 placeholder="Имя ученика"
@@ -626,13 +630,13 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
           description="Попробуйте изменить запрос поиска по составу группы."
         />
       ) : (
-        <div className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-[0_10px_28px_-28px_rgba(15,23,42,0.45)]">
+        <div className="overflow-visible rounded-xl border border-slate-200 bg-white">
           <div className="hidden grid-cols-[minmax(240px,1.5fr)_110px_165px_170px_120px_48px] gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 lg:grid">
-            <ColumnTitle icon={<UsersIcon className="h-3.5 w-3.5" />} label="Ученик" />
-            <ColumnTitle icon={<CakeIcon className="h-3.5 w-3.5" />} label="Возраст" />
-            <ColumnTitle icon={<CalendarDaysIcon className="h-3.5 w-3.5" />} label="В группе" />
-            <ColumnTitle icon={<ChartBarIcon className="h-3.5 w-3.5" />} label="Посещаемость" />
-            <ColumnTitle icon={<ShieldCheckIcon className="h-3.5 w-3.5" />} label="Статус" />
+            <ColumnTitle icon={<UsersRound className="h-3.5 w-3.5" />} label="Ученик" />
+            <ColumnTitle icon={<Cake className="h-3.5 w-3.5" />} label="Возраст" />
+            <ColumnTitle icon={<CalendarDays className="h-3.5 w-3.5" />} label="В группе" />
+            <ColumnTitle icon={<ChartBar className="h-3.5 w-3.5" />} label="Посещаемость" />
+            <ColumnTitle icon={<ShieldCheck className="h-3.5 w-3.5" />} label="Статус" />
             <span />
           </div>
 
@@ -653,7 +657,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                   >
                     <MemberAvatar name={item.childName} avatar={item.avatar} />
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-slate-950">{item.childName}</div>
+                      <div className="truncate ui-section-title">{item.childName}</div>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
                         <span>{displayContractStatus(item.contractStatus)}</span>
                         {item.leftAt ? <span>Последний день: {formatDate(item.leftAt)}</span> : null}
@@ -687,49 +691,17 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                   </div>
 
                   <div>
-                    <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${statusClasses[membershipStatus] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
-                      {displayStatus(membershipStatus)}
-                    </span>
+                    <StatusBadge tone={statusTones[membershipStatus] ?? "neutral"}>{displayStatus(membershipStatus)}</StatusBadge>
                   </div>
 
-                  <div className="relative flex justify-end">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      rounded="rounded-lg"
-                      className="h-9 w-9 border border-transparent p-0 text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-900"
-                      onClick={() => setMenuOpenFor((prev) => (prev === menuKey ? null : menuKey))}
-                      aria-label="Действия с учеником"
-                      title="Действия"
-                    >
-                      <EllipsisHorizontalIcon className="h-5 w-5" />
-                    </Button>
-
-                    {menuOpenFor === menuKey ? (
-                      <div className="absolute right-0 top-10 z-20 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-xl">
-                        <button
-                          type="button"
-                          className="block w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-50"
-                          onClick={() => navigate(`/admin/students/${encodeURIComponent(item.playerId)}/overview`)}
-                        >
-                          Открыть профиль
-                        </button>
-                        <button
-                          type="button"
-                          disabled={!canTransfer}
-                          className="block w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
-                          onClick={() => openMemberAction("transfer", item)}
-                        >
-                          Перевести
-                        </button>
-                        {item.contract?.id && !canRemove ? (
-                          <button type="button" className="block w-full px-3 py-2 text-left text-rose-700 hover:bg-rose-50" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(item.contract!.id!)}/overview?drawer=cancel`)}>Отменить договор</button>
-                        ) : (
-                          <button type="button" disabled={!canRemove} className="block w-full px-3 py-2 text-left text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300" onClick={() => openMemberAction("remove", item)}>Исключить</button>
-                        )}
-                      </div>
-                    ) : null}
+                  <div className="flex justify-end">
+                    <ActionMenu compact label="Действия с учеником" items={[
+                      { key: `${menuKey}-profile`, label: "Открыть профиль", to: `/admin/students/${encodeURIComponent(item.playerId)}/overview` },
+                      { key: `${menuKey}-transfer`, label: "Перевести", disabled: !canTransfer, onSelect: () => openMemberAction("transfer", item) },
+                      item.contract?.id && !canRemove
+                        ? { key: `${menuKey}-cancel-contract`, label: "Отменить договор", danger: true, separatorBefore: true, to: `/admin/contracts/${encodeURIComponent(item.contract.id)}/overview?drawer=cancel` }
+                        : { key: `${menuKey}-remove`, label: "Исключить", danger: true, separatorBefore: true, disabled: !canRemove, onSelect: () => openMemberAction("remove", item) },
+                    ]} />
                   </div>
                 </div>
               );
@@ -780,13 +752,13 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
           <div>
             <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-5 py-4">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <div className="text-sm font-semibold text-slate-900">Выберите ученика</div>
+                <div className="ui-section-title">Выберите ученика</div>
                 {!candidatesLoading ? <div className="text-xs text-slate-500">Найдено: {candidateTotal}</div> : null}
               </div>
               <FormField label="Поиск по имени" className="mb-0">
                 <div className="relative">
-                  <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
                     value={candidateSearch}
                     onChange={(event) => {
                       setCandidateSearch(event.target.value);
@@ -831,7 +803,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                         setSelectedCurrentMembershipId(nextMembershipId);
                       }}
                       className={`w-full rounded-lg border px-3 py-2.5 text-left transition ${
-                        selected ? "border-cyan-300 bg-cyan-50" : "border-transparent bg-white hover:border-slate-200 hover:bg-slate-50"
+                        selected ? "border-blue-300 bg-blue-50" : "border-transparent bg-white hover:border-slate-200 hover:bg-slate-50"
                       } disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70`}
                     >
                       <div className="flex items-center gap-3">
@@ -853,15 +825,15 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                             )}
                           </div>
                         </div>
-                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-cyan-700 bg-cyan-700 text-white" : "border-slate-300 bg-white"}`}>
-                          {selected ? <CheckCircleIcon className="h-4 w-4" /> : null}
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-[#0066cc] bg-[#0066cc] text-white" : "border-slate-300 bg-white"}`}>
+                          {selected ? <CheckCircle className="h-4 w-4" /> : null}
                         </span>
                       </div>
                       {(candidate.warnings ?? []).length > 0 ? (
                         <div className="mt-2 space-y-1">
                           {(candidate.warnings ?? []).map((warning) => (
                             <div key={warning.code} className="flex items-start gap-1.5 text-xs text-amber-700">
-                              <ExclamationTriangleIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                               {warning.message}
                             </div>
                           ))}
@@ -893,7 +865,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
             {selectedCandidate ? (
               <div className="space-y-4 border-t border-slate-200 pt-4">
                 <div>
-                  <div className="text-sm font-semibold text-slate-950">Параметры участия</div>
+                  <div className="ui-section-title">Параметры участия</div>
                   <p className="mt-1 text-xs text-slate-500">Настройки применятся только к выбранному ученику.</p>
                 </div>
 
@@ -902,22 +874,21 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                   error={selectedDateError ?? undefined}
                   hint={addMode === "transfer" ? "С этой даты ученик начнет заниматься в новой группе." : "С этой даты ученик попадет в состав и будущие занятия."}
                 >
-                  <input
-                    type="date"
+                  <DatePicker
                     min={earliestAvailableJoinDate ?? undefined}
                     value={addForm.joinedAt}
-                    onChange={(event) => {
+                    onValueChange={(joinedAt) => {
                       setAddDateError(null);
-                      setAddForm((prev) => ({ ...prev, joinedAt: event.target.value }));
+                      setAddForm((prev) => ({ ...prev, joinedAt }));
                     }}
-                    className={`${formControlClassName} ${selectedDateError ? "border-rose-300 focus:border-rose-500 focus:ring-rose-100" : ""}`}
+                    aria-invalid={Boolean(selectedDateError)}
                   />
                 </FormField>
 
                 {(selectedCandidate.currentMemberships ?? []).length > 0 ? (
                   <>
                     <div>
-                      <div className="text-sm font-semibold text-slate-950">Что сделать с учеником</div>
+                      <div className="ui-section-title">Что сделать с учеником</div>
                       <p className="mt-1 text-sm text-slate-500">
                         Ученик уже состоит в другой группе. Выберите, нужно ли оставить текущее участие или закрыть его переводом.
                       </p>
@@ -932,11 +903,11 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                         }}
                         className={`w-full rounded-lg border px-3 py-3 text-left transition ${
                           addMode === "additional"
-                            ? "border-cyan-300 bg-cyan-50"
-                            : "border-slate-200 bg-white hover:border-cyan-200"
+                            ? "border-blue-300 bg-blue-50"
+                            : "border-slate-200 bg-white hover:border-blue-200"
                         }`}
                       >
-                        <div className="text-sm font-semibold text-slate-950">Добавить ещё в одну группу</div>
+                        <div className="ui-section-title">Добавить ещё в одну группу</div>
                         <p className="mt-1 text-xs leading-5 text-slate-500">
                           Оставить текущие группы и добавить в {groupName ?? "эту группу"}.
                         </p>
@@ -953,11 +924,11 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                         }}
                         className={`w-full rounded-lg border px-3 py-3 text-left transition ${
                           addMode === "transfer"
-                            ? "border-cyan-300 bg-cyan-50"
-                            : "border-slate-200 bg-white hover:border-cyan-200"
+                            ? "border-blue-300 bg-blue-50"
+                            : "border-slate-200 bg-white hover:border-blue-200"
                         }`}
                       >
-                        <div className="text-sm font-semibold text-slate-950">Перевести в эту группу</div>
+                        <div className="ui-section-title">Перевести в эту группу</div>
                         <p className="mt-1 text-xs leading-5 text-slate-500">
                           Закрыть выбранное участие и перевести в {groupName ?? "эту группу"}.
                         </p>
@@ -966,7 +937,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
 
                     {addMode === "transfer" ? (
                       <FormField label="Из какой группы перевести">
-                        <select
+                        <NativeSelect
                           value={selectedCurrentMembershipId}
                           onChange={(event) => setSelectedCurrentMembershipId(event.target.value)}
                           className={formControlClassName}
@@ -980,7 +951,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                               {membership.leftAt ? ` до ${formatDate(membership.leftAt)}` : ""}
                             </option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </FormField>
                     ) : null}
                   </>
@@ -992,7 +963,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                       ? "border-blue-100 bg-blue-50 text-blue-800"
                       : (selectedCandidate.currentMemberships ?? []).length > 0
                       ? "border-amber-100 bg-amber-50 text-amber-800"
-                      : "border-cyan-100 bg-cyan-50 text-cyan-800"
+                      : "border-blue-100 bg-blue-50 text-[#0066cc]"
                   }`}
                 >
                   {addMode === "transfer" && selectedCurrentMembership ? (
@@ -1035,7 +1006,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
               }
             >
               {addMode === "transfer" ? (
-                <select
+                <NativeSelect
                   value={addForm.reason}
                   onChange={(event) => setAddForm((prev) => ({ ...prev, reason: event.target.value }))}
                   className={formControlClassName}
@@ -1043,9 +1014,9 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                   {TRANSFER_REASONS.map((reason) => (
                     <option key={reason.value} value={reason.value}>{reason.label}</option>
                   ))}
-                </select>
+                </NativeSelect>
               ) : (
-                <select
+                <NativeSelect
                   value={addForm.reason}
                   onChange={(event) => setAddForm((prev) => ({ ...prev, reason: event.target.value }))}
                   className={formControlClassName}
@@ -1053,12 +1024,12 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                   {ADD_REASONS.map((reason) => (
                     <option key={reason.value} value={reason.value}>{reason.label}</option>
                   ))}
-                </select>
+                </NativeSelect>
               )}
             </FormField>
 
             <FormField label="Комментарий">
-              <textarea
+              <Textarea
                 rows={2}
                 value={addForm.comment}
                 onChange={(event) => setAddForm((prev) => ({ ...prev, comment: event.target.value }))}
@@ -1097,7 +1068,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
         >
           <div className="space-y-4">
             <FormField label="Новая группа">
-              <select
+              <NativeSelect
                 value={transferForm.targetGroupId}
                 onChange={(event) => setTransferForm((prev) => ({ ...prev, targetGroupId: event.target.value }))}
                 disabled={groupsLoading || !branchId}
@@ -1107,20 +1078,18 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                 {groups.map((group) => (
                   <option key={group.groupId} value={group.groupId}>{group.name}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </FormField>
 
             <FormField label="Дата перевода" hint={`Последний день в текущей группе: ${formatDate(addDaysIso(transferForm.transferDate, -1))}`}>
-              <input
-                type="date"
+              <DatePicker
                 value={transferForm.transferDate}
-                onChange={(event) => setTransferForm((prev) => ({ ...prev, transferDate: event.target.value }))}
-                className={formControlClassName}
+                onValueChange={(transferDate) => setTransferForm((prev) => ({ ...prev, transferDate }))}
               />
             </FormField>
 
             <FormField label="Причина">
-              <select
+              <NativeSelect
                 value={transferForm.reason}
                 onChange={(event) => setTransferForm((prev) => ({ ...prev, reason: event.target.value }))}
                 className={formControlClassName}
@@ -1128,11 +1097,11 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                 {TRANSFER_REASONS.map((reason) => (
                   <option key={reason.value} value={reason.value}>{reason.label}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </FormField>
 
             <FormField label="Комментарий">
-              <textarea
+              <Textarea
                 rows={3}
                 value={transferForm.comment}
                 onChange={(event) => setTransferForm((prev) => ({ ...prev, comment: event.target.value }))}
@@ -1156,25 +1125,23 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
               <Button type="button" variant="secondary" disabled={saving} onClick={closeAction}>
                 Отмена
               </Button>
-              {selectedMember?.contract?.id ? <Button type="button" variant="danger" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(selectedMember.contract!.id!)}/overview?drawer=cancel`)}><DocumentTextIcon className="h-4 w-4" /> Перейти к договору</Button> : <Button type="button" variant="danger" isLoading={saving} onClick={submitRemove}>Исключить</Button>}
+              {selectedMember?.contract?.id ? <Button type="button" variant="danger" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(selectedMember.contract!.id!)}/overview?drawer=cancel`)}><FileText className="h-4 w-4" /> Перейти к договору</Button> : <Button type="button" variant="danger" isLoading={saving} onClick={submitRemove}>Исключить</Button>}
             </div>
           }
         >
-          {selectedMember?.contract?.id ? <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"><ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><div><div className="text-sm font-semibold text-amber-950">Сначала отмените договор</div><p className="mt-1 text-sm leading-6 text-amber-800">После отмены договора участие ученика завершится автоматически, а история группы сохранится.</p></div></div> : <div className="space-y-4">
+          {selectedMember?.contract?.id ? <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"><TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><div><div className="text-sm font-semibold text-amber-950">Сначала отмените договор</div><p className="mt-1 text-sm leading-6 text-amber-800">После отмены договора участие ученика завершится автоматически, а история группы сохранится.</p></div></div> : <div className="space-y-4">
             <FormField
               label="Последний день в группе"
               hint="Со следующего дня ученик больше не будет считаться участником группы."
             >
-              <input
-                type="date"
+              <DatePicker
                 value={removeForm.leftAt}
-                onChange={(event) => setRemoveForm((prev) => ({ ...prev, leftAt: event.target.value }))}
-                className={formControlClassName}
+                onValueChange={(leftAt) => setRemoveForm((prev) => ({ ...prev, leftAt }))}
               />
             </FormField>
 
             <FormField label="Причина">
-              <select
+              <NativeSelect
                 value={removeForm.reason}
                 onChange={(event) => setRemoveForm((prev) => ({ ...prev, reason: event.target.value }))}
                 className={formControlClassName}
@@ -1182,11 +1149,11 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                 {REMOVE_REASONS.map((reason) => (
                   <option key={reason.value} value={reason.value}>{reason.label}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </FormField>
 
             <FormField label="Комментарий">
-              <textarea
+              <Textarea
                 rows={3}
                 value={removeForm.comment}
                 onChange={(event) => setRemoveForm((prev) => ({ ...prev, comment: event.target.value }))}

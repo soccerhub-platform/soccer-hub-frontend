@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../shared/AuthContext";
 import {
-  BuildingOffice2Icon,
-  PlusIcon,
-  MapPinIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  ChevronDownIcon,
-} from "@heroicons/react/24/outline";
+  Building2,
+  Plus,
+  MapPin,
+  Phone,
+  Mail,
+  ChevronDown,
+} from "lucide-react";
 import { apiClient, getApiErrorMessage } from "../../shared/api";
 import toast from "react-hot-toast";
 import {
@@ -16,6 +16,7 @@ import {
   normalizePhoneForSubmit,
 } from "../../shared/phone";
 import {
+  Input,
   Button,
   EmptyState,
   ErrorState,
@@ -26,7 +27,13 @@ import {
   PageShell,
   SectionCard,
   formControlClassName,
-} from "../../shared/ui";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+ } from "../../shared/ui";
 
 interface ClubView {
   id: string;
@@ -291,7 +298,7 @@ const ClubsAndBranchesPage: React.FC = () => {
         description="Управляйте клубами и филиалами, которые доступны диспетчерам и администраторам."
         actions={
           <Button type="button" onClick={() => setShowCreateClubModal(true)}>
-            <PlusIcon className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Создать клуб
           </Button>
         }
@@ -308,34 +315,34 @@ const ClubsAndBranchesPage: React.FC = () => {
             description="Создайте первый клуб, затем добавьте к нему филиалы."
             action={
               <Button type="button" size="sm" onClick={() => setShowCreateClubModal(true)}>
-                <PlusIcon className="h-4 w-4" />
+                <Plus className="h-4 w-4" />
                 Создать клуб
               </Button>
             }
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+            <Table className="min-w-full divide-y divide-slate-200">
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
                     Клуб
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
                     Контакты
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
                     Адрес
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
                     Филиалы
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">
                     Действия
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-slate-200">
                 {clubs.map((club) => {
                   const clubBranches = branches.filter(
                     (b) => b.clubId === club.id
@@ -345,15 +352,15 @@ const ClubsAndBranchesPage: React.FC = () => {
                   return (
                     <React.Fragment key={club.id}>
                       {/* Основная строка клуба */}
-                      <tr
+                      <TableRow
                         className="cursor-pointer transition-colors hover:bg-slate-50"
                         onClick={() => toggleClubExpand(club.id)}
                       >
                         {/* Клуб + slug */}
-                        <td className="px-4 py-3 text-sm">
+                        <TableCell className="px-4 py-3 text-sm">
                           <div className="flex items-center gap-3">
-                            <div className="hidden h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 sm:flex">
-                              <BuildingOffice2Icon className="h-5 w-5 text-cyan-800" />
+                            <div className="hidden h-9 w-9 items-center justify-center rounded-xl bg-blue-50 sm:flex">
+                              <Building2 className="h-5 w-5 text-[#0066cc]" />
                             </div>
                             <div>
                               <div className="font-semibold text-slate-900">
@@ -364,20 +371,20 @@ const ClubsAndBranchesPage: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                        </td>
+                        </TableCell>
 
                         {/* Контакты */}
-                        <td className="px-4 py-3 text-sm">
+                        <TableCell className="px-4 py-3 text-sm">
                           <div className="flex flex-col space-y-0.5 text-xs text-slate-600">
                             {club.phone && (
                               <span className="flex items-center">
-                                <PhoneIcon className="mr-1 h-4 w-4 text-slate-400" />
+                                <Phone className="mr-1 h-4 w-4 text-slate-400" />
                                 {club.phone}
                               </span>
                             )}
                             {club.email && (
                               <span className="flex items-center">
-                                <EnvelopeIcon className="mr-1 h-4 w-4 text-slate-400" />
+                                <Mail className="mr-1 h-4 w-4 text-slate-400" />
                                 {club.email}
                               </span>
                             )}
@@ -387,13 +394,13 @@ const ClubsAndBranchesPage: React.FC = () => {
                               </span>
                             )}
                           </div>
-                        </td>
+                        </TableCell>
 
                         {/* Адрес */}
-                        <td className="px-4 py-3 text-sm">
+                        <TableCell className="px-4 py-3 text-sm">
                           {club.address ? (
                             <div className="flex items-center text-xs text-slate-600">
-                              <MapPinIcon className="mr-1 h-4 w-4 text-slate-400" />
+                              <MapPin className="mr-1 h-4 w-4 text-slate-400" />
                               <span className="truncate">{club.address}</span>
                             </div>
                           ) : (
@@ -401,20 +408,20 @@ const ClubsAndBranchesPage: React.FC = () => {
                               Не указан
                             </span>
                           )}
-                        </td>
+                        </TableCell>
 
                         {/* Кол-во филиалов */}
-                        <td className="px-4 py-3 text-sm">
-                          <span className="inline-flex items-center rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-800">
+                        <TableCell className="px-4 py-3 text-sm">
+                          <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#0066cc]">
                             {clubBranches.length}{" "}
                             <span className="ml-1 hidden sm:inline">
                               филиал(ов)
                             </span>
                           </span>
-                        </td>
+                        </TableCell>
 
                         {/* Actions */}
-                        <td
+                        <TableCell
                           className="px-4 py-3 text-sm text-right"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -428,7 +435,7 @@ const ClubsAndBranchesPage: React.FC = () => {
                                 setShowCreateBranchModal(true);
                               }}
                             >
-                              <PlusIcon className="h-4 w-4" />
+                              <Plus className="h-4 w-4" />
                               Филиал
                             </Button>
 
@@ -449,26 +456,26 @@ const ClubsAndBranchesPage: React.FC = () => {
                               onClick={() => toggleClubExpand(club.id)}
                               className="h-8 w-8 p-0"
                             >
-                              <ChevronDownIcon
+                              <ChevronDown
                                 className={`h-5 w-5 text-slate-400 transition-transform ${
                                   isExpanded ? "rotate-180" : ""
                                 }`}
                               />
                             </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
 
                       {/* Вложенный блок с филиалами */}
                       {isExpanded && (
-                        <tr className="bg-slate-50/70">
-                          <td
+                        <TableRow className="bg-slate-50/70">
+                          <TableCell
                             className="px-4 pb-4 pt-1 text-sm text-slate-700"
                             colSpan={5}
                           >
                             <div className="mt-2 space-y-3 rounded-xl border border-slate-200 bg-white p-3">
                               <div className="flex items-center justify-between">
-                                <span className="text-sm font-semibold text-slate-900">
+                                <span className="ui-section-title">
                                   Филиалы клуба "{club.name}"
                                 </span>
                                 <Button
@@ -479,7 +486,7 @@ const ClubsAndBranchesPage: React.FC = () => {
                                     setShowCreateBranchModal(true);
                                   }}
                                 >
-                                  <PlusIcon className="h-4 w-4" />
+                                  <Plus className="h-4 w-4" />
                                   Добавить филиал
                                 </Button>
                               </div>
@@ -498,33 +505,33 @@ const ClubsAndBranchesPage: React.FC = () => {
                                 </div>
                               ) : (
                                 <div className="overflow-x-auto">
-                                  <table className="min-w-full text-xs">
-                                    <thead>
-                                      <tr className="border-b border-slate-200 bg-slate-50">
-                                        <th className="px-3 py-2 text-left font-medium uppercase text-slate-500">
+                                  <Table className="min-w-full text-xs">
+                                    <TableHeader>
+                                      <TableRow className="border-b border-slate-200 bg-slate-50">
+                                        <TableHead className="px-3 py-2 text-left font-medium uppercase text-slate-500">
                                           Название
-                                        </th>
-                                        <th className="px-3 py-2 text-left font-medium uppercase text-slate-500">
+                                        </TableHead>
+                                        <TableHead className="px-3 py-2 text-left font-medium uppercase text-slate-500">
                                           Адрес
-                                        </th>
-                                        <th className="px-3 py-2 text-right font-medium uppercase text-slate-500">
+                                        </TableHead>
+                                        <TableHead className="px-3 py-2 text-right font-medium uppercase text-slate-500">
                                           Действия
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
+                                        </TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
                                       {clubBranches.map((b) => (
-                                        <tr
+                                        <TableRow
                                           key={b.id}
                                           className="border-b border-slate-100 hover:bg-slate-50"
                                         >
-                                          <td className="px-3 py-2 font-medium text-slate-900">
+                                          <TableCell className="px-3 py-2 font-medium text-slate-900">
                                             {b.name}
-                                          </td>
-                                          <td className="px-3 py-2 text-slate-600">
+                                          </TableCell>
+                                          <TableCell className="px-3 py-2 text-slate-600">
                                             {b.address ? (
                                               <div className="flex items-center">
-                                                <MapPinIcon className="mr-1 h-3 w-3 text-slate-400" />
+                                                <MapPin className="mr-1 h-3 w-3 text-slate-400" />
                                                 <span className="truncate">
                                                   {b.address}
                                                 </span>
@@ -534,8 +541,8 @@ const ClubsAndBranchesPage: React.FC = () => {
                                                 Не указан
                                               </span>
                                             )}
-                                          </td>
-                                          <td className="px-3 py-2 text-right">
+                                          </TableCell>
+                                          <TableCell className="px-3 py-2 text-right">
                                             <Button
                                               type="button"
                                               size="sm"
@@ -544,22 +551,22 @@ const ClubsAndBranchesPage: React.FC = () => {
                                             >
                                               Удалить
                                             </Button>
-                                          </td>
-                                        </tr>
+                                          </TableCell>
+                                        </TableRow>
                                       ))}
-                                    </tbody>
-                                  </table>
+                                    </TableBody>
+                                  </Table>
                                 </div>
                               )}
                             </div>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       )}
                     </React.Fragment>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </SectionCard>
@@ -621,7 +628,7 @@ const CreateClubModal = ({
   >
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <FormField label="Название*">
-        <input
+        <Input
           type="text"
           className={formControlClassName}
           value={form.name}
@@ -638,7 +645,7 @@ const CreateClubModal = ({
       </FormField>
 
       <FormField label="Slug*" hint="Только латиница, цифры и дефисы">
-        <input
+        <Input
           type="text"
           placeholder="my-club"
           className={formControlClassName}
@@ -651,7 +658,7 @@ const CreateClubModal = ({
       </FormField>
 
       <FormField label="Email">
-        <input
+        <Input
           type="email"
           className={formControlClassName}
           value={form.email}
@@ -660,7 +667,7 @@ const CreateClubModal = ({
       </FormField>
 
       <FormField label="Телефон">
-        <input
+        <Input
           type="tel"
           className={formControlClassName}
           value={form.phone}
@@ -673,7 +680,7 @@ const CreateClubModal = ({
       </FormField>
 
       <FormField label="Адрес" className="md:col-span-2">
-        <input
+        <Input
           type="text"
           className={formControlClassName}
           value={form.address}
@@ -713,7 +720,7 @@ const CreateBranchModal = ({
   >
     <div className="space-y-3">
       <FormField label="Название*">
-        <input
+        <Input
           type="text"
           className={formControlClassName}
           value={form.name}
@@ -723,7 +730,7 @@ const CreateBranchModal = ({
       </FormField>
 
       <FormField label="Адрес">
-        <input
+        <Input
           type="text"
           className={formControlClassName}
           value={form.address}

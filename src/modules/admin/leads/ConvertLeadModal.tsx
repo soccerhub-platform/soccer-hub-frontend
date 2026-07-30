@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, ModalShell } from "../../../shared/ui";
+import { Input, Button, DatePicker, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue  } from "../../../shared/ui";
 import { LeadParticipant } from "./types";
 import { formatBirthDate } from "./lead.format";
 
@@ -96,9 +96,9 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
       }
     >
       <div className="space-y-5">
-        <div className="rounded-lg border border-admin-100 bg-admin-50 p-3 text-sm leading-5 text-admin-900">
+        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm leading-5 text-[#0066cc]">
           <div className="font-semibold">Что произойдёт после подтверждения</div>
-          <div className="mt-1 text-xs text-admin-800/80">
+          <div className="mt-1 text-xs text-[#0066cc]/80">
             Будут созданы Client, Student и связь между ними. Договор, оплата и зачисление в группу не создаются автоматически.
           </div>
         </div>
@@ -107,23 +107,17 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
             <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
               Ученик <span className="text-rose-500">*</span>
             </span>
-            <select
+            <Select
               value={participantId}
-              onChange={(event) => {
-                const nextId = event.target.value;
+              onValueChange={(nextId) => {
                 setParticipantId(nextId);
                 setBirthDate(participants.find((item) => item.id === nextId)?.birthDate ?? "");
               }}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
               disabled={submitting}
             >
-              <option value="">Выберите ученика</option>
-              {participants.map((participant) => (
-                <option key={participant.id} value={participant.id}>
-                  {participantLabel(participant)}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger><SelectValue placeholder="Выберите ученика" /></SelectTrigger>
+              <SelectContent>{participants.map((participant, index) => <SelectItem key={participant.id || index} value={participant.id || `participant-${index}`}>{participantLabel(participant)}</SelectItem>)}</SelectContent>
+            </Select>
             {attempted && !participantId ? <p className="text-xs text-rose-600">Выберите ученика</p> : null}
           </label>
 
@@ -131,13 +125,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
             <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
               Дата рождения <span className="text-rose-500">*</span>
             </span>
-            <input
-              type="date"
-              value={birthDate}
-              onChange={(event) => setBirthDate(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
-              disabled={submitting}
-            />
+            <DatePicker value={birthDate} onValueChange={setBirthDate} disabled={submitting} />
             {attempted && !birthDate ? <p className="text-xs text-rose-600">Укажите дату рождения</p> : null}
           </label>
         </div>
@@ -165,10 +153,10 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
         {!isAdult ? (
           <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked readOnly /> Основной контакт
+              <Input type="checkbox" checked readOnly /> Основной контакт
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked readOnly /> Основной плательщик
+              <Input type="checkbox" checked readOnly /> Основной плательщик
             </label>
             <p className="text-xs text-slate-500">Если у ученика уже есть основные роли, система попросит подтвердить замену.</p>
           </div>

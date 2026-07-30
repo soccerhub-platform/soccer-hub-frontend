@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import { RefreshCw } from "lucide-react";
 
 interface LoaderButtonProps {
   children: React.ReactNode;
@@ -31,7 +31,7 @@ const LoaderButton: React.FC<LoaderButtonProps> = ({
     >
       {/* Loader */}
       {loading && (
-        <ArrowPathIcon
+        <RefreshCw
           className="w-5 h-5 mr-2 animate-spin text-white"
         />
       )}

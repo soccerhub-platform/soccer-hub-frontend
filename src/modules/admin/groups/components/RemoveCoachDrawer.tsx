@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from "react";
 import {
-  ArrowPathIcon,
-  CalendarDaysIcon,
-  ExclamationTriangleIcon,
-  UserIcon,
-} from "@heroicons/react/24/outline";
+  RefreshCw,
+  CalendarDays,
+  TriangleAlert,
+  User,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../../../shared/AuthContext";
 import { getApiErrorMessage } from "../../../../shared/api";
 import {
+  NativeSelect,
   Button,
   ErrorState,
   FormField,
   LoadingState,
   ModalShell,
   formControlClassName,
-} from "../../../../shared/ui";
+  } from "../../../../shared/ui";
 import { GroupApi, type GroupCoachApiModel, type GroupCoachRemovalPreview } from "../group.api";
 
 interface Props {
@@ -126,10 +127,10 @@ const RemoveCoachDrawer: React.FC<Props> = ({ coach, onClose, onRemoved }) => {
           <div className={`rounded-lg border px-4 py-3 ${preview.replacementRequired ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
             <div className="flex items-start gap-3">
               {preview.replacementRequired
-                ? <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                : <ArrowPathIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />}
+                ? <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                : <RefreshCw className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />}
               <div>
-                <div className="text-sm font-semibold text-slate-950">
+                <div className="ui-section-title">
                   {preview.replacementRequired ? "Нужно передать работу другому тренеру" : "Тренера можно снять без замены"}
                 </div>
                 <p className="mt-1 text-xs leading-5 text-slate-600">
@@ -142,25 +143,25 @@ const RemoveCoachDrawer: React.FC<Props> = ({ coach, onClose, onRemoved }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-slate-200 p-3">
-              <div className="text-xl font-semibold text-slate-950">{preview.activeScheduleSlots}</div>
+              <div className="ui-metric-value">{preview.activeScheduleSlots}</div>
               <div className="mt-1 text-xs text-slate-500">активных слотов расписания</div>
             </div>
             <div className="rounded-lg border border-slate-200 p-3">
-              <div className="text-xl font-semibold text-slate-950">{preview.futureSessionsCount}</div>
+              <div className="ui-metric-value">{preview.futureSessionsCount}</div>
               <div className="mt-1 text-xs text-slate-500">будущих занятий</div>
             </div>
           </div>
 
           {preview.nextSessionAt ? (
             <div className="flex items-center gap-2 text-sm text-slate-600">
-              <CalendarDaysIcon className="h-4 w-4 text-slate-400" />
+              <CalendarDays className="h-4 w-4 text-slate-400" />
               Ближайшее занятие: <span className="font-medium text-slate-900">{formatDateTime(preview.nextSessionAt)}</span>
             </div>
           ) : null}
 
           {preview.replacementRequired ? (
             <div>
-              <div className="mb-2 text-sm font-semibold text-slate-950">Передать тренеру</div>
+              <div className="mb-2 ui-section-title">Передать тренеру</div>
               {preview.replacementCandidates.length > 0 ? (
                 <div className="space-y-2">
                   {preview.replacementCandidates.map((candidate) => {
@@ -173,14 +174,14 @@ const RemoveCoachDrawer: React.FC<Props> = ({ coach, onClose, onRemoved }) => {
                           setReplacementCoachId(candidate.coachId);
                           setError(null);
                         }}
-                        className={`flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left transition ${selected ? "border-cyan-300 bg-cyan-50" : "border-slate-200 hover:border-cyan-200"}`}
+                        className={`flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left transition ${selected ? "border-blue-300 bg-blue-50" : "border-slate-200 hover:border-blue-200"}`}
                       >
-                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600"><UserIcon className="h-4 w-4" /></span>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600"><User className="h-4 w-4" /></span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-slate-950">{candidate.coachName}</span>
+                          <span className="block truncate ui-section-title">{candidate.coachName}</span>
                           <span className="mt-0.5 block text-xs text-slate-500">{candidate.role === "MAIN" ? "Главный тренер" : "Ассистент"}</span>
                         </span>
-                        <span className={`h-5 w-5 rounded-full border ${selected ? "border-cyan-700 bg-cyan-700 ring-4 ring-cyan-100" : "border-slate-300"}`} />
+                        <span className={`h-5 w-5 rounded-full border ${selected ? "border-[#0066cc] bg-[#0066cc] ring-4 ring-blue-100" : "border-slate-300"}`} />
                       </button>
                     );
                   })}
@@ -195,17 +196,17 @@ const RemoveCoachDrawer: React.FC<Props> = ({ coach, onClose, onRemoved }) => {
 
           <div className="rounded-lg border border-slate-200 px-3 py-3">
             <div className="text-xs font-medium text-slate-500">Дата снятия</div>
-            <div className="mt-1 text-sm font-semibold text-slate-950">Сегодня</div>
+            <div className="mt-1 ui-section-title">Сегодня</div>
             <p className="mt-1 text-xs text-slate-400">Расписание и будущие занятия будут переданы сразу после подтверждения.</p>
           </div>
 
           <FormField label="Причина">
-            <select value={reason} onChange={(event) => setReason(event.target.value)} className={formControlClassName}>
+            <NativeSelect value={reason} onChange={(event) => setReason(event.target.value)} className={formControlClassName}>
               <option value="Смена тренера">Смена тренера</option>
               <option value="Изменение нагрузки">Изменение нагрузки</option>
               <option value="Отпуск или недоступность">Отпуск или недоступность</option>
               <option value="Завершение работы с группой">Завершение работы с группой</option>
-            </select>
+            </NativeSelect>
           </FormField>
 
           {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-700">{error}</div> : null}

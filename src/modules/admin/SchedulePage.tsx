@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CalendarDaysIcon } from "@heroicons/react/24/outline";
+import { CalendarDays } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../shared/AuthContext";
 import { LoadingState, PageHeader, PageShell, SectionCard } from "../../shared/ui";
@@ -176,12 +176,12 @@ const SchedulePage: React.FC = () => {
         description={`Полная рабочая сетка филиала ${branchLabel}: занятия, фильтры и статусы.`}
       />
 
-      <SectionCard className="rounded-[28px] border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_24px_60px_-42px_rgba(15,23,42,0.34)] ring-1 ring-slate-200/70">
+      <SectionCard className="rounded-2xl border-black/[0.08] bg-white">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-admin-700">
-              <CalendarDaysIcon className="h-5 w-5" />
-              <h3 className="heading-font text-lg font-semibold">Сетка недели</h3>
+            <div className="flex items-center gap-2 text-[#0066cc]">
+              <CalendarDays className="h-5 w-5" />
+              <h3 className="ui-modal-title">Сетка недели</h3>
             </div>
             <p className="mt-1 text-sm text-slate-500">
               Рабочий экран для контроля занятий по всем группам филиала.
@@ -196,7 +196,7 @@ const SchedulePage: React.FC = () => {
                   type="button"
                   onClick={() => setScheduleFilter(value)}
                   className={`rounded-xl px-3 py-2 text-xs font-medium transition ${
-                    scheduleFilter === value ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                    scheduleFilter === value ? "bg-white text-slate-900" : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
                   {value === "ALL" ? "Все" : value === "ACTIVE" ? "Активные" : "Отмененные"}
@@ -231,7 +231,7 @@ const SchedulePage: React.FC = () => {
           {loadingMeta || loadingSchedules ? (
             <LoadingState label="Загрузка недельной сетки..." />
           ) : filteredSchedules.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
               Для текущего фильтра нет расписания. Проверьте группы или активность занятий.
             </div>
           ) : (

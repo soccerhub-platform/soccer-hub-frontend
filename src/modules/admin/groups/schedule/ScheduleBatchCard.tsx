@@ -1,5 +1,5 @@
 import React from "react";
-import { NoSymbolIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
+import { Ban, Pencil } from "lucide-react";
 import { GroupScheduleDto } from "./schedule.types";
 import ScheduleWeekView from "./ScheduleWeekView";
 import CoachProfileLink from "../components/CoachProfileLink";
@@ -25,7 +25,7 @@ const ScheduleBatchCard: React.FC<Props> = ({ batch, onEdit, onFinish }) => {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-semibold text-slate-950">
+            <h3 className="ui-section-title">
               {batch.type === "REGULAR" ? "Регулярный период" : "Временный период"}
             </h3>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
@@ -54,7 +54,7 @@ const ScheduleBatchCard: React.FC<Props> = ({ batch, onEdit, onFinish }) => {
             aria-label="Редактировать период"
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
           >
-            <PencilSquareIcon className="h-4 w-4" />
+            <Pencil className="h-4 w-4" />
           </button>
 
           <button
@@ -64,7 +64,7 @@ const ScheduleBatchCard: React.FC<Props> = ({ batch, onEdit, onFinish }) => {
             aria-label="Завершить период"
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-100 text-rose-600 hover:bg-rose-50"
           >
-            <NoSymbolIcon className="h-4 w-4" />
+            <Ban className="h-4 w-4" />
           </button>
         </div>
       </div>

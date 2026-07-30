@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Client, ClientStatus } from '../../shared/types';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import {
+  Client, ClientStatus } from '../../shared/types';
+import { ChevronDown } from 'lucide-react';
 import { apiRequest, getApiUrl } from '../../shared/api';
+import { NativeSelect, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow   } from '../../shared/ui';
 
 const statusLabels: Record<ClientStatus, string> = {
   NEW: 'Новый',
@@ -52,7 +54,7 @@ const ClientsPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="heading-font text-2xl font-semibold text-dispatcher-700">
+        <h2 className="ui-page-title">
           Клиенты
         </h2>
         <p className="text-sm text-slate-500 mt-1">
@@ -60,34 +62,34 @@ const ClientsPage: React.FC = () => {
         </p>
       </div>
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
           {error}
         </div>
       )}
       <div className="glass-card rounded-2xl p-4">
         <div className="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-2 md:space-y-0">
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700" htmlFor="search">
+          <label className="block text-sm font-medium text-slate-700" htmlFor="search">
             Поиск
           </label>
-          <input
+          <Input
             id="search"
             type="text"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-dispatcher-500 focus:border-dispatcher-500"
+            className="mt-1"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Введите имя клиента"
           />
         </div>
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700" htmlFor="status">
+          <label className="block text-sm font-medium text-slate-700" htmlFor="status">
             Статус
           </label>
           {/* Контейнер с относительным позиционированием для стилизованного select */}
           <div className="relative mt-1">
-            <select
+            <NativeSelect
               id="status"
-              className="block w-full appearance-none bg-white px-3 py-2 pr-8 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-dispatcher-500 focus:border-dispatcher-500"
+              className="block h-10 w-full appearance-none rounded-lg border border-black/[0.12] bg-white px-3 pr-8 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
               value={statusFilter}
               onChange={(e) => {
                 const next = e.target.value;
@@ -100,60 +102,44 @@ const ClientsPage: React.FC = () => {
                   {statusLabels[status as ClientStatus]}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             {/* SVG‑стрелка поверх select, не перехватывающая клики */}
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-              <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+              <ChevronDown className="h-4 w-4 text-slate-400" />
             </div>
           </div>
         </div>
       </div>
       </div>
       <div className="overflow-x-auto glass-card rounded-2xl p-3">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Имя
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Телефон
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Статус
-              </th>
-            </tr>
-          </thead>
-            <tbody className="divide-y divide-gray-200">
+        <Table className="min-w-[640px]">
+          <TableHeader><TableRow className="hover:bg-transparent"><TableHead>Имя</TableHead><TableHead>Телефон</TableHead><TableHead>Статус</TableHead></TableRow></TableHeader>
+            <TableBody>
               {loading && (
-                <tr>
-                  <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">
+                <TableRow><TableCell colSpan={3} className="text-center text-sm text-slate-500">
                     Загрузка клиентов...
-                  </td>
-                </tr>
+                  </TableCell></TableRow>
               )}
               {filtered.map((client) => (
-                <tr key={client.id} className="hover:bg-dispatcher-100">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <TableRow key={client.id}>
+                  <TableCell className="text-sm text-slate-900">
                     {client.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-900">
                     {client.phone}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-900">
                     {statusLabels[client.status]}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
               {!loading && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">
+                <TableRow><TableCell colSpan={3} className="text-center text-sm text-slate-500">
                     Нет клиентов, соответствующих критериям
-                  </td>
-                </tr>
+                  </TableCell></TableRow>
               )}
-            </tbody>
-        </table>
+            </TableBody>
+        </Table>
       </div>
     </div>
   );

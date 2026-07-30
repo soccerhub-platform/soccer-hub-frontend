@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { GroupApi } from "../group.api";
+import {
+  GroupApi } from "../group.api";
 import { useAuth } from "../../../../shared/AuthContext";
 import { useAdminBranch } from "../../BranchContext";
 import toast from "react-hot-toast";
-import { AcademicCapIcon, IdentificationIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { GraduationCap, Badge, Users } from "lucide-react";
 import { getApiErrorMessage } from "../../../../shared/api";
-import { Button, FormField, ModalShell, formControlClassName } from "../../../../shared/ui";
+import { Input, Textarea, NativeSelect, Button, FormField, ModalShell, formControlClassName    } from "../../../../shared/ui";
 
 interface Props {
   onClose: () => void;
@@ -120,22 +121,22 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
     >
       <div className="space-y-6">
         <section>
-          <SectionHeading icon={<IdentificationIcon />} title="Основные данные" description="Название и краткое описание для администраторов и тренеров." />
+          <SectionHeading icon={<Badge />} title="Основные данные" description="Название и краткое описание для администраторов и тренеров." />
           <div className="mt-4 space-y-4">
             <FormField label="Название *">
-              <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={formControlClassName} placeholder="Например, Adal PRO" />
+              <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={formControlClassName} placeholder="Например, Adal PRO" />
             </FormField>
             <FormField label="Описание" hint="Необязательно. Отображается в шапке группы.">
-              <textarea rows={3} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className={formControlClassName} placeholder="Особенности и цель группы" />
+              <Textarea rows={3} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className={formControlClassName} placeholder="Особенности и цель группы" />
             </FormField>
           </div>
         </section>
 
         <section className="border-t border-slate-200 pt-5">
-          <SectionHeading icon={<UserGroupIcon />} title="Состав и ограничения" description="Кому подходит группа и сколько учеников можно принять." />
+          <SectionHeading icon={<Users />} title="Состав и ограничения" description="Кому подходит группа и сколько учеников можно принять." />
           <div className="mt-4 space-y-4">
             <FormField label="Тип аудитории">
-            <select
+            <NativeSelect
               value={form.audienceType}
               onChange={(e) => setForm({ ...form, audienceType: e.target.value })}
               className={formControlClassName}
@@ -145,12 +146,12 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
                   {item.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Возраст от"><input type="number" min="1" value={form.ageFrom} onChange={(event) => setForm({ ...form, ageFrom: event.target.value })} className={formControlClassName} placeholder="10" /></FormField>
-            <FormField label="Возраст до"><input type="number" min="1" value={form.ageTo} onChange={(event) => setForm({ ...form, ageTo: event.target.value })} className={formControlClassName} placeholder="16" /></FormField>
+            <FormField label="Возраст от"><Input type="number" min="1" value={form.ageFrom} onChange={(event) => setForm({ ...form, ageFrom: event.target.value })} className={formControlClassName} placeholder="10" /></FormField>
+            <FormField label="Возраст до"><Input type="number" min="1" value={form.ageTo} onChange={(event) => setForm({ ...form, ageTo: event.target.value })} className={formControlClassName} placeholder="16" /></FormField>
           </div>
 
           {form.audienceType === "ADULT" ? (
@@ -160,16 +161,16 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
           ) : null}
 
             <FormField label="Вместимость" hint="Можно изменить позже, если состав не превышает новое значение.">
-              <input type="number" min="1" value={form.capacity} onChange={(event) => setForm({ ...form, capacity: event.target.value })} className={formControlClassName} placeholder="20" />
+              <Input type="number" min="1" value={form.capacity} onChange={(event) => setForm({ ...form, capacity: event.target.value })} className={formControlClassName} placeholder="20" />
             </FormField>
           </div>
         </section>
 
         <section className="border-t border-slate-200 pt-5">
-          <SectionHeading icon={<AcademicCapIcon />} title="Уровень подготовки" description="Помогает подобрать учеников и тренеров подходящего уровня." />
+          <SectionHeading icon={<GraduationCap />} title="Уровень подготовки" description="Помогает подобрать учеников и тренеров подходящего уровня." />
           <div className="mt-4">
             <FormField label="Уровень">
-            <select
+            <NativeSelect
               value={form.level}
               onChange={(e) => setForm({ ...form, level: e.target.value })}
               className={formControlClassName}
@@ -179,7 +180,7 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
                   {l.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             </FormField>
           </div>
         </section>
@@ -194,9 +195,9 @@ export default CreateGroupModal;
 
 const SectionHeading: React.FC<{ icon: React.ReactElement; title: string; description: string }> = ({ icon, title, description }) => (
   <div className="flex items-start gap-3">
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
       {React.cloneElement(icon, { className: "h-5 w-5" })}
     </span>
-    <div><h4 className="text-sm font-semibold text-slate-950">{title}</h4><p className="mt-1 text-xs leading-5 text-slate-500">{description}</p></div>
+    <div><h4 className="ui-section-title">{title}</h4><p className="mt-1 text-xs leading-5 text-slate-500">{description}</p></div>
   </div>
 );

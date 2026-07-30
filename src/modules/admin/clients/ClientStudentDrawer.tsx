@@ -1,11 +1,23 @@
 import React, { useEffect, useState } from "react";
 import {
-  LinkIcon,
-  UserIcon,
-  UserPlusIcon,
-} from "@heroicons/react/24/outline";
+  Link,
+  User,
+  UserPlus,
+} from "lucide-react";
 import { getApiErrorMessage } from "../../../shared/api";
-import { Button, ModalShell, formControlClassName } from "../../../shared/ui";
+import {
+  Button,
+  Checkbox,
+  DatePicker,
+  EntitySheet,
+  Input,
+  SearchableSelect,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../shared/ui";
 import { StudentApi } from "../students/student.api";
 import type { AdminStudentListItem } from "../students/student.types";
 import { ClientApi } from "./client.api";
@@ -142,46 +154,43 @@ const ClientStudentDrawer: React.FC<{
   };
 
   const modes = [
-    { id: "CREATE" as const, icon: UserPlusIcon, title: "Создать нового", note: "Новый профиль ученика" },
-    { id: "EXISTING" as const, icon: LinkIcon, title: "Связать существующего", note: "Ученик уже есть в CRM" },
-    { id: "SELF" as const, icon: UserIcon, title: "Клиент занимается сам", note: "Клиент и ученик — один человек" },
+    { id: "CREATE" as const, icon: UserPlus, title: "Создать нового", note: "Новый профиль ученика" },
+    { id: "EXISTING" as const, icon: Link, title: "Связать существующего", note: "Ученик уже есть в CRM" },
+    { id: "SELF" as const, icon: User, title: "Клиент занимается сам", note: "Клиент и ученик — один человек" },
   ];
 
   return (
-    <ModalShell
+    <EntitySheet
       title="Добавить ученика"
       description={`Клиент и плательщик: ${clientName}`}
-      eyebrow="Получатель услуг"
-      placement="right"
-      maxWidthClassName="max-w-xl"
+      contentClassName="sm:max-w-xl"
       onClose={onClose}
       closeDisabled={saving}
-      footer={<div className="flex justify-end gap-2"><Button variant="secondary" onClick={onClose} disabled={saving}>Отмена</Button><Button onClick={() => void submit()} isLoading={saving}>{mode === "EXISTING" ? "Связать ученика" : "Создать ученика"}</Button></div>}
+      footer={<div className="flex w-full justify-end gap-2"><Button variant="secondary" onClick={onClose} disabled={saving}>Отмена</Button><Button onClick={() => void submit()} isLoading={saving}>{mode === "EXISTING" ? "Связать ученика" : "Создать ученика"}</Button></div>}
     >
       <div className="space-y-5">
         <div className="grid gap-2 sm:grid-cols-3">
-          {modes.map((item) => <button key={item.id} type="button" onClick={() => chooseMode(item.id)} className={`min-h-28 rounded-lg border p-3 text-left transition ${mode === item.id ? "border-cyan-700 bg-cyan-50 ring-1 ring-cyan-700" : "border-slate-200 bg-white hover:border-slate-300"}`}><item.icon className={`h-5 w-5 ${mode === item.id ? "text-cyan-700" : "text-slate-500"}`} /><span className="mt-3 block text-sm font-semibold text-slate-900">{item.title}</span><span className="mt-1 block text-xs leading-5 text-slate-500">{item.note}</span></button>)}
+          {modes.map((item) => <button key={item.id} type="button" onClick={() => chooseMode(item.id)} className={`min-h-28 rounded-lg border p-3 text-left transition ${mode === item.id ? "border-[#0066cc] bg-blue-50 ring-1 ring-blue-700" : "border-slate-200 bg-white hover:border-slate-300"}`}><item.icon className={`h-5 w-5 ${mode === item.id ? "text-[#0066cc]" : "text-slate-500"}`} /><span className="mt-3 block ui-section-title">{item.title}</span><span className="mt-1 block text-xs leading-5 text-slate-500">{item.note}</span></button>)}
         </div>
 
         {mode === "EXISTING" ? <div className="space-y-4">
-          <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Найти ученика</span><input className={formControlClassName} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Имя ученика" /></label>
-          <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Ученик *</span><select className={formControlClassName} value={playerId} onChange={(event) => setPlayerId(event.target.value)}><option value="">{loading ? "Загрузка..." : options.length ? "Выберите ученика" : "Подходящих учеников нет"}</option>{options.map((item) => <option key={item.playerId} value={item.playerId}>{item.playerName}</option>)}</select></label>
+          <label className="block space-y-1.5"><span className="block text-sm font-medium text-slate-700">Ученик *</span><SearchableSelect value={playerId} onValueChange={setPlayerId} options={options.map((item) => ({ value: item.playerId, label: item.playerName, description: item.birthDate ? `Дата рождения: ${item.birthDate}` : undefined }))} loading={loading} onSearchChange={setSearch} placeholder="Найдите и выберите ученика" searchPlaceholder="Введите имя ученика..." emptyText={search ? "Ученики не найдены" : "Начните вводить имя"} /><span className="block text-xs leading-5 text-slate-500">Поиск выполняется по ученикам филиала. Уже связанные ученики скрыты.</span></label>
         </div> : <div className="grid gap-4 sm:grid-cols-2">
-          {mode === "CREATE" ? <><label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Имя *</span><input className={formControlClassName} value={student.firstName} onChange={(event) => setStudent((value) => ({ ...value, firstName: event.target.value }))} /></label><label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Фамилия</span><input className={formControlClassName} value={student.lastName} onChange={(event) => setStudent((value) => ({ ...value, lastName: event.target.value }))} /></label></> : <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 sm:col-span-2"><div className="text-xs font-semibold uppercase text-emerald-700">Будет создан профиль ученика</div><div className="mt-1 text-sm font-semibold text-emerald-950">{clientName}</div></div>}
-          <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Дата рождения *</span><input type="date" max={latestBirthDate()} className={formControlClassName} value={student.birthDate} onChange={(event) => setStudent((value) => ({ ...value, birthDate: event.target.value }))} /></label>
+          {mode === "CREATE" ? <><label className="block space-y-1.5"><span className="block text-sm font-medium text-slate-700">Имя *</span><Input value={student.firstName} placeholder="Например, Арман" onChange={(event) => setStudent((value) => ({ ...value, firstName: event.target.value }))} /><span className="block text-xs leading-5 text-slate-500">Имя нового ученика в CRM.</span></label><label className="block space-y-1.5"><span className="block text-sm font-medium text-slate-700">Фамилия</span><Input value={student.lastName} placeholder="Например, Садыков" onChange={(event) => setStudent((value) => ({ ...value, lastName: event.target.value }))} /><span className="block text-xs leading-5 text-slate-500">Необязательно, можно добавить позже.</span></label></> : <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 sm:col-span-2"><div className="text-xs font-semibold uppercase text-emerald-700">Будет создан профиль ученика</div><div className="mt-1 text-sm font-semibold text-emerald-950">{clientName}</div></div>}
+          <label className="block space-y-1.5"><span className="block text-sm font-medium text-slate-700">Дата рождения *</span><DatePicker value={student.birthDate} max={latestBirthDate()} onValueChange={(birthDate) => setStudent((value) => ({ ...value, birthDate }))} /><span className="block text-xs leading-5 text-slate-500">Используется для возрастных групп и проверки дублей.</span></label>
         </div>}
 
-        {mode !== "SELF" ? <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Кем клиент приходится ученику *</span><select className={formControlClassName} value={relationshipType} onChange={(event) => setRelationshipType(event.target.value as ClientStudentRelationshipType)}><option value="MOTHER">Мать</option><option value="FATHER">Отец</option><option value="GUARDIAN">Опекун или представитель</option><option value="OTHER">Другое</option></select></label> : null}
-        {mode !== "SELF" ? <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4"><legend className="px-1 text-sm font-semibold text-slate-900">Роли клиента</legend>{([
+        {mode !== "SELF" ? <label className="block space-y-1.5"><span className="block text-sm font-medium text-slate-700">Кем клиент приходится ученику *</span><Select value={relationshipType} onValueChange={(value) => setRelationshipType(value as ClientStudentRelationshipType)}><SelectTrigger><SelectValue placeholder="Выберите тип связи" /></SelectTrigger><SelectContent><SelectItem value="MOTHER">Мать</SelectItem><SelectItem value="FATHER">Отец</SelectItem><SelectItem value="GUARDIAN">Опекун или представитель</SelectItem><SelectItem value="OTHER">Другое</SelectItem></SelectContent></Select><span className="block text-xs leading-5 text-slate-500">Связь определяет роль клиента в карточке ученика.</span></label> : null}
+        {mode !== "SELF" ? <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4"><legend className="px-1 ui-section-title">Роли клиента</legend>{([
           ["primaryContact", "Основной контакт"],
           ["primaryPayer", "Основной плательщик"],
           ["legalRepresentative", "Юридический представитель"],
           ["receivesNotifications", "Получает уведомления"],
-        ] as const).map(([key, label]) => <label key={key} className="flex items-center gap-3 text-sm text-slate-700"><input type="checkbox" checked={relationRoles[key]} onChange={(event) => { setRelationRoles((value) => ({ ...value, [key]: event.target.checked })); setConfirmPrimaryTransfer(false); }} className="h-4 w-4 rounded border-slate-300 text-admin-600 focus:ring-admin-500" />{label}</label>)}</fieldset> : null}
-        {mode === "EXISTING" && existingRelations.some((item) => (relationRoles.primaryContact && item.primaryContact) || (relationRoles.primaryPayer && item.primaryPayer)) ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><div className="text-sm font-semibold text-amber-950">Основная роль уже назначена</div><p className="mt-1 text-xs leading-5 text-amber-800">Текущий контакт или плательщик потеряет основную роль. Остальные свойства связи сохранятся.</p><label className="mt-3 flex items-start gap-3 text-sm text-amber-950"><input type="checkbox" checked={confirmPrimaryTransfer} onChange={(event) => setConfirmPrimaryTransfer(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-amber-300 text-admin-600 focus:ring-admin-500" />Подтверждаю передачу выбранных ролей</label></div> : null}
+        ] as const).map(([key, label]) => <label key={key} className="flex items-center gap-3 text-sm text-slate-700"><Checkbox checked={relationRoles[key]} onCheckedChange={(checked) => { setRelationRoles((value) => ({ ...value, [key]: checked === true })); setConfirmPrimaryTransfer(false); }} />{label}</label>)}</fieldset> : null}
+        {mode === "EXISTING" && existingRelations.some((item) => (relationRoles.primaryContact && item.primaryContact) || (relationRoles.primaryPayer && item.primaryPayer)) ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><div className="text-sm font-semibold text-amber-950">Основная роль уже назначена</div><p className="mt-1 text-xs leading-5 text-amber-800">Текущий контакт или плательщик потеряет основную роль. Остальные свойства связи сохранятся.</p><label className="mt-3 flex items-start gap-3 text-sm text-amber-950"><Checkbox className="mt-0.5" checked={confirmPrimaryTransfer} onCheckedChange={(checked) => setConfirmPrimaryTransfer(checked === true)} />Подтверждаю передачу выбранных ролей</label></div> : null}
         {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div> : null}
       </div>
-    </ModalShell>
+    </EntitySheet>
   );
 };
 

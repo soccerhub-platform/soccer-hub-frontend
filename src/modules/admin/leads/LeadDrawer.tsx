@@ -3,14 +3,14 @@ import { jwtDecode } from "jwt-decode";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
-  IdentificationIcon,
-  CalendarDaysIcon,
-  ChatBubbleLeftRightIcon,
-  ClockIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  UserGroupIcon,
-} from "@heroicons/react/24/outline";
+  Badge,
+  CalendarDays,
+  MessagesSquare,
+  Clock3,
+  Mail,
+  Phone,
+  Users,
+} from "lucide-react";
 import QualifyLeadModal from "./QualifyLeadModal";
 import { LeadAction, LeadActivity, LeadDetails, LeadLossReason } from "./types";
 import { LeadApi } from "./lead.api";
@@ -30,7 +30,7 @@ import {
   isQualifyAction,
   isScheduleTrialAction,
 } from "./lead.ui-actions";
-import { Button, ErrorState, LoadingState, SectionCard } from "../../../shared/ui";
+import { Button, ErrorState, LoadingState, SectionCard, Tabs, TabsList, TabsTrigger } from "../../../shared/ui";
 import {
   experienceLabel,
   formatBirthDate,
@@ -390,7 +390,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
         className={
           embedded
             ? "relative flex min-h-[calc(100vh-7rem)] w-full flex-col overflow-visible bg-transparent"
-            : "fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] translate-x-0 flex-col border-l border-slate-200 bg-slate-50 shadow-[0_0_60px_-24px_rgba(15,23,42,0.45)] transition-transform duration-300 ease-out"
+            : "fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] translate-x-0 flex-col border-l border-slate-200 bg-slate-50 transition-transform duration-300 ease-out"
         }
       >
         <div className="border-b border-slate-200 bg-white/95 backdrop-blur-sm">
@@ -398,12 +398,12 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
-                  <button type="button" onClick={onClose} className="hover:text-emerald-700">Лиды</button>
+                  <button type="button" onClick={onClose} className="hover:text-[#0066cc]">Лиды</button>
                   <span>→</span>
                   <span>Лид #{leadId.slice(0, 8)}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="heading-font text-2xl font-semibold text-slate-900">
+                  <h2 className="ui-modal-title">
                     {loading ? "Загрузка..." : lead?.primaryContact.fullName ?? "Лид"}
                   </h2>
                   {lead ? (
@@ -420,7 +420,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                 type="button"
                 onClick={onClose}
                 aria-label={embedded ? "Назад к лидам" : "Закрыть карточку лида"}
-                className={embedded ? "text-sm font-medium text-slate-500 transition hover:text-admin-700" : "rounded-lg border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600"}
+                className={embedded ? "text-sm font-medium text-slate-500 transition hover:text-[#0066cc]" : "rounded-lg border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600"}
               >
                 {embedded ? "← Назад к лидам" : "✕"}
               </button>
@@ -428,16 +428,16 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
             {lead ? (
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button type="button" variant="secondary" className="text-xs" onClick={() => window.open(`tel:${lead.primaryContact.phone}`, "_self")}>
-                  <PhoneIcon className="h-3.5 w-3.5" /> Связаться
+                  <Phone className="h-3.5 w-3.5" /> Связаться
                 </Button>
                 {lead.status === "NEW" || lead.status === "IN_PROGRESS" ? (
                   <Button type="button" className="text-xs" onClick={() => setShowTrialModal(true)}>
-                    <CalendarDaysIcon className="h-3.5 w-3.5" /> Назначить пробное
+                    <CalendarDays className="h-3.5 w-3.5" /> Назначить пробное
                   </Button>
                 ) : null}
                 {lead.status === "TRIAL_SCHEDULED" ? (
                   <Button type="button" className="text-xs" onClick={() => setActiveTab("trial")}>
-                    <CalendarDaysIcon className="h-3.5 w-3.5" /> Открыть пробное
+                    <CalendarDays className="h-3.5 w-3.5" /> Открыть пробное
                   </Button>
                 ) : null}
                 {canShowConvertButton && lead.status === "DECISION_PENDING" ? <Button type="button" className="text-xs" onClick={() => setShowConvertModal(true)}>Оформить клиента</Button> : null}
@@ -445,27 +445,18 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
               </div>
             ) : null}
           </div>
-          <nav className="flex gap-5 overflow-x-auto px-5" aria-label="Навигация лида">
-            {([
-              ["overview", "Обзор"],
-              ["trial", "Пробное"],
-              ["activity", "Активность"],
-            ] as const).map(([tab, label]) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`border-b-2 px-0 py-3 text-xs font-medium transition ${activeTab === tab ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as LeadDetailTab)} className="px-5">
+            <TabsList aria-label="Навигация лида" className="w-full justify-start overflow-x-auto">
+              <TabsTrigger value="overview">Обзор</TabsTrigger>
+              <TabsTrigger value="trial">Пробное</TabsTrigger>
+              <TabsTrigger value="activity">Активность</TabsTrigger>
+            </TabsList>
+          </Tabs>
           {lead ? (
-            <div className="mx-5 mt-4 flex items-center justify-between gap-3 rounded-lg border border-admin-100 bg-admin-50 px-4 py-3">
+            <div className="mx-5 mt-4 flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
               <div className="min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-admin-700">Следующее действие</div>
-                <div className="mt-1 truncate text-sm font-semibold text-slate-900">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-[#0066cc]">Следующее действие</div>
+                <div className="mt-1 truncate ui-section-title">
                   {lead.status === "NEW" ? "Взять лид в работу" : lead.status === "IN_PROGRESS" ? "Назначить пробное занятие" : lead.status === "TRIAL_SCHEDULED" ? "Провести пробное занятие" : lead.status === "DECISION_PENDING" ? "Оформить клиента" : lead.status === "CONVERTED" ? "Клиент оформлен" : "Лид закрыт"}
                 </div>
               </div>
@@ -486,7 +477,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
               ) : null}
               {activeTab === "trial" ? (
                 <SectionCard className="p-5">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><CalendarDaysIcon className="h-4 w-4 text-emerald-600" /> Пробное занятие</div>
+                  <div className="flex items-center gap-2 ui-section-title"><CalendarDays className="h-4 w-4 text-emerald-600" /> Пробное занятие</div>
                   <div className="mt-4 text-sm text-slate-600">{lead.trial ? `${formatTrialTime(lead.trial.trialDate, lead.trial.startTime, lead.trial.endTime)} · ${lead.trial.groupName || groupName || "Группа не указана"}` : "Пробное не назначено"}</div>
                   <Button type="button" className="mt-4" onClick={() => setShowTrialModal(true)}>Назначить пробное</Button>
                 </SectionCard>
@@ -505,20 +496,20 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
                     {formatLeadDateTime(lead.createdAt)}
                   </span>
-                  <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-medium text-cyan-700">
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-[#0066cc]">
                     {lead.leadType === "ADULT" ? "Взрослый клуб" : "Детский клуб"}
                   </span>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-slate-900">
+                <h3 className="mt-4 ui-card-title">
                   {lead.primaryContact.fullName}
                 </h3>
                 <div className="mt-4 space-y-3 text-sm text-slate-600">
                   <div className="flex items-center gap-2">
-                    <PhoneIcon className="h-4 w-4 text-slate-400" />
+                    <Phone className="h-4 w-4 text-slate-400" />
                     <span>{lead.primaryContact.phone}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <EnvelopeIcon className="h-4 w-4 text-slate-400" />
+                    <Mail className="h-4 w-4 text-slate-400" />
                     <span>{lead.primaryContact.email || "Email не указан"}</span>
                   </div>
                 </div>
@@ -526,17 +517,17 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
 
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  <UserGroupIcon className="h-4 w-4" />
+                  <Users className="h-4 w-4" />
                   Ответственный
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">
                       {lead.assignedAdmin
                         ? isCurrentUserAssigned
                           ? "В"
                           : assignedAdminInitials || "?"
-                        : <IdentificationIcon className="h-5 w-5 text-slate-400" />}
+                        : <Badge className="h-5 w-5 text-slate-400" />}
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -559,7 +550,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                   <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
                     Клиент
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
                     {isAlreadyConverted ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         <div className="font-medium text-emerald-700">
@@ -644,10 +635,10 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
 
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  <UserGroupIcon className="h-4 w-4" />
+                  <Users className="h-4 w-4" />
                   Участники
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-4">
                   {lead.participants.length > 0 ? (
                     <div className="space-y-2">
                       {lead.participants.map((participant) => (
@@ -678,10 +669,10 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
 
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                  <MessagesSquare className="h-4 w-4" />
                   Комментарий
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-600 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-600">
                   {lead.comment || "Комментарий отсутствует"}
                 </div>
               </section>
@@ -689,10 +680,10 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
               {lead.status === "LOST" || Boolean(lead.lostReasonCode) ? (
                 <section className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                    <MessagesSquare className="h-4 w-4" />
                     Причина потери
                   </div>
-                  <div className="rounded-lg border border-rose-200 bg-rose-50/60 p-4 text-sm text-slate-700 shadow-sm">
+                  <div className="rounded-lg border border-rose-200 bg-rose-50/60 p-4 text-sm text-slate-700">
                     <div>
                       <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Причина
@@ -723,10 +714,10 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
 
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  <CalendarDaysIcon className="h-4 w-4" />
+                  <CalendarDays className="h-4 w-4" />
                   Квалификация
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
                   <div className="space-y-3">
                     <div>
                       <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -758,10 +749,10 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
 
               <section className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  <CalendarDaysIcon className="h-4 w-4" />
+                  <CalendarDays className="h-4 w-4" />
                   Пробное занятие
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
                   {lead.trial ? (
                     <div className="space-y-3">
                       <div>
@@ -827,7 +818,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
 
               <section className="space-y-3 lg:col-span-2">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  <ClockIcon className="h-4 w-4" />
+                  <Clock3 className="h-4 w-4" />
                   Активность
                 </div>
                 <LeadTimeline
@@ -880,7 +871,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
             await onUpdated();
             setShowTrialModal(false);
             await refreshLead();
-            if (trialId) navigate(`/admin/trials/${trialId}/overview`);
+            if (trialId) navigate(`/admin/trials/${trialId}`);
           }}
         />
       ) : null}

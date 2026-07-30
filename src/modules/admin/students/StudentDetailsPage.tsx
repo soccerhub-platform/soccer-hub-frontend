@@ -2,22 +2,24 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { NavLink, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  ArrowPathIcon,
-  ArrowsRightLeftIcon,
-  CheckCircleIcon,
-  ChevronRightIcon,
-  DocumentTextIcon,
-  ExclamationTriangleIcon,
-  PhoneIcon,
-  PhotoIcon,
-  TrashIcon,
-  UserIcon,
-  UserPlusIcon,
-} from "@heroicons/react/24/outline";
+  RefreshCw,
+  ArrowLeftRight,
+  CheckCircle,
+  ChevronRight,
+  FileText,
+  TriangleAlert,
+  Phone,
+  Image,
+  Trash2,
+  User,
+  UserPlus,
+} from "lucide-react";
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import type { MediaAsset } from "../../../shared/media.types";
 import {
+  Input,
   Button,
+  DatePicker,
   EmptyState,
   ErrorState,
   LoadingState,
@@ -28,7 +30,7 @@ import {
   WorkspaceHeader,
   WorkspaceTabs,
   formControlClassName,
-} from "../../../shared/ui";
+ } from "../../../shared/ui";
 import { StudentApi } from "./student.api";
 import StudentMembershipDrawers from "./StudentMembershipDrawers";
 import StudentAttendanceTab from "./StudentAttendanceTab";
@@ -109,7 +111,7 @@ const membershipLabel = (status: string) => {
 
 const membershipClassName = (status: string) => {
   if (status === "ACTIVE") return "border-emerald-100 bg-emerald-50 text-emerald-700";
-  if (status === "UPCOMING") return "border-cyan-100 bg-cyan-50 text-cyan-700";
+  if (status === "UPCOMING") return "border-blue-100 bg-blue-50 text-[#0066cc]";
   if (status === "REMOVED") return "border-rose-100 bg-rose-50 text-rose-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
 };
@@ -147,7 +149,7 @@ const riskIconClassName = (risk: StudentRisk) =>
     ? "bg-rose-50 text-rose-700"
     : risk.severity === "WARNING"
     ? "bg-amber-50 text-amber-700"
-    : "bg-cyan-50 text-cyan-700";
+    : "bg-blue-50 text-[#0066cc]";
 
 interface StudentActivityItem {
   id: string;
@@ -183,7 +185,7 @@ const StudentAvatar: React.FC<{
   }
 
   return (
-    <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-lg border border-admin-100 bg-admin-50 text-xl font-semibold text-admin-800 sm:h-32 sm:w-32">
+    <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-xl font-semibold text-[#0066cc] sm:h-32 sm:w-32">
       {getInitials(name)}
     </div>
   );
@@ -210,7 +212,7 @@ const MembershipRow: React.FC<{
         </span>
       )}
       <div className="min-w-0">
-        <button type="button" onClick={onOpen} className="truncate text-left text-sm font-semibold text-slate-950 transition hover:text-admin-700">
+        <button type="button" onClick={onOpen} className="truncate text-left ui-section-title transition hover:text-[#0066cc]">
           {membership.group.name}
         </button>
         <div className="mt-1 text-xs text-slate-500">
@@ -222,11 +224,11 @@ const MembershipRow: React.FC<{
       <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${membershipClassName(membership.status)}`}>
         {membershipLabel(membership.status)}
       </span>
-      {onTransfer ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" onClick={onTransfer}><ArrowsRightLeftIcon className="h-4 w-4" /> Перевести</Button> : null}
-      {onRemove ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" onClick={onRemove}><TrashIcon className="h-4 w-4" /> Исключить</Button> : null}
-      {onCancelContract ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" onClick={onCancelContract}><DocumentTextIcon className="h-4 w-4" /> Отменить договор</Button> : null}
-      <button type="button" onClick={onOpen} aria-label={`Открыть группу ${membership.group.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-admin-700">
-        <ChevronRightIcon className="h-4 w-4" />
+      {onTransfer ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" onClick={onTransfer}><ArrowLeftRight className="h-4 w-4" /> Перевести</Button> : null}
+      {onRemove ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" onClick={onRemove}><Trash2 className="h-4 w-4" /> Исключить</Button> : null}
+      {onCancelContract ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" onClick={onCancelContract}><FileText className="h-4 w-4" /> Отменить договор</Button> : null}
+      <button type="button" onClick={onOpen} aria-label={`Открыть группу ${membership.group.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-blue-50 hover:text-[#0066cc]">
+        <ChevronRight className="h-4 w-4" />
       </button>
     </div>
   </div>
@@ -242,11 +244,11 @@ const ActivityTimeline: React.FC<{
         <>
           <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${item.tone}`} />
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-slate-900">{item.title}</span>
+            <span className="block ui-section-title">{item.title}</span>
             <span className="mt-0.5 block text-xs text-slate-500">{item.description}</span>
           </span>
           <span className="shrink-0 text-xs text-slate-400">{formatDate(item.date)}</span>
-          {item.to ? <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400" /> : null}
+          {item.to ? <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" /> : null}
         </>
       );
       return item.to ? (
@@ -459,7 +461,7 @@ const StudentDetailsPage: React.FC = () => {
         date: item.paidAt,
         title: `Платёж ${formatAmount(item.amount, item.currency)}`,
         description: item.comment || "Оплата по договору",
-        tone: "bg-cyan-500",
+        tone: "bg-blue-500",
         to: contract ? `/admin/contracts/${encodeURIComponent(contract.id)}/overview` : sectionPath("contracts"),
       })),
       ...memberships.map((item) => ({
@@ -511,7 +513,7 @@ const StudentDetailsPage: React.FC = () => {
         items={[{ label: "Ученики", to: "/admin/students" }, { label: student.player.fullName }]}
         actions={(
           <Button type="button" variant="secondary" rounded="rounded-md" onClick={() => void loadStudent()}>
-            <ArrowPathIcon className="h-4 w-4" /> Обновить данные
+            <RefreshCw className="h-4 w-4" /> Обновить данные
           </Button>
         )}
       />
@@ -521,16 +523,16 @@ const StudentDetailsPage: React.FC = () => {
         actions={(
           <>
             {canEditStudent ? <Button type="button" rounded="rounded-md" onClick={openEditDrawer}>
-              <UserIcon className="h-4 w-4" /> Редактировать ученика
+              <User className="h-4 w-4" /> Редактировать ученика
             </Button> : null}
             <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => openMembershipDrawer("add-to-group")}>
-              <UserPlusIcon className="h-4 w-4" /> Добавить в группу
+              <UserPlus className="h-4 w-4" /> Добавить в группу
             </Button>
             {contract ? (
               <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(contract.id)}/overview`)}>
-                <DocumentTextIcon className="h-4 w-4" /> Открыть договор
+                <FileText className="h-4 w-4" /> Открыть договор
               </Button>
-            ) : <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => navigate("/admin/contracts")}><DocumentTextIcon className="h-4 w-4" /> Создать договор</Button>}
+            ) : <Button type="button" rounded="rounded-md" variant="secondary" onClick={() => navigate("/admin/contracts")}><FileText className="h-4 w-4" /> Создать договор</Button>}
           </>
         )}
       >
@@ -539,7 +541,7 @@ const StudentDetailsPage: React.FC = () => {
               type="button"
               onClick={canManageAvatar ? openDrawer : undefined}
               disabled={!canManageAvatar}
-              className={`group relative shrink-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-admin-200 ${canManageAvatar ? "cursor-pointer" : "cursor-default"}`}
+              className={`group relative shrink-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 ${canManageAvatar ? "cursor-pointer" : "cursor-default"}`}
               aria-label="Изменить фото ученика"
             >
               <StudentAvatar name={student.player.fullName} avatar={student.player.avatar} onError={() => void loadStudent()} />
@@ -547,7 +549,7 @@ const StudentDetailsPage: React.FC = () => {
             </button>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="w-full break-words text-2xl font-semibold leading-tight text-slate-950 sm:w-auto sm:text-[28px]">{student.player.fullName}</h1>
+                <h1 className="ui-detail-title w-full break-words sm:w-auto">{student.player.fullName}</h1>
                 <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusActive ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
                   {statusActive ? "Активный ученик" : "Без активного участия"}
                 </span>
@@ -561,9 +563,9 @@ const StudentDetailsPage: React.FC = () => {
                 <span>{currentMemberships.length} активных групп</span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <button type="button" disabled={!primaryClientRelation} onClick={() => primaryClientRelation && navigate(`/admin/clients/${primaryClientRelation.clientId}/overview`)} className="inline-flex items-center gap-2 font-medium text-slate-700 transition hover:text-admin-700 disabled:cursor-default disabled:hover:text-slate-700"><UserIcon className="h-4 w-4 text-slate-400" />{primaryClientRelation?.clientName ?? student.client.fullName}</button>
-                {activeClientRelations.length > 1 ? <NavLink to={sectionPath("clients")} className="text-xs font-semibold text-admin-700">Ещё {activeClientRelations.length - 1}</NavLink> : null}
-                {phoneHref ? <a href={phoneHref} className="inline-flex items-center gap-2 font-medium text-admin-700 hover:text-admin-900"><PhoneIcon className="h-4 w-4" />{student.client.phone}</a> : null}
+                <button type="button" disabled={!primaryClientRelation} onClick={() => primaryClientRelation && navigate(`/admin/clients/${primaryClientRelation.clientId}/overview`)} className="inline-flex items-center gap-2 font-medium text-slate-700 transition hover:text-[#0066cc] disabled:cursor-default disabled:hover:text-slate-700"><User className="h-4 w-4 text-slate-400" />{primaryClientRelation?.clientName ?? student.client.fullName}</button>
+                {activeClientRelations.length > 1 ? <NavLink to={sectionPath("clients")} className="text-xs font-semibold text-[#0066cc]">Ещё {activeClientRelations.length - 1}</NavLink> : null}
+                {phoneHref ? <a href={phoneHref} className="inline-flex items-center gap-2 font-medium text-[#0066cc] hover:text-[#0066cc]"><Phone className="h-4 w-4" />{student.client.phone}</a> : null}
               </div>
               {student.client.email ? <div className="mt-2 truncate text-sm text-slate-500">Email: <span className="font-medium text-slate-700">{student.client.email}</span></div> : null}
             </div>
@@ -576,13 +578,13 @@ const StudentDetailsPage: React.FC = () => {
         <div className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-12">
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-4">
-              <h2 className="text-sm font-semibold text-slate-950">Текущие группы</h2>
+              <h2 className="ui-section-title">Текущие группы</h2>
               <div className="mt-3 space-y-2">
                 {currentMemberships.slice(0, 3).map((item) => (
                   <div key={item.membershipId} className="rounded-md border border-slate-200 p-3">
                     <div className="flex items-center gap-3">
-                      {getAvatarUrl(item.group.avatar) ? <img src={resolveApiUrl(getAvatarUrl(item.group.avatar)!)} alt="" className="h-10 w-10 rounded-md object-cover" /> : <span className="grid h-10 w-10 place-items-center rounded-md bg-admin-50 text-xs font-semibold text-admin-700">{getInitials(item.group.name)}</span>}
-                      <div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold text-slate-950">{item.group.name}</div><div className="mt-0.5 truncate text-xs text-slate-500">{student.currentGroup?.id === item.group.id ? student.currentGroup.coachName || "Тренер не указан" : "Активное участие"}</div></div>
+                      {getAvatarUrl(item.group.avatar) ? <img src={resolveApiUrl(getAvatarUrl(item.group.avatar)!)} alt="" className="h-10 w-10 rounded-md object-cover" /> : <span className="grid h-10 w-10 place-items-center rounded-md bg-blue-50 text-xs font-semibold text-[#0066cc]">{getInitials(item.group.name)}</span>}
+                      <div className="min-w-0 flex-1"><div className="truncate ui-section-title">{item.group.name}</div><div className="mt-0.5 truncate text-xs text-slate-500">{student.currentGroup?.id === item.group.id ? student.currentGroup.coachName || "Тренер не указан" : "Активное участие"}</div></div>
                       <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Активно</span>
                     </div>
                     <div className="mt-3 flex justify-end"><Button size="sm" variant="secondary" rounded="rounded-md" onClick={() => navigate(`/admin/groups/${item.group.id}/overview`)}>Открыть группу</Button></div>
@@ -590,11 +592,11 @@ const StudentDetailsPage: React.FC = () => {
                 ))}
                 {currentMemberships.length === 0 ? <EmptyState title="Нет активных групп" /> : null}
               </div>
-              <NavLink to={sectionPath("groups")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-admin-700">История участия в группах <ChevronRightIcon className="h-4 w-4" /></NavLink>
+              <NavLink to={sectionPath("groups")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">История участия в группах <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-3">
-              <h2 className="text-sm font-semibold text-slate-950">Следующее занятие</h2>
+              <h2 className="ui-section-title">Следующее занятие</h2>
               {nextSessionAt && student.currentGroup ? (
                 <div className="mt-5 flex h-[calc(100%-2.25rem)] flex-col">
                   <div className="flex items-center gap-4">
@@ -621,38 +623,38 @@ const StudentDetailsPage: React.FC = () => {
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-2">
-              <h2 className="text-sm font-semibold text-slate-950">Требует внимания</h2>
+              <h2 className="ui-section-title">Требует внимания</h2>
               <div className="mt-3 space-y-2">
-                {student.risks.slice(0, 4).map((risk) => <button key={risk.code} type="button" onClick={() => openRisk(risk)} className="flex w-full items-start gap-2 rounded-md border border-slate-200 p-2.5 text-left transition hover:border-amber-200 hover:bg-amber-50"><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${riskIconClassName(risk)}`}><ExclamationTriangleIcon className="h-4 w-4" /></span><span className="text-xs font-medium leading-5 text-slate-700">{risk.label}</span></button>)}
-                {student.risks.length === 0 ? <div className="flex items-center gap-2 py-3 text-xs text-emerald-700"><CheckCircleIcon className="h-5 w-5" /> Всё в порядке</div> : null}
+                {student.risks.slice(0, 4).map((risk) => <button key={risk.code} type="button" onClick={() => openRisk(risk)} className="flex w-full items-start gap-2 rounded-md border border-slate-200 p-2.5 text-left transition hover:border-amber-200 hover:bg-amber-50"><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${riskIconClassName(risk)}`}><TriangleAlert className="h-4 w-4" /></span><span className="text-xs font-medium leading-5 text-slate-700">{risk.label}</span></button>)}
+                {student.risks.length === 0 ? <div className="flex items-center gap-2 py-3 text-xs text-emerald-700"><CheckCircle className="h-5 w-5" /> Всё в порядке</div> : null}
               </div>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-3 xl:row-span-2">
-              <h2 className="text-sm font-semibold text-slate-950">Последняя активность</h2>
+              <h2 className="ui-section-title">Последняя активность</h2>
               <div className="mt-3">{activityItems.length ? <ActivityTimeline items={activityItems} onNavigate={navigate} /> : <EmptyState title="Событий пока нет" />}</div>
-              <NavLink to={sectionPath("activity")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-admin-700">Вся активность <ChevronRightIcon className="h-4 w-4" /></NavLink>
+              <NavLink to={sectionPath("activity")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">Вся активность <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-5">
-              <h2 className="text-sm font-semibold text-slate-950">Посещаемость за последние 30 дней</h2>
+              <h2 className="ui-section-title">Посещаемость за последние 30 дней</h2>
               <div className="mt-4 grid grid-cols-4 gap-4">
-                <div><div className="text-2xl font-semibold text-slate-950">{attendanceSummary?.attendanceRate ?? 0}%</div><div className="text-[11px] text-slate-500">Средняя</div></div>
-                <div><div className="text-base font-semibold text-slate-950">{overviewAttendance?.summary.presentCount ?? student.attendanceSummary?.presentCount ?? 0}</div><div className="text-[11px] text-slate-500">Посещено</div></div>
-                <div><div className="text-base font-semibold text-slate-950">{overviewAttendance?.summary.lateCount ?? student.attendanceSummary?.lateCount ?? 0}</div><div className="text-[11px] text-slate-500">Опозданий</div></div>
-                <div><div className="text-base font-semibold text-slate-950">{overviewAttendance?.summary.absentCount ?? student.attendanceSummary?.absentCount ?? 0}</div><div className="text-[11px] text-slate-500">Пропущено</div></div>
+                <div><div className="ui-detail-title">{attendanceSummary?.attendanceRate ?? 0}%</div><div className="text-[11px] text-slate-500">Средняя</div></div>
+                <div><div className="ui-card-title">{overviewAttendance?.summary.presentCount ?? student.attendanceSummary?.presentCount ?? 0}</div><div className="text-[11px] text-slate-500">Посещено</div></div>
+                <div><div className="ui-card-title">{overviewAttendance?.summary.lateCount ?? student.attendanceSummary?.lateCount ?? 0}</div><div className="text-[11px] text-slate-500">Опозданий</div></div>
+                <div><div className="ui-card-title">{overviewAttendance?.summary.absentCount ?? student.attendanceSummary?.absentCount ?? 0}</div><div className="text-[11px] text-slate-500">Пропущено</div></div>
               </div>
               <div className="mt-4 flex h-20 items-end gap-1.5 overflow-hidden">
                 {attendanceItems.slice(-24).map((item) => <div key={item.sessionId} title={`${formatDate(item.sessionDate)} · ${item.attendanceStatus}`} className="flex h-full min-w-1 flex-1 items-end"><span className={`block w-full rounded-sm ${attendanceBarClassName(item.attendanceStatus)}`} /></div>)}
                 {attendanceItems.length === 0 ? <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">Нет занятий за период</div> : null}
               </div>
-              <NavLink to={sectionPath("attendance")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-admin-700">Открыть полную посещаемость <ChevronRightIcon className="h-4 w-4" /></NavLink>
+              <NavLink to={sectionPath("attendance")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">Открыть полную посещаемость <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-4">
-              <h2 className="text-sm font-semibold text-slate-950">Договор</h2>
-              {contract ? <div className="mt-3 rounded-md border border-slate-200 p-3"><div className="flex items-center gap-2"><span className="text-sm font-semibold text-slate-950">{contract.contractNumber}</span><span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Активен</span></div><div className="mt-1 text-xs text-slate-500">{formatDate(contract.startDate)} — {formatDate(contract.endDate)}</div><div className="mt-4 grid grid-cols-3 gap-3"><FinancialOverview label="Сумма" value={formatAmount(contract.amount, contract.currency)} /><FinancialOverview label="Оплачено" value={formatAmount(contract.paidAmount, contract.currency)} /><FinancialOverview label="Остаток" value={formatAmount(contract.outstandingAmount, contract.currency)} /></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${contract.amount ? Math.min(100, Math.round((contract.paidAmount / contract.amount) * 100)) : 0}%` }} /></div><Button className="mt-3" size="sm" variant="secondary" rounded="rounded-md" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(contract.id)}/overview`)}>Открыть договор</Button></div> : <EmptyState title="Нет активного договора" />}
-              <NavLink to={sectionPath("contracts")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-admin-700">Все договоры <ChevronRightIcon className="h-4 w-4" /></NavLink>
+              <h2 className="ui-section-title">Договор</h2>
+              {contract ? <div className="mt-3 rounded-md border border-slate-200 p-3"><div className="flex items-center gap-2"><span className="ui-section-title">{contract.contractNumber}</span><span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Активен</span></div><div className="mt-1 text-xs text-slate-500">{formatDate(contract.startDate)} — {formatDate(contract.endDate)}</div><div className="mt-4 grid grid-cols-3 gap-3"><FinancialOverview label="Сумма" value={formatAmount(contract.amount, contract.currency)} /><FinancialOverview label="Оплачено" value={formatAmount(contract.paidAmount, contract.currency)} /><FinancialOverview label="Остаток" value={formatAmount(contract.outstandingAmount, contract.currency)} /></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${contract.amount ? Math.min(100, Math.round((contract.paidAmount / contract.amount) * 100)) : 0}%` }} /></div><Button className="mt-3" size="sm" variant="secondary" rounded="rounded-md" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(contract.id)}/overview`)}>Открыть договор</Button></div> : <EmptyState title="Нет активного договора" />}
+              <NavLink to={sectionPath("contracts")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">Все договоры <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
           </div>
         </div>
@@ -661,7 +663,7 @@ const StudentDetailsPage: React.FC = () => {
       {activeSection === "groups" ? (
         <div className="space-y-4">
           <SectionCard title="Текущие группы">
-            <div className="mb-4 flex justify-end"><Button type="button" size="sm" rounded="rounded-md" onClick={() => openMembershipDrawer("add-to-group")}><UserPlusIcon className="h-4 w-4" /> Добавить в группу</Button></div>
+            <div className="mb-4 flex justify-end"><Button type="button" size="sm" rounded="rounded-md" onClick={() => openMembershipDrawer("add-to-group")}><UserPlus className="h-4 w-4" /> Добавить в группу</Button></div>
             {currentMemberships.length ? <div className="divide-y divide-slate-100">{currentMemberships.map((item) => {
               const canTransfer = item.capabilities?.canTransfer === true;
               const canRemove = item.capabilities?.canRemove === true;
@@ -689,9 +691,9 @@ const StudentDetailsPage: React.FC = () => {
               <div className="divide-y divide-slate-100">
                 {activeClientRelations.map((relation) => (
                   <button key={relation.id} type="button" onClick={() => navigate(`/admin/clients/${relation.clientId}/overview`)} className="flex w-full flex-col gap-3 py-4 text-left first:pt-0 last:pb-0 sm:flex-row sm:items-center">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-cyan-50 text-sm font-semibold text-cyan-800">{getInitials(relation.clientName)}</span>
-                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-950">{relation.clientName}</span><span className="mt-1 block text-xs text-slate-500">{clientRelationshipLabel(relation.relationshipType)} · с {formatDate(relation.startedAt)}</span></span>
-                    <span className="flex flex-wrap items-center gap-2">{relation.primaryContact ? <span className="rounded-full border border-cyan-100 bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">Основной контакт</span> : null}{relation.primaryPayer ? <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Плательщик</span> : null}{relation.legalRepresentative ? <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">Представитель</span> : null}<ChevronRightIcon className="h-4 w-4 text-slate-400" /></span>
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-blue-50 text-sm font-semibold text-[#0066cc]">{getInitials(relation.clientName)}</span>
+                    <span className="min-w-0 flex-1"><span className="block truncate ui-section-title">{relation.clientName}</span><span className="mt-1 block text-xs text-slate-500">{clientRelationshipLabel(relation.relationshipType)} · с {formatDate(relation.startedAt)}</span></span>
+                    <span className="flex flex-wrap items-center gap-2">{relation.primaryContact ? <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#0066cc]">Основной контакт</span> : null}{relation.primaryPayer ? <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Плательщик</span> : null}{relation.legalRepresentative ? <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">Представитель</span> : null}<ChevronRight className="h-4 w-4 text-slate-400" /></span>
                   </button>
                 ))}
               </div>
@@ -723,44 +725,44 @@ const StudentDetailsPage: React.FC = () => {
           footer={<div className="flex justify-end gap-2"><Button variant="secondary" rounded="rounded-md" onClick={closeDrawer} disabled={editSaving}>Отмена</Button><Button rounded="rounded-md" onClick={() => void saveStudent()} isLoading={editSaving} disabled={!editForm.firstName.trim() || !editForm.lastName.trim()}>Сохранить</Button></div>}
         >
           <div className="space-y-6">
-            {editError ? <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"><ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" />{editError}</div> : null}
+            {editError ? <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"><TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />{editError}</div> : null}
 
             <section>
               <div className="mb-3 text-xs font-semibold uppercase text-slate-500">Фото профиля</div>
               <div className="flex items-center gap-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <StudentAvatar name={student.player.fullName} avatar={student.player.avatar} />
-                <div className="min-w-0 flex-1"><div className="text-sm font-semibold text-slate-950">{student.player.fullName}</div><div className="mt-1 text-xs text-slate-500">Фото управляется отдельно от персональных данных.</div></div>
-                {canManageAvatar ? <Button size="sm" variant="secondary" rounded="rounded-md" onClick={openDrawer}><PhotoIcon className="h-4 w-4" /> Изменить</Button> : null}
+                <div className="min-w-0 flex-1"><div className="ui-section-title">{student.player.fullName}</div><div className="mt-1 text-xs text-slate-500">Фото управляется отдельно от персональных данных.</div></div>
+                {canManageAvatar ? <Button size="sm" variant="secondary" rounded="rounded-md" onClick={openDrawer}><Image className="h-4 w-4" /> Изменить</Button> : null}
               </div>
             </section>
 
             <section className="space-y-4">
               <div className="text-xs font-semibold uppercase text-slate-500">Основная информация</div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Имя</span><input value={editForm.firstName} maxLength={100} onChange={(event) => setEditForm((current) => ({ ...current, firstName: event.target.value }))} className={formControlClassName} autoFocus /></label>
-                <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Фамилия</span><input value={editForm.lastName} maxLength={100} onChange={(event) => setEditForm((current) => ({ ...current, lastName: event.target.value }))} className={formControlClassName} /></label>
+                <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Имя</span><Input value={editForm.firstName} maxLength={100} onChange={(event) => setEditForm((current) => ({ ...current, firstName: event.target.value }))} className={formControlClassName} autoFocus /></label>
+                <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Фамилия</span><Input value={editForm.lastName} maxLength={100} onChange={(event) => setEditForm((current) => ({ ...current, lastName: event.target.value }))} className={formControlClassName} /></label>
               </div>
-              <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Дата рождения</span><input type="date" value={editForm.birthDate} max={toLocalDate(new Date())} onChange={(event) => setEditForm((current) => ({ ...current, birthDate: event.target.value }))} className={formControlClassName} /></label>
-              <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Позиция</span><input value={editForm.position} maxLength={100} onChange={(event) => setEditForm((current) => ({ ...current, position: event.target.value }))} className={formControlClassName} placeholder="Например, вратарь или нападающий" /></label>
+              <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Дата рождения</span><DatePicker value={editForm.birthDate} max={toLocalDate(new Date())} onValueChange={(birthDate) => setEditForm((current) => ({ ...current, birthDate }))} /></label>
+              <label className="block"><span className="mb-1.5 block text-sm font-medium text-slate-700">Позиция</span><Input value={editForm.position} maxLength={100} onChange={(event) => setEditForm((current) => ({ ...current, position: event.target.value }))} className={formControlClassName} placeholder="Например, вратарь или нападающий" /></label>
             </section>
 
             <section className="border-t border-slate-200 pt-5">
               <div className="text-xs font-semibold uppercase text-slate-500">Основной клиент</div>
-              <div className="mt-3 text-sm font-semibold text-slate-950">{primaryClientRelation?.clientName ?? student.client.fullName}</div>
+              <div className="mt-3 ui-section-title">{primaryClientRelation?.clientName ?? student.client.fullName}</div>
               <div className="mt-1 text-sm text-slate-500">{student.client.phone}{student.client.email ? ` · ${student.client.email}` : ""}</div>
               <p className="mt-2 text-xs leading-5 text-slate-500">Контакты принадлежат Client Workspace и не изменяются вместе с данными ученика.</p>
-              <NavLink to={sectionPath("clients")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-admin-700">Все связанные клиенты <ChevronRightIcon className="h-4 w-4" /></NavLink>
+              <NavLink to={sectionPath("clients")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">Все связанные клиенты <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
           </div>
         </ModalShell>
       ) : null}
 
       {drawerOpen ? (
-        <ModalShell title="Фото ученика" description="Обновите фотографию профиля" eyebrow="Ученик" placement="right" maxWidthClassName="max-w-lg" onClose={closeDrawer} closeDisabled={avatarSaving} footer={<div className="flex justify-end gap-2"><Button variant="secondary" onClick={closeDrawer} disabled={avatarSaving}>Закрыть</Button><Button onClick={() => fileInputRef.current?.click()} isLoading={avatarSaving}><PhotoIcon className="h-4 w-4" /> Загрузить фото</Button></div>}>
+        <ModalShell title="Фото ученика" description="Обновите фотографию профиля" eyebrow="Ученик" placement="right" maxWidthClassName="max-w-lg" onClose={closeDrawer} closeDisabled={avatarSaving} footer={<div className="flex justify-end gap-2"><Button variant="secondary" onClick={closeDrawer} disabled={avatarSaving}>Закрыть</Button><Button onClick={() => fileInputRef.current?.click()} isLoading={avatarSaving}><Image className="h-4 w-4" /> Загрузить фото</Button></div>}>
           <div className="space-y-5">
-            <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4"><StudentAvatar name={student.player.fullName} avatar={student.player.avatar} /><div><div className="text-sm font-semibold text-slate-950">{student.player.fullName}</div><div className="mt-1 text-xs leading-5 text-slate-500">Используйте портретное фото с хорошо различимым лицом.</div></div></div>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAvatar(event.target.files?.[0])} />
-            {student.player.avatar ? <button type="button" disabled={avatarSaving} onClick={() => { const next = new URLSearchParams(searchParams); next.set("drawer", "student-photo"); next.set("confirm", "delete-avatar"); setSearchParams(next); }} className="inline-flex items-center gap-2 text-sm font-semibold text-rose-700 hover:text-rose-900"><TrashIcon className="h-4 w-4" /> Удалить текущее фото</button> : null}
+            <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4"><StudentAvatar name={student.player.fullName} avatar={student.player.avatar} /><div><div className="ui-section-title">{student.player.fullName}</div><div className="mt-1 text-xs leading-5 text-slate-500">Используйте портретное фото с хорошо различимым лицом.</div></div></div>
+            <Input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAvatar(event.target.files?.[0])} />
+            {student.player.avatar ? <button type="button" disabled={avatarSaving} onClick={() => { const next = new URLSearchParams(searchParams); next.set("drawer", "student-photo"); next.set("confirm", "delete-avatar"); setSearchParams(next); }} className="inline-flex items-center gap-2 text-sm font-semibold text-rose-700 hover:text-rose-900"><Trash2 className="h-4 w-4" /> Удалить текущее фото</button> : null}
             {deleteConfirmOpen ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-4"><div className="text-sm font-semibold text-rose-900">Удалить фотографию?</div><p className="mt-1 text-xs leading-5 text-rose-700">Вместо фотографии будут показаны инициалы ученика.</p><div className="mt-4 flex gap-2"><Button variant="secondary" onClick={() => { const next = new URLSearchParams(searchParams); next.delete("confirm"); setSearchParams(next, { replace: true }); }} disabled={avatarSaving}>Отмена</Button><Button variant="danger" onClick={() => void deleteAvatar()} isLoading={avatarSaving}>Удалить</Button></div></div> : null}
           </div>
         </ModalShell>

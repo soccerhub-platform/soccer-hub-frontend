@@ -1,21 +1,21 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  CalendarDaysIcon,
-  CheckCircleIcon,
-  ChevronRightIcon,
-  ClockIcon,
-  EllipsisHorizontalIcon,
-  ExclamationTriangleIcon,
-  PauseIcon,
-  PencilSquareIcon,
-  PhotoIcon,
-  PlayIcon,
-  StopIcon,
-  TrashIcon,
-  UserGroupIcon,
-  UsersIcon,
-} from "@heroicons/react/24/outline";
+  Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  CalendarDays,
+  CheckCircle,
+  ChevronRight,
+  Clock3,
+  TriangleAlert,
+  Pause,
+  Pencil,
+  Image,
+  Play,
+  Square,
+  Trash2,
+  Users,
+  UsersRound,
+} from "lucide-react";
 import { useAuth } from "../../../shared/AuthContext";
 import {
   AdminGroupDetailsModel,
@@ -31,7 +31,11 @@ import GroupAvatar from "./components/GroupAvatar";
 import type { MediaAsset } from "../../../shared/media.types";
 import toast from "react-hot-toast";
 import {
+  Input,
+  Textarea,
+  NativeSelect,
   Button,
+  ActionMenu,
   ErrorState,
   FormField,
   formControlClassName,
@@ -39,35 +43,23 @@ import {
   ModalShell,
   PageShell,
   SectionCard,
+  StatusBadge,
   WorkspaceBreadcrumbs,
   WorkspaceHeader,
   WorkspaceMetric,
   WorkspaceTabs,
-} from "../../../shared/ui";
+   } from "../../../shared/ui";
 
-/* ================= STATUS BADGE ================= */
+const groupStatusLabels: Record<AdminGroupDetailsModel["status"], string> = {
+  ACTIVE: "Активна",
+  PAUSED: "На паузе",
+  STOPPED: "Остановлена",
+};
 
-const StatusBadge = ({ status }: { status: AdminGroupDetailsModel["status"] }) => {
-  const map: Record<string, string> = {
-    ACTIVE: "border-emerald-100 bg-emerald-50 text-emerald-700",
-    PAUSED: "border-amber-100 bg-amber-50 text-amber-700",
-    STOPPED: "border-rose-100 bg-rose-50 text-rose-700",
-  };
-
-  const label =
-    status === "ACTIVE"
-      ? "Активна"
-      : status === "PAUSED"
-      ? "На паузе"
-      : "Остановлена";
-
-  return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${map[status]}`}
-    >
-      {label}
-    </span>
-  );
+const groupStatusTones: Record<AdminGroupDetailsModel["status"], "success" | "warning" | "danger"> = {
+  ACTIVE: "success",
+  PAUSED: "warning",
+  STOPPED: "danger",
 };
 
 const formatGroupAudience = (group: AdminGroupDetailsModel) => {
@@ -149,7 +141,6 @@ const GroupDetailsPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [actionsOpen, setActionsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /* ================= LOAD ================= */
@@ -269,26 +260,26 @@ const GroupDetailsPage: React.FC = () => {
   const overviewCards = useMemo(
     () => [
       {
-        icon: <UsersIcon className="h-4 w-4" />,
+        icon: <UsersRound className="h-4 w-4" />,
         label: "Участники",
         value: summary ? `${displayStudentsCount}/${capacity}` : "Нет данных",
         to: sectionPath("students"),
       },
       {
-        icon: <UserGroupIcon className="h-4 w-4" />,
+        icon: <Users className="h-4 w-4" />,
         label: "Тренеры",
         value: summary?.coachesCount ?? "Нет данных",
         to: sectionPath("coaches"),
       },
       {
-        icon: <CalendarDaysIcon className="h-4 w-4" />,
+        icon: <CalendarDays className="h-4 w-4" />,
         label: "В неделю",
         value: group ? getSessionsPerWeek(group) : "Нет данных",
         hint: summary ? (summary.scheduleActive ? "расписание активно" : "расписание выключено") : undefined,
         to: sectionPath("schedule"),
       },
       {
-        icon: <ClockIcon className="h-4 w-4" />,
+        icon: <Clock3 className="h-4 w-4" />,
         label: "Ближайшая",
         value: formatDateTime(nextSessionStart),
         to: sectionPath("schedule"),
@@ -342,46 +333,21 @@ const GroupDetailsPage: React.FC = () => {
           <div className="relative flex flex-wrap gap-2 lg:justify-end">
             {canEdit ? (
               <Button type="button" variant="secondary" onClick={openEdit}>
-                <PencilSquareIcon className="h-4 w-4" />
+                <Pencil className="h-4 w-4" />
                 Редактировать
               </Button>
             ) : null}
 
-            {canResume || canPause || canStop ? (
-              <button
-                type="button"
-                aria-label="Действия с группой"
-                onClick={() => setActionsOpen((value) => !value)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
-              >
-                <EllipsisHorizontalIcon className="h-5 w-5" />
-              </button>
-            ) : null}
-
-            {actionsOpen ? (
-              <div className="absolute right-0 top-11 z-30 min-w-52 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg">
-                {canResume ? (
-                  <button type="button" disabled={updating} onClick={() => { setActionsOpen(false); void changeStatus("ACTIVE"); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                    <PlayIcon className="h-4 w-4" /> Активировать
-                  </button>
-                ) : null}
-                {canPause ? (
-                  <button type="button" disabled={updating} onClick={() => { setActionsOpen(false); void changeStatus("PAUSED"); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                    <PauseIcon className="h-4 w-4" /> Поставить на паузу
-                  </button>
-                ) : null}
-                {canStop ? (
-                  <button type="button" disabled={updating} onClick={() => { setActionsOpen(false); openStop(); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-rose-700 hover:bg-rose-50">
-                    <StopIcon className="h-4 w-4" /> Остановить группу
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
+            {canResume || canPause || canStop ? <ActionMenu compact label="Действия с группой" items={[
+              ...(canResume ? [{ key: "resume", label: "Активировать", icon: <Play />, disabled: updating, onSelect: () => void changeStatus("ACTIVE") }] : []),
+              ...(canPause ? [{ key: "pause", label: "Поставить на паузу", icon: <Pause />, disabled: updating, onSelect: () => void changeStatus("PAUSED") }] : []),
+              ...(canStop ? [{ key: "stop", label: "Остановить группу", icon: <Square />, disabled: updating, danger: true, separatorBefore: true, onSelect: openStop }] : []),
+            ]} /> : null}
           </div>
         )}
         alert={group.status === "STOPPED" ? (
           <div className="flex items-start gap-2 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-            <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
             Группа остановлена. Расписание и новые занятия для нее недоступны.
           </div>
         ) : null}
@@ -391,8 +357,8 @@ const GroupDetailsPage: React.FC = () => {
 
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-[28px] font-semibold leading-tight tracking-tight text-slate-950">{group.name}</h1>
-                <StatusBadge status={group.status} />
+                <h1 className="ui-detail-title truncate">{group.name}</h1>
+                <StatusBadge tone={groupStatusTones[group.status]}>{groupStatusLabels[group.status]}</StatusBadge>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
                 <span>{formatGroupAudience(group)}</span><span aria-hidden="true">·</span>
@@ -421,7 +387,7 @@ const GroupDetailsPage: React.FC = () => {
 
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
           <SectionCard
-            icon={<CalendarDaysIcon className="h-4 w-4" />}
+            icon={<CalendarDays className="h-4 w-4" />}
             title="Следующее занятие"
             description="Ближайшая тренировка группы"
           >
@@ -436,21 +402,21 @@ const GroupDetailsPage: React.FC = () => {
                 openSection("schedule");
               }}
             >
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-admin-50 text-admin-700">
-                <CalendarDaysIcon className="h-6 w-6" />
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#0066cc]">
+                <CalendarDays className="h-6 w-6" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-lg font-semibold text-slate-950">{formatDateTime(nextSessionStart)}</span>
+                <span className="block ui-card-title">{formatDateTime(nextSessionStart)}</span>
                 <span className="mt-1 block text-sm text-slate-500">
                   {nextSessionStart ? "Откройте занятие для управления и посещаемости" : "Откройте расписание, чтобы запланировать занятие"}
                 </span>
               </span>
-              <ChevronRightIcon className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-admin-700" />
+              <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#0066cc]" />
             </button>
           </SectionCard>
 
           <SectionCard
-            icon={<ExclamationTriangleIcon className="h-4 w-4" />}
+            icon={<TriangleAlert className="h-4 w-4" />}
             title="Требует внимания"
             description="Проблемы, которые важно закрыть по этой группе"
           >
@@ -459,7 +425,7 @@ const GroupDetailsPage: React.FC = () => {
                 {healthIssues.slice(0, 3).map((issue) => (
                   <div key={issue.code} className="flex items-start gap-3 py-3 text-sm text-slate-700 first:pt-0 last:pb-0">
                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                      <ExclamationTriangleIcon className="h-3.5 w-3.5" />
+                      <TriangleAlert className="h-3.5 w-3.5" />
                     </span>
                     <span className="leading-5">{issue.message}</span>
                   </div>
@@ -468,14 +434,14 @@ const GroupDetailsPage: React.FC = () => {
             ) : (
               <div className="flex items-center gap-3 py-2 text-sm text-slate-600">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
-                  <CheckCircleIcon className="h-5 w-5" />
+                  <CheckCircle className="h-5 w-5" />
                 </span>
                 <span><strong className="block font-semibold text-slate-900">Всё в порядке</strong>Нет активных рисков по группе.</span>
               </div>
             )}
           </SectionCard>
 
-          <SectionCard icon={<ClockIcon className="h-4 w-4" />} title="Последняя активность" description="Недавние изменения по группе и рабочим действиям" className="xl:col-span-2">
+          <SectionCard icon={<Clock3 className="h-4 w-4" />} title="Последняя активность" description="Недавние изменения по группе и рабочим действиям" className="xl:col-span-2">
             <GroupActivityTimeline groupId={detailsGroupId} limit={5} />
           </SectionCard>
           </div>
@@ -561,7 +527,7 @@ const StopGroupDrawer: React.FC<{
   >
     <div className="space-y-4">
       <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
-        <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+        <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
         <div><div className="text-sm font-semibold text-rose-900">Группа станет неактивной</div><p className="mt-1 text-xs leading-5 text-rose-700">Статус изменится на «Остановлена». История группы, расписание и созданные занятия сохранятся.</p></div>
       </div>
       <p className="text-sm leading-6 text-slate-600">Если будущие занятия больше не должны проводиться, завершите активный период расписания отдельно. Группу можно будет снова активировать из меню действий.</p>
@@ -726,7 +692,7 @@ const EditGroupModal: React.FC<{
                 {avatar ? "Фото используется в реестре и шапке группы" : "Фото пока не загружено"}
               </div>
               <div className="mt-1 text-xs text-slate-500">PNG, JPG или WebP, до 5 МБ.</div>
-              <input
+              <Input
                 ref={avatarInputRef}
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -742,7 +708,7 @@ const EditGroupModal: React.FC<{
                   disabled={avatarAction !== null}
                   onClick={() => avatarInputRef.current?.click()}
                 >
-                  <PhotoIcon className="h-4 w-4" />
+                  <Image className="h-4 w-4" />
                   {avatar ? "Заменить" : "Загрузить"}
                 </Button>
                 {avatar ? (
@@ -754,7 +720,7 @@ const EditGroupModal: React.FC<{
                     disabled={avatarAction !== null}
                     onClick={onRequestDeleteAvatar}
                   >
-                    <TrashIcon className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                     Удалить
                   </Button>
                 ) : null}
@@ -762,7 +728,7 @@ const EditGroupModal: React.FC<{
               {deleteAvatarConfirmOpen ? (
                 <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3">
                   <div className="flex items-start gap-2">
-                    <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-rose-900">Удалить фото группы?</p>
                       <p className="mt-1 text-xs leading-5 text-rose-700">В реестре и шапке снова будут показаны инициалы группы.</p>
@@ -779,7 +745,7 @@ const EditGroupModal: React.FC<{
         </div>
 
         <FormField label="Название" className="sm:col-span-2">
-          <input
+          <Input
             value={form.name}
             onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
             className={formControlClassName}
@@ -787,7 +753,7 @@ const EditGroupModal: React.FC<{
         </FormField>
 
         <FormField label="Описание" className="sm:col-span-2">
-          <textarea
+          <Textarea
             value={form.description}
             onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
             rows={3}
@@ -796,7 +762,7 @@ const EditGroupModal: React.FC<{
         </FormField>
 
         <FormField label="Тип аудитории">
-          <select
+          <NativeSelect
             value={form.audienceType}
             onChange={(event) =>
               setForm((prev) => ({
@@ -811,11 +777,11 @@ const EditGroupModal: React.FC<{
                 {item.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </FormField>
 
         <FormField label="Уровень">
-          <select
+          <NativeSelect
             value={form.level}
             onChange={(event) => setForm((prev) => ({ ...prev, level: event.target.value }))}
             className={formControlClassName}
@@ -825,11 +791,11 @@ const EditGroupModal: React.FC<{
                 {item.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </FormField>
 
         <FormField label={form.audienceType === "ADULT" ? "Возраст от (необязательно)" : "Возраст от"}>
-          <input
+          <Input
             type="number"
             min={1}
             value={form.ageFrom}
@@ -840,7 +806,7 @@ const EditGroupModal: React.FC<{
         </FormField>
 
         <FormField label={form.audienceType === "ADULT" ? "Возраст до (необязательно)" : "Возраст до"}>
-          <input
+          <Input
             type="number"
             min={1}
             value={form.ageTo}
@@ -851,7 +817,7 @@ const EditGroupModal: React.FC<{
         </FormField>
 
         <FormField label="Вместимость">
-          <input
+          <Input
             type="number"
             min={1}
             value={form.capacity}

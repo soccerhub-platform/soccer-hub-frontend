@@ -11,8 +11,11 @@ import {
 } from '../../../shared/phone';
 import {
   Button,
+  DatePicker,
   FormField,
+  Input,
   ModalShell,
+  Textarea,
   formControlClassName,
 } from '../../../shared/ui';
 
@@ -130,17 +133,17 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
         }
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input
+          <CoachInputField
             label="Имя*"
             value={form.firstName}
             onChange={(v) => setForm({ ...form, firstName: v })}
           />
-          <Input
+          <CoachInputField
             label="Фамилия*"
             value={form.lastName}
             onChange={(v) => setForm({ ...form, lastName: v })}
           />
-          <Input
+          <CoachInputField
             label="Email*"
             type="email"
             value={form.email}
@@ -150,14 +153,14 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
               setForm({ ...form, email: v });
             }}
           />
-          <Input
+          <CoachInputField
             label="Телефон*"
             value={form.phone}
             onChange={(v) => setForm({ ...form, phone: v })}
             placeholder="+7 777 123 45 67"
             type="tel"
           />
-          <Input
+          <CoachInputField
             label="Специализация"
             value={form.specialization}
             onChange={(v) => setForm({ ...form, specialization: v })}
@@ -174,14 +177,11 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
           </button>
           {showExtra ? (
             <div className="grid gap-3 border-t border-slate-100 px-3 py-3">
-              <Input
-                label="Дата рождения"
-                type="date"
-                value={form.birthDate}
-                onChange={(v) => setForm({ ...form, birthDate: v })}
-              />
+              <FormField label="Дата рождения">
+                <DatePicker value={form.birthDate} onValueChange={(birthDate) => setForm({ ...form, birthDate })} clearable />
+              </FormField>
               <FormField label="Описание">
-                <textarea
+                <Textarea
                   value={form.description}
                   onChange={(event) => setForm({ ...form, description: event.target.value })}
                   rows={4}
@@ -221,7 +221,7 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
         }
       >
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <code className="text-sm font-semibold text-slate-900">{createdPassword}</code>
+          <code className="ui-section-title">{createdPassword}</code>
         </div>
         <p className="mt-2 text-xs text-rose-600">Сохраните пароль сейчас. Повторно он показан не будет.</p>
       </ModalShell>
@@ -234,7 +234,7 @@ export default CreateCoachModal;
 
 /* ================= INPUT ================= */
 
-const Input = ({
+const CoachInputField = ({
   label,
   value,
   onChange,
@@ -250,7 +250,7 @@ const Input = ({
   error?: string | null;
 }) => (
   <FormField label={label} error={error ?? undefined}>
-    <input
+    <Input
       type={type}
       placeholder={placeholder}
       value={value}

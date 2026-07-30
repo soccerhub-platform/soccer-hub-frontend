@@ -1,27 +1,34 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeftIcon,
-  ArrowPathIcon,
-  CalendarDaysIcon,
-  ClipboardDocumentCheckIcon,
-  EllipsisHorizontalIcon,
-  MapPinIcon,
-  UserCircleIcon,
-  UserGroupIcon,
-  XCircleIcon,
-} from "@heroicons/react/24/outline";
+  useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  RefreshCw,
+  CalendarDays,
+  ClipboardCheck,
+  MapPin,
+  CircleUserRound,
+  Users,
+  CircleX,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../../shared/AuthContext";
 import {
+  Textarea,
+  NativeSelect,
   Button,
+  ActionMenu,
+  DateTimePicker,
   ErrorState,
   FormField,
   formControlClassName,
   LoadingState,
+  MetricCard,
   ModalShell,
   PageShell,
-} from "../../../shared/ui";
+  StatusBadge,
+  type StatusTone,
+   } from "../../../shared/ui";
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import { useAdminBranch } from "../BranchContext";
 import { Coach, CoachApi } from "../сoaches/coach.api";
@@ -46,12 +53,12 @@ const statusLabels: Record<AdminSessionEffectiveStatus, string> = {
   OVERDUE: "Просрочено",
 };
 
-const statusClasses: Record<AdminSessionEffectiveStatus, string> = {
-  PLANNED: "border-cyan-100 bg-cyan-50 text-cyan-800",
-  IN_PROGRESS: "border-emerald-100 bg-emerald-50 text-emerald-700",
-  COMPLETED: "border-slate-200 bg-slate-50 text-slate-600",
-  CANCELLED: "border-rose-100 bg-rose-50 text-rose-700",
-  OVERDUE: "border-amber-100 bg-amber-50 text-amber-800",
+const statusTones: Record<AdminSessionEffectiveStatus, StatusTone> = {
+  PLANNED: "info",
+  IN_PROGRESS: "success",
+  COMPLETED: "neutral",
+  CANCELLED: "danger",
+  OVERDUE: "warning",
 };
 
 const roleLabel = (role: string) => (role === "MAIN" ? "Главный тренер" : role === "ASSISTANT" ? "Ассистент" : role);
@@ -94,7 +101,6 @@ const SessionDetailsPage: React.FC = () => {
   const [scheduleRule, setScheduleRule] = useState<GroupScheduleDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [moreOpen, setMoreOpen] = useState(false);
   const drawer = searchParams.get("drawer");
   const cancelOpen = drawer === "cancel-session";
   const rescheduleOpen = drawer === "reschedule-session";
@@ -185,38 +191,38 @@ const SessionDetailsPage: React.FC = () => {
 
   return (
     <PageShell className="space-y-4">
-      <button type="button" onClick={() => navigate(backTo)} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-cyan-800">
-        <ArrowLeftIcon className="h-4 w-4" />Расписание группы
+      <button type="button" onClick={() => navigate(backTo)} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#0066cc]">
+        <ArrowLeft className="h-4 w-4" />Расписание группы
       </button>
 
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-4 py-5 sm:px-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold text-slate-950">{formatDate(session.startsAt)}</h1>
-                <span className={`rounded border px-2 py-1 text-xs font-semibold ${statusClasses[effectiveStatus]}`}>{statusLabels[effectiveStatus]}</span>
+                <h1 className="ui-detail-title">{formatDate(session.startsAt)}</h1>
+                <StatusBadge tone={statusTones[effectiveStatus]}>{statusLabels[effectiveStatus]}</StatusBadge>
               </div>
-              <div className="mt-1 text-xl font-semibold text-slate-900">{formatTime(session.startsAt)} - {formatTime(session.endsAt)}</div>
+              <div className="mt-1 ui-metric-value">{formatTime(session.startsAt)} - {formatTime(session.endsAt)}</div>
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
-                <span className="inline-flex items-center gap-1.5"><UserGroupIcon className="h-4 w-4" />{session.group.name}</span>
-                <span className="inline-flex items-center gap-1.5"><MapPinIcon className="h-4 w-4" />{session.location?.name ?? "Место не указано"}</span>
-                <span className="inline-flex items-center gap-1.5"><CalendarDaysIcon className="h-4 w-4" />{session.scheduleId ? "Создано расписанием" : "Разовое занятие"}</span>
+                <span className="inline-flex items-center gap-1.5"><Users className="h-4 w-4" />{session.group.name}</span>
+                <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4" />{session.location?.name ?? "Место не указано"}</span>
+                <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-4 w-4" />{session.scheduleId ? "Создано расписанием" : "Разовое занятие"}</span>
               </div>
               {session.cancelReason ? <div className="mt-3 inline-flex rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">Причина отмены: {session.cancelReason}</div> : null}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {session.capabilities.canReschedule ? <Button type="button" variant="secondary" onClick={() => openDrawer("reschedule-session")}><ArrowPathIcon className="h-4 w-4" />Перенести</Button> : null}
-              {session.capabilities.canSubstituteCoach ? <Button type="button" variant="secondary" onClick={() => openDrawer("substitute-coach")}><UserCircleIcon className="h-4 w-4" />Заменить тренера</Button> : null}
-              <div className="relative">
-                <button type="button" aria-label="Дополнительные действия" title="Дополнительные действия" onClick={() => setMoreOpen((current) => !current)} className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"><EllipsisHorizontalIcon className="h-5 w-5" /></button>
-                {moreOpen ? (
-                  <div className="absolute right-0 top-12 z-20 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl shadow-slate-950/10">
-                    <button type="button" disabled={!session.capabilities.canCancel} onClick={() => { setMoreOpen(false); openDrawer("cancel-session"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-white"><XCircleIcon className="h-4 w-4" />Отменить занятие</button>
-                  </div>
-                ) : null}
-              </div>
+              {session.capabilities.canReschedule ? <Button type="button" variant="secondary" onClick={() => openDrawer("reschedule-session")}><RefreshCw className="h-4 w-4" />Перенести</Button> : null}
+              {session.capabilities.canSubstituteCoach ? <Button type="button" variant="secondary" onClick={() => openDrawer("substitute-coach")}><CircleUserRound className="h-4 w-4" />Заменить тренера</Button> : null}
+              <ActionMenu compact label="Дополнительные действия" items={[{
+                key: "cancel",
+                label: "Отменить занятие",
+                icon: <CircleX />,
+                danger: true,
+                disabled: !session.capabilities.canCancel,
+                onSelect: () => openDrawer("cancel-session"),
+              }]} />
             </div>
           </div>
         </div>
@@ -224,7 +230,7 @@ const SessionDetailsPage: React.FC = () => {
         <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
           <div className="space-y-6 p-4 sm:p-6 lg:border-r lg:border-slate-200">
             <section>
-              <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-slate-950">Тренеры</h2><span className="text-xs text-slate-500">{session.coaches.length}</span></div>
+              <div className="mb-3 flex items-center justify-between"><h2 className="ui-section-title">Тренеры</h2><span className="text-xs text-slate-500">{session.coaches.length}</span></div>
               {session.coaches.length ? (
                 <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 px-3">
                   {session.coaches.map((coach) => <CoachRow key={`${coach.id}-${coach.role}`} coach={coach} />)}
@@ -233,11 +239,11 @@ const SessionDetailsPage: React.FC = () => {
             </section>
 
             <section className="border-t border-slate-200 pt-5">
-              <h2 className="text-sm font-semibold text-slate-950">Участники</h2>
+              <h2 className="ui-section-title">Участники</h2>
               <div className="mt-3 grid grid-cols-3 gap-2">
-                <Metric label="Ожидается" value={session.participantsCount} />
-                <Metric label="Отмечено" value={session.attendance.marked} />
-                <Metric label="Присутствуют" value={session.attendance.presentLike} />
+                <MetricCard title="Ожидается" value={session.participantsCount} variant="compact" tone="neutral" />
+                <MetricCard title="Отмечено" value={session.attendance.marked} variant="compact" tone="info" />
+                <MetricCard title="Присутствуют" value={session.attendance.presentLike} variant="compact" tone="success" />
               </div>
             </section>
           </div>
@@ -245,23 +251,23 @@ const SessionDetailsPage: React.FC = () => {
           <div className="space-y-6 border-t border-slate-200 p-4 sm:p-6 lg:border-t-0">
             <section>
               <div className="flex items-start gap-3">
-                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${attendanceComplete ? "bg-emerald-50 text-emerald-700" : "bg-cyan-50 text-cyan-700"}`}><ClipboardDocumentCheckIcon className="h-5 w-5" /></span>
-                <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold text-slate-950">Посещаемость</h2><p className="mt-1 text-sm text-slate-500">{attendanceLabel}</p></div>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${attendanceComplete ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-[#0066cc]"}`}><ClipboardCheck className="h-5 w-5" /></span>
+                <div className="min-w-0 flex-1"><h2 className="ui-section-title">Посещаемость</h2><p className="mt-1 text-sm text-slate-500">{attendanceLabel}</p></div>
               </div>
               {effectiveStatus !== "PLANNED" && effectiveStatus !== "CANCELLED" && session.capabilities.canOpenAttendance ? (
-                <Button type="button" className="mt-4 w-full justify-center" onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/sessions/${session.id}/attendance`)}><ClipboardDocumentCheckIcon className="h-4 w-4" />{attendanceComplete ? "Открыть журнал" : "Заполнить журнал"}</Button>
+                <Button type="button" className="mt-4 w-full justify-center" onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/sessions/${session.id}/attendance`)}><ClipboardCheck className="h-4 w-4" />{attendanceComplete ? "Открыть журнал" : "Заполнить журнал"}</Button>
               ) : null}
             </section>
 
             <section className="border-t border-slate-200 pt-5">
-              <div className="flex items-center gap-2"><CalendarDaysIcon className="h-4 w-4 text-slate-400" /><h2 className="text-sm font-semibold text-slate-950">Регулярное расписание</h2></div>
+              <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-slate-400" /><h2 className="ui-section-title">Регулярное расписание</h2></div>
               {scheduleRule ? (
                 <div className="mt-3 space-y-2 text-sm">
                   <InfoLine label="Период" value={`${formatDate(scheduleRule.startDate)} - ${scheduleRule.endDate ? formatDate(scheduleRule.endDate) : "без даты окончания"}`} />
                   <InfoLine label="Слот" value={`${formatScheduleTime(scheduleRule.startTime)} - ${formatScheduleTime(scheduleRule.endTime)}`} />
                 </div>
               ) : <p className="mt-2 text-sm text-slate-500">Связанный период не найден</p>}
-              <button type="button" onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/schedule?view=week&date=${session.sessionDate}`)} className="mt-4 text-sm font-semibold text-cyan-800 hover:text-cyan-950">Открыть расписание →</button>
+              <button type="button" onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/schedule?view=week&date=${session.sessionDate}`)} className="mt-4 text-sm font-semibold text-[#0066cc] hover:text-[#0066cc]">Открыть расписание →</button>
             </section>
           </div>
         </div>
@@ -312,13 +318,11 @@ const CoachRow: React.FC<{ coach: AdminSessionCoach }> = ({ coach }) => {
   const avatarUrl = rawAvatarUrl ? resolveApiUrl(rawAvatarUrl) : null;
   return (
     <div className="flex items-center gap-3 py-3">
-      {avatarUrl ? <img src={avatarUrl} alt={`Фото ${coach.fullName}`} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-xs font-semibold text-cyan-800">{getInitials(coach.fullName)}</div>}
+      {avatarUrl ? <img src={avatarUrl} alt={`Фото ${coach.fullName}`} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-xs font-semibold text-[#0066cc]">{getInitials(coach.fullName)}</div>}
       <div className="min-w-0"><CoachProfileLink coachId={coach.id} className="max-w-full text-sm font-semibold">{coach.fullName}</CoachProfileLink><div className="mt-0.5 text-xs text-slate-500">{roleLabel(coach.role)}</div></div>
     </div>
   );
 };
-
-const Metric: React.FC<{ label: string; value: number }> = ({ label, value }) => <div className="rounded-lg bg-slate-50 px-3 py-3"><div className="text-lg font-semibold text-slate-950">{value}</div><div className="mt-1 text-xs text-slate-500">{label}</div></div>;
 
 const InfoLine: React.FC<{ label: string; value: string }> = ({ label, value }) => <div className="grid grid-cols-[72px_1fr] gap-3"><span className="text-slate-500">{label}</span><span className="font-medium text-slate-800">{value}</span></div>;
 
@@ -368,7 +372,7 @@ const CancelSessionModal: React.FC<{
     >
       <div className="space-y-4">
         <FormField label="Причина">
-          <select
+          <NativeSelect
             value={form.reasonCode}
             onChange={(event) => setForm((prev) => ({ ...prev, reasonCode: event.target.value as AdminCancelSessionInput["reasonCode"] }))}
             className={formControlClassName}
@@ -379,10 +383,10 @@ const CancelSessionModal: React.FC<{
             <option value="HOLIDAY">Праздник</option>
             <option value="ADMIN_DECISION">Решение администратора</option>
             <option value="OTHER">Другое</option>
-          </select>
+          </NativeSelect>
         </FormField>
         <FormField label="Комментарий">
-          <textarea
+          <Textarea
             rows={3}
             value={form.comment}
             onChange={(event) => setForm((prev) => ({ ...prev, comment: event.target.value }))}
@@ -448,24 +452,20 @@ const RescheduleSessionModal: React.FC<{
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Начало">
-          <input
-            type="datetime-local"
+          <DateTimePicker
             value={form.startsAt}
-            onChange={(event) => setForm((prev) => ({ ...prev, startsAt: event.target.value }))}
-            className={formControlClassName}
+            onValueChange={(value) => setForm((prev) => ({ ...prev, startsAt: value }))}
           />
         </FormField>
         <FormField label="Окончание">
-          <input
-            type="datetime-local"
+          <DateTimePicker
             value={form.endsAt}
-            onChange={(event) => setForm((prev) => ({ ...prev, endsAt: event.target.value }))}
-            className={formControlClassName}
+            onValueChange={(value) => setForm((prev) => ({ ...prev, endsAt: value }))}
           />
         </FormField>
         <div className="sm:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <div className="text-xs font-medium text-slate-500">Площадка</div>
-          <div className="mt-1 text-sm font-semibold text-slate-950">
+          <div className="mt-1 ui-section-title">
             {session.location?.name ?? "Площадка не указана"}
           </div>
           <div className="mt-1 text-xs text-slate-500">
@@ -473,7 +473,7 @@ const RescheduleSessionModal: React.FC<{
           </div>
         </div>
         <FormField label="Причина" className="sm:col-span-2">
-          <textarea
+          <Textarea
             rows={3}
             value={form.reason}
             onChange={(event) => setForm((prev) => ({ ...prev, reason: event.target.value }))}
@@ -560,7 +560,7 @@ const SubstituteCoachModal: React.FC<{
       ) : (
         <div className="space-y-4">
           <FormField label="Кого заменить">
-            <select
+            <NativeSelect
               value={form.replacedCoachId}
               onChange={(event) => setForm((prev) => ({ ...prev, replacedCoachId: event.target.value }))}
               className={formControlClassName}
@@ -570,11 +570,11 @@ const SubstituteCoachModal: React.FC<{
                   {coach.fullName} · {roleLabel(coach.role)}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </FormField>
 
           <FormField label="Новый тренер" hint={replacedCoach ? `Роль сохранится: ${roleLabel(replacedCoach.role)}` : undefined}>
-            <select
+            <NativeSelect
               value={form.substituteCoachId}
               onChange={(event) => setForm((prev) => ({ ...prev, substituteCoachId: event.target.value }))}
               className={formControlClassName}
@@ -586,11 +586,11 @@ const SubstituteCoachModal: React.FC<{
                   {coach.firstName} {coach.lastName}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </FormField>
 
           <FormField label="Причина">
-            <textarea
+            <Textarea
               rows={3}
               value={form.reason}
               onChange={(event) => setForm((prev) => ({ ...prev, reason: event.target.value }))}

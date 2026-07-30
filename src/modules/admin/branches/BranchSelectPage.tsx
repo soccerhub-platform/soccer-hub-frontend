@@ -3,17 +3,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowPathIcon,
-  BuildingOfficeIcon,
-  ChevronRightIcon,
-  ExclamationTriangleIcon,
-} from "@heroicons/react/24/outline";
+  RefreshCw,
+  Building2,
+  ChevronRight,
+  TriangleAlert,
+} from "lucide-react";
 
 import { useAuth } from "../../../shared/AuthContext";
 import { useAdminBranch } from "../BranchContext";
 import { BranchApi } from "./branch.api";
 import toast from "react-hot-toast";
-import { Button, EmptyState } from "../../../shared/ui";
+import { Button, EmptyState, Skeleton } from "../../../shared/ui";
 
 /* ================= UI MODEL ================= */
 
@@ -74,14 +74,14 @@ export default function BranchSelectPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex items-center gap-3 text-sm text-slate-500">
-            <ArrowPathIcon className="h-5 w-5 animate-spin text-cyan-800" />
+            <RefreshCw className="h-5 w-5 animate-spin text-[#0066cc]" />
             Загрузка филиалов...
           </div>
           <div className="mt-4 space-y-3">
-            <div className="h-14 animate-pulse rounded-xl bg-slate-100" />
-            <div className="h-14 animate-pulse rounded-xl bg-slate-100" />
+            <Skeleton className="h-14 rounded-xl" />
+            <Skeleton className="h-14 rounded-xl" />
           </div>
         </div>
       </div>
@@ -90,13 +90,13 @@ export default function BranchSelectPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cyan-50">
-            <BuildingOfficeIcon className="h-6 w-6 text-cyan-800" />
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+            <Building2 className="h-6 w-6 text-[#0066cc]" />
           </div>
           <div>
-            <h1 className="heading-font text-2xl font-semibold text-slate-900">
+            <h1 className="ui-page-title">
               Выберите филиал
             </h1>
             <p className="mt-1 text-sm leading-6 text-slate-500">
@@ -108,7 +108,7 @@ export default function BranchSelectPage() {
         {error ? (
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4">
             <div className="flex items-start gap-3">
-              <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+              <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-rose-800">Ошибка загрузки</div>
                 <div className="mt-1 text-sm text-rose-700">{error}</div>
@@ -139,10 +139,10 @@ export default function BranchSelectPage() {
                   setBranch(branch.id, branch.name);
                   navigate("/admin/dashboard");
                 }}
-                className="group flex w-full items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-cyan-200 hover:bg-cyan-50/40"
+                className="group flex w-full items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-blue-200 hover:bg-blue-50/40"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 transition group-hover:bg-white">
-                  <BuildingOfficeIcon className="h-5 w-5 text-slate-500 group-hover:text-cyan-800" />
+                  <Building2 className="h-5 w-5 text-slate-500 group-hover:text-[#0066cc]" />
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -154,7 +154,7 @@ export default function BranchSelectPage() {
                   )}
                 </div>
 
-                <ChevronRightIcon className="h-5 w-5 text-slate-300 transition group-hover:text-cyan-800" />
+                <ChevronRight className="h-5 w-5 text-slate-300 transition group-hover:text-[#0066cc]" />
               </button>
             ))}
           </div>

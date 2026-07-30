@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { DispatcherLeadsApi } from "./leads/leads.api";
+import {
+  DispatcherLeadsApi } from "./leads/leads.api";
 import { DispatcherBranchOption } from "./leads/types";
 import AnalyticsDashboard from "../../shared/analytics/AnalyticsDashboard";
 import {
+  NativeSelect,
   ErrorState,
   LoadingState,
   PageHeader,
   PageShell,
-} from "../../shared/ui";
+  } from "../../shared/ui";
 
 const DispatcherDashboard: React.FC = () => {
   const [branches, setBranches] = useState<DispatcherBranchOption[]>([]);
@@ -49,17 +51,17 @@ const DispatcherDashboard: React.FC = () => {
         title="Операционная аналитика диспетчера"
         description="Контроль заявок, филиалов и скорости обработки лидов по выбранному филиалу."
         actions={
-          <select
+          <NativeSelect
             value={selectedBranchId}
             onChange={(e) => setSelectedBranchId(e.target.value)}
-            className="min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
+            className="min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
           >
             {branches.map((branch) => (
               <option key={branch.id} value={branch.id}>
                 {branch.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         }
       />
 
