@@ -12,6 +12,7 @@ export type LeadType = "CHILDREN" | "ADULT";
 export type TimePreference = "MORNING" | "AFTERNOON" | "EVENING";
 export type Gender = "MALE" | "FEMALE";
 export type ExperienceLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+export type LeadParticipantStage = "NEW" | "TRIAL" | "CONTRACT" | "ENROLLMENT" | "FIRST_PAYMENT" | "COMPLETED" | "LOST";
 
 export interface LeadPrimaryContact {
   fullName: string;
@@ -25,6 +26,9 @@ export interface LeadParticipant {
   birthDate?: string;
   gender?: Gender;
   experience?: ExperienceLevel;
+  stage?: LeadParticipantStage | null;
+  playerId?: string | null;
+  stageChangedAt?: string | null;
 }
 
 export interface LeadTrial {

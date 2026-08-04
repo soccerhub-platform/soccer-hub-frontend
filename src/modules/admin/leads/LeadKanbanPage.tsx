@@ -40,6 +40,7 @@ import {
   isLossAction,
   isQualifyAction,
   isScheduleTrialAction,
+  getConvertibleParticipants,
 } from "./lead.ui-actions";
 
 const COLUMN_TITLES: Record<LeadColumnStatus, string> = {
@@ -207,11 +208,6 @@ const LeadKanbanPage: React.FC = () => {
 
   const handleLeadAction = async (lead: Lead, action: LeadAction) => {
     if (!token) return;
-    const isLeadAlreadyConverted = Boolean(
-      lead.status === "CONVERTED" ||
-        lead.clientId ||
-        lead.playerId
-    );
 
     if (isQualifyAction(action)) {
       setQualifyingLead(lead);
@@ -224,11 +220,14 @@ const LeadKanbanPage: React.FC = () => {
     }
 
     if (isConvertAction(action)) {
-      if (isLeadAlreadyConverted) {
-        toast("Клиент уже оформлен");
+      const convertibleParticipants = getConvertibleParticipants(lead);
+
+      if (convertibleParticipants.length === 0) {
+        toast("Нет детей, готовых к оформлению");
       } else {
         navigate(`/admin/leads/${encodeURIComponent(lead.id)}`);
       }
+
       return;
     }
 

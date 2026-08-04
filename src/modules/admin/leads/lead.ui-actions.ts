@@ -22,30 +22,57 @@ const MODERN_ACTION_TYPES = new Set<LeadAction["type"]>([
   "CLOSE_LEAD",
 ]);
 
+export const getConvertibleParticipants = (
+  lead: Pick<Lead, "participants">
+) =>
+  lead.participants.filter(
+    (participant) =>
+      participant.stage === "TRIAL" &&
+      !participant.playerId
+  );
+
+export const getConvertedParticipants = (
+  lead: Pick<Lead, "participants">
+) =>
+  lead.participants.filter(
+    (participant) => Boolean(participant.playerId)
+  );
+
 export const buildLeadUiActions = (
   lead: Lead,
-  rawActions: LeadAction[],
-  isAlreadyConverted = Boolean(
-    lead.status === "CONVERTED" || lead.clientId || lead.playerId
-  )
+  rawActions: LeadAction[]
 ): LeadAction[] => {
   const actions = rawActions;
-  const hasModernActions = actions.some((item) => MODERN_ACTION_TYPES.has(item.type));
+  const hasConvertibleParticipants =
+    getConvertibleParticipants(lead).length > 0;
+
+  const hasModernActions = actions.some((item) =>
+    MODERN_ACTION_TYPES.has(item.type)
+  );
 
   if (hasModernActions) {
-    return actions.filter((item) => !(isAlreadyConverted && item.type === "CONVERT_TO_CLIENT"));
+    return actions.filter(
+      (item) =>
+        !(
+          item.type === "CONVERT_TO_CLIENT" &&
+          !hasConvertibleParticipants
+        )
+    );
   }
 
-  if (lead.status === "DECISION_PENDING" && !isAlreadyConverted) {
+  if (
+    lead.status === "DECISION_PENDING" &&
+    hasConvertibleParticipants
+  ) {
     return [
-      action("CONVERT", "Оформить клиента", true),
+      action("CONVERT", "Оформить ребёнка", true),
       ...actions.filter((item) => item.type !== "CONVERT"),
     ];
   }
 
-  return isAlreadyConverted
-    ? actions.filter((item) => item.type !== "CONVERT")
-    : actions;
+  return actions.filter(
+    (item) => item.type !== "CONVERT"
+  );
 };
 
 export const getLeadActionEvent = (action: LeadAction) => {

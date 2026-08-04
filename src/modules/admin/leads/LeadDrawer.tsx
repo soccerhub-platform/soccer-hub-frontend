@@ -29,6 +29,8 @@ import {
   isLossAction,
   isQualifyAction,
   isScheduleTrialAction,
+  getConvertibleParticipants,
+  getConvertedParticipants,
 } from "./lead.ui-actions";
 import { Button, ErrorState, LoadingState, SectionCard, Tabs, TabsList, TabsTrigger } from "../../../shared/ui";
 import {
@@ -123,6 +125,12 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
   const trialParticipant =
     lead?.trial &&
     lead.participants.find((participant) => participant.id === lead.trial?.participantId);
+  const convertibleParticipants = lead
+    ? getConvertibleParticipants(lead)
+    : [];
+  const convertedParticipants = lead
+    ? getConvertedParticipants(lead)
+    : [];
   const currentUserId = getCurrentUserId(token);
 
   useEffect(() => {
@@ -162,14 +170,14 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     if (!isOpen || loading || !lead || !initialAction) return;
 
     if (isConvertAction(initialAction)) {
-      if (lead.status === "CONVERTED" || lead.clientId || lead.playerId) {
-        toast("Клиент уже оформлен");
+      if (convertibleParticipants.length === 0) {
+        toast("Нет детей, готовых к оформлению");
       } else {
         setShowConvertModal(true);
       }
       onInitialActionHandled?.();
     }
-  }, [initialAction, isOpen, lead, loading, onInitialActionHandled]);
+  }, [initialAction, isOpen, lead, loading, onInitialActionHandled, convertibleParticipants.length]);
 
   useEffect(() => {
     let isMounted = true;
@@ -250,11 +258,16 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     !!lead?.assignedAdmin?.id && lead.assignedAdmin.id === currentUserId;
   const assignedAdminDisplayName = lead?.assignedAdmin?.name?.trim() || null;
   const rawActions = lead?.actions ?? [];
-  const isAlreadyConverted = Boolean(
-    lead?.status === "CONVERTED" || lead?.clientId || lead?.playerId || conversionResult?.clientId
-  );
-  const conversionPlayerId = lead?.playerId || conversionResult?.playerId || "";
-  const actions = lead ? buildLeadUiActions(lead, rawActions, isAlreadyConverted) : [];
+  const hasConvertedParticipants =
+    convertedParticipants.length > 0 ||
+    Boolean(conversionResult?.playerId);
+  const conversionPlayerId =
+    conversionResult?.playerId ||
+    convertedParticipants[0]?.playerId ||
+    "";
+  const actions = lead
+    ? buildLeadUiActions(lead, rawActions)
+    : [];
   const canUseConvertRole = userHasRole(token, [
     "ADMIN",
     "SUPER_ADMIN",
@@ -264,7 +277,9 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     lead && !["LOST", "CONVERTED"].includes(lead.status)
   );
   const canShowConvertButton =
-    canUseConvertRole && canConvertByStatus && !isAlreadyConverted;
+    canUseConvertRole &&
+    canConvertByStatus &&
+    convertibleParticipants.length > 0;
   const assignedAdminInitials = assignedAdminDisplayName
     ? assignedAdminDisplayName
         .split(/\s+/)
@@ -304,8 +319,8 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
     }
 
     if (isConvertAction(action)) {
-      if (isAlreadyConverted) {
-        toast("Клиент уже оформлен");
+      if (convertibleParticipants.length === 0) {
+        toast("Нет детей, готовых к оформлению");
         return;
       }
       setShowConvertModal(true);
@@ -545,13 +560,13 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                 </div>
               </section>
 
-              {!embedded && (canShowConvertButton || isAlreadyConverted) ? (
+              {!embedded && (canShowConvertButton || hasConvertedParticipants) ? (
                 <section className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
                     Клиент
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    {isAlreadyConverted ? (
+                    {hasConvertedParticipants ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         <div className="font-medium text-emerald-700">
                           Клиент оформлен
@@ -563,9 +578,12 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                           {(lead.clientId || conversionResult?.clientId) ? (
                             <Button
                               type="button"
+                              className="text-xs"
                               onClick={() =>
                                 navigate(
-                                  `/admin/clients/${encodeURIComponent(lead.clientId || conversionResult!.clientId)}/overview`
+                                  `/admin/clients/${encodeURIComponent(
+                                    lead.clientId || conversionResult!.clientId
+                                  )}/overview`
                                 )
                               }
                             >

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Input, Button, DatePicker, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue  } from "../../../shared/ui";
 import { LeadParticipant } from "./types";
 import { formatBirthDate } from "./lead.format";
@@ -34,6 +34,14 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
   onSubmit,
 }) => {
   const isAdult = leadType === "ADULT";
+  const eligibleParticipants = useMemo(() =>
+      participants.filter(
+        (participant) =>
+          participant.stage === "TRIAL" &&
+          !participant.playerId
+      ),
+    [participants]
+  );
   const [participantId, setParticipantId] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [relationshipType, setRelationshipType] = useState<
@@ -45,18 +53,18 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    const first = participants.length === 1 ? participants[0] : null;
+    const first = eligibleParticipants.length === 1 ? eligibleParticipants[0] : null;
     setParticipantId(first?.id ?? "");
     setBirthDate(first?.birthDate ?? "");
     setRelationshipType(isAdult ? "SELF" : "MOTHER");
     setReplacePrimaryContact(false);
     setReplacePrimaryPayer(false);
     setAttempted(false);
-  }, [isAdult, isOpen, participants]);
+  }, [isAdult, isOpen, eligibleParticipants]);
 
   if (!isOpen) return null;
 
-  const invalid = !participantId || !birthDate;
+  const invalid = eligibleParticipants.length === 0 || !participantId || !birthDate;
 
   return (
     <ModalShell
@@ -111,14 +119,30 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
               value={participantId}
               onValueChange={(nextId) => {
                 setParticipantId(nextId);
-                setBirthDate(participants.find((item) => item.id === nextId)?.birthDate ?? "");
+                setBirthDate(
+                  eligibleParticipants.find((item) => item.id === nextId)?.birthDate ?? ""
+                );
               }}
               disabled={submitting}
             >
               <SelectTrigger><SelectValue placeholder="Выберите ученика" /></SelectTrigger>
-              <SelectContent>{participants.map((participant, index) => <SelectItem key={participant.id || index} value={participant.id || `participant-${index}`}>{participantLabel(participant)}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {eligibleParticipants.map((participant, index) => (
+                  <SelectItem
+                    key={participant.id || index}
+                    value={participant.id || `participant-${index}`}
+                  >
+                    {participantLabel(participant)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
             {attempted && !participantId ? <p className="text-xs text-rose-600">Выберите ученика</p> : null}
+            {eligibleParticipants.length === 0 ? (
+              <p className="text-xs text-amber-700">
+                Нет детей, готовых к оформлению. Сначала необходимо завершить пробный этап.
+              </p>
+            ) : null}
           </label>
 
           <label className="space-y-1 text-sm text-slate-600">
