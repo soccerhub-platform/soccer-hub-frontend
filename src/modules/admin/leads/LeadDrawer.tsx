@@ -68,9 +68,9 @@ const statusBadgeClassName = (status?: string) => {
       return "bg-amber-100 text-amber-700 border-amber-200";
     case "DECISION_PENDING":
       return "bg-orange-100 text-orange-700 border-orange-200";
-    case "CONTRACT_PENDING": 
+    case "CONTRACT_PENDING":
       return "bg-cyan-100 text-cyan-700 border-cyan-200";
-    case "PAYMENT_PENDING": 
+    case "PAYMENT_PENDING":
       return "bg-orange-100 text-orange-700 border-orange-200";
     case "CONVERTED":
       return "bg-emerald-100 text-emerald-700 border-emerald-200";
