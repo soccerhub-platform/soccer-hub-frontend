@@ -3,6 +3,8 @@ export const LEAD_COLUMN_ORDER = [
   "IN_PROGRESS",
   "TRIAL_SCHEDULED",
   "DECISION_PENDING",
+  "CONTRACT_PENDING",
+  "PAYMENT_PENDING",
 ] as const;
 
 export type LeadColumnStatus = (typeof LEAD_COLUMN_ORDER)[number];
@@ -72,7 +74,9 @@ export type LeadActionType =
   | "NO_SHOW"
   | "POST_TRIAL_REJECT"
   | "LOST"
-  | "REJECT";
+  | "REJECT"
+  | "CREATE_CONTRACT"
+  | "RECORD_PAYMENT";
 
 export interface LeadAction {
   type: LeadActionType;
@@ -199,10 +203,21 @@ export type LeadEventResponse = {
   lead?: LeadDetails | null;
 };
 
+export type LeadConversionMode =
+  | "AFTER_TRIAL"
+  | "WITHOUT_TRIAL";
+
 export type ConvertLeadRequest = {
   participantId: string;
   participantBirthDate: string;
-  relationshipType: "SELF" | "MOTHER" | "FATHER" | "GUARDIAN" | "OTHER";
+  relationshipType:
+    | "SELF"
+    | "MOTHER"
+    | "FATHER"
+    | "GUARDIAN"
+    | "OTHER";
+  existingClientId?: string | null;
+  conversionMode: LeadConversionMode;
   replacePrimaryContact: boolean;
   replacePrimaryPayer: boolean;
 };

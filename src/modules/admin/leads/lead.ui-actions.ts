@@ -20,15 +20,15 @@ const MODERN_ACTION_TYPES = new Set<LeadAction["type"]>([
   "MARK_NO_SHOW",
   "CANCEL_TRIAL",
   "CLOSE_LEAD",
+  "CREATE_CONTRACT",
+  "RECORD_PAYMENT",
 ]);
 
 export const getConvertibleParticipants = (
   lead: Pick<Lead, "participants">
 ) =>
   lead.participants.filter(
-    (participant) =>
-      participant.stage === "TRIAL" &&
-      !participant.playerId
+    (participant) => !participant.playerId
   );
 
 export const getConvertedParticipants = (
@@ -61,11 +61,18 @@ export const buildLeadUiActions = (
   }
 
   if (
-    lead.status === "DECISION_PENDING" &&
+    (lead.status === "IN_PROGRESS" ||
+      lead.status === "DECISION_PENDING") &&
     hasConvertibleParticipants
   ) {
     return [
-      action("CONVERT", "Оформить ребёнка", true),
+      action(
+        "CONVERT",
+        lead.status === "IN_PROGRESS"
+          ? "Оформить без пробного"
+          : "Оформить ребёнка",
+        true
+      ),
       ...actions.filter((item) => item.type !== "CONVERT"),
     ];
   }

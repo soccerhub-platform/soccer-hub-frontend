@@ -68,6 +68,10 @@ const statusBadgeClassName = (status?: string) => {
       return "bg-amber-100 text-amber-700 border-amber-200";
     case "DECISION_PENDING":
       return "bg-orange-100 text-orange-700 border-orange-200";
+    case "CONTRACT_PENDING": 
+      return "bg-cyan-100 text-cyan-700 border-cyan-200";
+    case "PAYMENT_PENDING": 
+      return "bg-orange-100 text-orange-700 border-orange-200";
     case "CONVERTED":
       return "bg-emerald-100 text-emerald-700 border-emerald-200";
     case "LOST":
@@ -324,6 +328,35 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
         return;
       }
       setShowConvertModal(true);
+      return;
+    }
+
+    if (action.type === "CREATE_CONTRACT") {
+      if (!lead.clientId || !conversionPlayerId) {
+        toast.error(
+          "Для создания договора сначала должны быть оформлены клиент и ученик"
+        );
+        return;
+      }
+
+      navigate(
+        `/admin/contracts?drawer=create-contract` +
+          `&clientId=${encodeURIComponent(lead.clientId)}` +
+          `&playerId=${encodeURIComponent(conversionPlayerId)}` +
+          `&leadId=${encodeURIComponent(lead.id)}`
+      );
+      return;
+    }
+
+    if (action.type === "RECORD_PAYMENT") {
+      if (!lead.clientId) {
+        toast.error("У лида не указан клиент");
+        return;
+      }
+
+      navigate(
+        `/admin/clients/${encodeURIComponent(lead.clientId)}/payments`
+      );
       return;
     }
 
@@ -948,6 +981,9 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
         <ConvertLeadModal
           isOpen={showConvertModal}
           leadName={lead.primaryContact.fullName || "Лид"}
+          leadPhone={lead.primaryContact.phone}
+          leadStatus={lead.status}
+          branchId={branchId}
           participants={lead.participants ?? []}
           leadType={lead.leadType}
           submitting={convertSubmitting}

@@ -1,76 +1,212 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Input, Button, DatePicker, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue  } from "../../../shared/ui";
-import { LeadParticipant } from "./types";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  DatePicker,
+  ModalShell,
+  SearchableSelect,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  ToggleGroup,
+  ToggleGroupItem,
+} from "../../../shared/ui";
+import { ClientApi } from "../clients/client.api";
+import type { ClientListItem } from "../clients/client.types";
+import type {
+  ConvertLeadRequest,
+  LeadParticipant,
+  LeadStatus,
+} from "./types";
 import { formatBirthDate } from "./lead.format";
 
 interface ConvertLeadModalProps {
   isOpen: boolean;
   leadName: string;
+  leadPhone?: string | null;
   leadType?: string | null;
+  leadStatus: LeadStatus;
+  branchId: string;
   participants: LeadParticipant[];
   submitting: boolean;
   onClose: () => void;
-  onSubmit: (payload: {
-    participantId: string;
-    participantBirthDate: string;
-    relationshipType: "SELF" | "MOTHER" | "FATHER" | "GUARDIAN" | "OTHER";
-    replacePrimaryContact: boolean;
-    replacePrimaryPayer: boolean;
-  }) => Promise<void> | void;
+  onSubmit: (payload: ConvertLeadRequest) => Promise<void> | void;
 }
 
+type ClientMode = "NEW" | "EXISTING";
+
 const participantLabel = (participant: LeadParticipant) =>
-  [participant.fullName, participant.birthDate ? formatBirthDate(participant.birthDate) : null]
+  [
+    participant.fullName,
+    participant.birthDate
+      ? formatBirthDate(participant.birthDate)
+      : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 
 const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
   isOpen,
   leadName,
+  leadPhone,
   leadType,
+  leadStatus,
+  branchId,
   participants,
   submitting,
   onClose,
   onSubmit,
 }) => {
   const isAdult = leadType === "ADULT";
-  const eligibleParticipants = useMemo(() =>
-      participants.filter(
-        (participant) =>
-          participant.stage === "TRIAL" &&
-          !participant.playerId
-      ),
+
+  const eligibleParticipants = useMemo(
+    () => participants.filter((participant) => !participant.playerId),
     [participants]
   );
+
+  const conversionMode =
+    leadStatus === "DECISION_PENDING"
+      ? "AFTER_TRIAL"
+      : leadStatus === "IN_PROGRESS"
+        ? "WITHOUT_TRIAL"
+        : null;
+
   const [participantId, setParticipantId] = useState("");
   const [birthDate, setBirthDate] = useState("");
-  const [relationshipType, setRelationshipType] = useState<
-    "SELF" | "MOTHER" | "FATHER" | "GUARDIAN" | "OTHER"
-  >(isAdult ? "SELF" : "MOTHER");
-  const [replacePrimaryContact, setReplacePrimaryContact] = useState(false);
-  const [replacePrimaryPayer, setReplacePrimaryPayer] = useState(false);
+  const [relationshipType, setRelationshipType] =
+    useState<ConvertLeadRequest["relationshipType"]>(
+      isAdult ? "SELF" : "MOTHER"
+    );
+
+  const [clientMode, setClientMode] =
+    useState<ClientMode>("NEW");
+  const [existingClientId, setExistingClientId] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
+  const [clients, setClients] = useState<ClientListItem[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [clientsError, setClientsError] = useState<string | null>(null);
   const [attempted, setAttempted] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
-    const first = eligibleParticipants.length === 1 ? eligibleParticipants[0] : null;
+
+    const first =
+      eligibleParticipants.length === 1
+        ? eligibleParticipants[0]
+        : null;
+
     setParticipantId(first?.id ?? "");
     setBirthDate(first?.birthDate ?? "");
     setRelationshipType(isAdult ? "SELF" : "MOTHER");
-    setReplacePrimaryContact(false);
-    setReplacePrimaryPayer(false);
+    setClientMode("NEW");
+    setExistingClientId("");
+    setClientSearch(leadPhone ?? "");
+    setClients([]);
+    setClientsError(null);
     setAttempted(false);
-  }, [isAdult, isOpen, eligibleParticipants]);
+  }, [
+    eligibleParticipants,
+    isAdult,
+    isOpen,
+    leadPhone,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isOpen ||
+      isAdult ||
+      clientMode !== "EXISTING"
+    ) {
+      return;
+    }
+
+    let active = true;
+
+    const timeoutId = window.setTimeout(async () => {
+      setClientsLoading(true);
+      setClientsError(null);
+
+      try {
+        const response = await ClientApi.list({
+          branchId,
+          search: clientSearch,
+          page: 0,
+          size: 20,
+          sort: "fullName,asc",
+        });
+
+        if (active) {
+          setClients(response.content ?? []);
+        }
+      } catch (error) {
+        console.error(error);
+
+        if (active) {
+          setClients([]);
+          setClientsError("Не удалось загрузить клиентов");
+        }
+      } finally {
+        if (active) {
+          setClientsLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    branchId,
+    clientMode,
+    clientSearch,
+    isAdult,
+    isOpen,
+  ]);
+
+  const clientOptions = useMemo(
+    () =>
+      clients.map((client) => ({
+        value: client.id,
+        label: client.fullName,
+        description:
+          [client.phone, client.email]
+            .filter(Boolean)
+            .join(" · ") || "Контакты не указаны",
+        keywords: [
+          client.fullName,
+          client.phone,
+          client.email,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      })),
+    [clients]
+  );
 
   if (!isOpen) return null;
 
-  const invalid = eligibleParticipants.length === 0 || !participantId || !birthDate;
+  const invalid =
+    !conversionMode ||
+    eligibleParticipants.length === 0 ||
+    !participantId ||
+    !birthDate ||
+    (clientMode === "EXISTING" && !existingClientId);
 
   return (
     <ModalShell
-      title="Оформить клиента"
-      description={`Создайте роли клиента и ученика для ${leadName}. Договор и зачисление оформляются отдельно.`}
-      eyebrow="Конвертация лида"
+      title="Оформить ребёнка"
+      description={`Создайте ученика для ${leadName} и перейдите к оформлению договора.`}
+      eyebrow={
+        conversionMode === "AFTER_TRIAL"
+          ? "После пробного"
+          : "Без пробного"
+      }
       onClose={onClose}
       closeDisabled={submitting}
       placement="right"
@@ -79,112 +215,235 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
       bodyClassName="bg-slate-50 px-4 py-4 sm:px-5"
       footer={
         <div className="flex items-center justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={submitting}
+          >
             Отмена
           </Button>
+
           <Button
             type="button"
             disabled={submitting || invalid}
-            isLoading={submitting}
             onClick={() => {
               setAttempted(true);
-              if (invalid) return;
+
+              if (invalid || !conversionMode) return;
+
               void onSubmit({
                 participantId,
                 participantBirthDate: birthDate,
                 relationshipType,
-                replacePrimaryContact,
-                replacePrimaryPayer,
+                existingClientId:
+                  clientMode === "EXISTING"
+                    ? existingClientId
+                    : null,
+                conversionMode,
+                replacePrimaryContact: false,
+                replacePrimaryPayer: false,
               });
             }}
           >
-            Оформить клиента
+            {submitting
+              ? "Оформляем..."
+              : "Перейти к договору"}
           </Button>
         </div>
       }
     >
-      <div className="space-y-5">
-        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm leading-5 text-[#0066cc]">
-          <div className="font-semibold">Что произойдёт после подтверждения</div>
-          <div className="mt-1 text-xs text-[#0066cc]/80">
-            Будут созданы Client, Student и связь между ними. Договор, оплата и зачисление в группу не создаются автоматически.
+      <div className="flex flex-col gap-5">
+        <Alert>
+          <AlertTitle>
+            Что произойдёт после подтверждения
+          </AlertTitle>
+          <AlertDescription>
+            Будут созданы или связаны клиент, ученик и их
+            отношение. Лид перейдёт в статус «Оформление
+            договора». Договор и оплата создаются отдельно.
+          </AlertDescription>
+        </Alert>
+
+        {!isAdult ? (
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Родитель ребёнка
+            </span>
+
+            <ToggleGroup
+              type="single"
+              value={clientMode}
+              onValueChange={(value) => {
+                if (!value) return;
+
+                const nextMode = value as ClientMode;
+                setClientMode(nextMode);
+                setExistingClientId("");
+
+                if (nextMode === "EXISTING") {
+                  setClientSearch(leadPhone ?? "");
+                }
+              }}
+              variant="outline"
+              className="grid gap-2 sm:grid-cols-2"
+              disabled={submitting}
+            >
+              <ToggleGroupItem value="NEW">
+                Новый клиент
+              </ToggleGroupItem>
+              <ToggleGroupItem value="EXISTING">
+                Существующий клиент
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            <span className="text-xs text-slate-500">
+              Для второго ребёнка выберите уже созданного
+              родителя, чтобы не создавать дубликат.
+            </span>
           </div>
-        </div>
+        ) : null}
+
+        {!isAdult && clientMode === "EXISTING" ? (
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Существующий клиент
+            </span>
+
+            <SearchableSelect
+              value={existingClientId}
+              onValueChange={setExistingClientId}
+              options={clientOptions}
+              placeholder="Выберите клиента"
+              searchPlaceholder="Имя, телефон или email"
+              emptyText={
+                clientsError ??
+                "Подходящие клиенты не найдены"
+              }
+              loading={clientsLoading}
+              disabled={submitting}
+              onSearchChange={setClientSearch}
+            />
+
+            {attempted && !existingClientId ? (
+              <p className="text-xs text-rose-600">
+                Выберите существующего клиента
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <label className="space-y-1 text-sm text-slate-600">
+          <label className="flex flex-col gap-1 text-sm text-slate-600">
             <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
               Ученик <span className="text-rose-500">*</span>
             </span>
+
             <Select
               value={participantId}
               onValueChange={(nextId) => {
                 setParticipantId(nextId);
                 setBirthDate(
-                  eligibleParticipants.find((item) => item.id === nextId)?.birthDate ?? ""
+                  eligibleParticipants.find(
+                    (item) => item.id === nextId
+                  )?.birthDate ?? ""
                 );
               }}
               disabled={submitting}
             >
-              <SelectTrigger><SelectValue placeholder="Выберите ученика" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите ученика" />
+              </SelectTrigger>
+
               <SelectContent>
-                {eligibleParticipants.map((participant, index) => (
-                  <SelectItem
-                    key={participant.id || index}
-                    value={participant.id || `participant-${index}`}
-                  >
-                    {participantLabel(participant)}
-                  </SelectItem>
-                ))}
+                <SelectGroup>
+                  {eligibleParticipants.map(
+                    (participant, index) => (
+                      <SelectItem
+                        key={participant.id || index}
+                        value={
+                          participant.id ||
+                          `participant-${index}`
+                        }
+                      >
+                        {participantLabel(participant)}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectGroup>
               </SelectContent>
             </Select>
-            {attempted && !participantId ? <p className="text-xs text-rose-600">Выберите ученика</p> : null}
+
+            {attempted && !participantId ? (
+              <p className="text-xs text-rose-600">
+                Выберите ученика
+              </p>
+            ) : null}
+
             {eligibleParticipants.length === 0 ? (
               <p className="text-xs text-amber-700">
-                Нет детей, готовых к оформлению. Сначала необходимо завершить пробный этап.
+                Этот ребёнок уже связан с учеником.
               </p>
             ) : null}
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
+          <label className="flex flex-col gap-1 text-sm text-slate-600">
             <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Дата рождения <span className="text-rose-500">*</span>
+              Дата рождения{" "}
+              <span className="text-rose-500">*</span>
             </span>
-            <DatePicker value={birthDate} onValueChange={setBirthDate} disabled={submitting} />
-            {attempted && !birthDate ? <p className="text-xs text-rose-600">Укажите дату рождения</p> : null}
+
+            <DatePicker
+              value={birthDate}
+              onValueChange={setBirthDate}
+              disabled={submitting}
+            />
+
+            {attempted && !birthDate ? (
+              <p className="text-xs text-rose-600">
+                Укажите дату рождения
+              </p>
+            ) : null}
           </label>
         </div>
 
-        <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Тип связи</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {(isAdult ? ["SELF"] : ["MOTHER", "FATHER", "GUARDIAN", "OTHER"]).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setRelationshipType(type as typeof relationshipType)}
-                className={`rounded-lg border px-3 py-2 text-sm transition ${
-                  relationshipType === type
-                    ? "border-emerald-600 bg-emerald-50 text-emerald-800"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                }`}
-              >
-                {{ SELF: "SELF", MOTHER: "Мама", FATHER: "Папа", GUARDIAN: "Опекун", OTHER: "Другое" }[type]}
-              </button>
-            ))}
-          </div>
-        </div>
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Кем клиент приходится ученику
+          </span>
 
-        {!isAdult ? (
-          <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-            <label className="flex items-center gap-2">
-              <Input type="checkbox" checked readOnly /> Основной контакт
-            </label>
-            <label className="flex items-center gap-2">
-              <Input type="checkbox" checked readOnly /> Основной плательщик
-            </label>
-            <p className="text-xs text-slate-500">Если у ученика уже есть основные роли, система попросит подтвердить замену.</p>
-          </div>
-        ) : null}
+          <ToggleGroup
+            type="single"
+            value={relationshipType}
+            onValueChange={(value) => {
+              if (value) {
+                setRelationshipType(
+                  value as ConvertLeadRequest["relationshipType"]
+                );
+              }
+            }}
+            variant="outline"
+            className="grid gap-2 sm:grid-cols-4"
+            disabled={submitting}
+          >
+            {(isAdult
+              ? [{ value: "SELF", label: "Сам ученик" }]
+              : [
+                  { value: "MOTHER", label: "Мама" },
+                  { value: "FATHER", label: "Папа" },
+                  { value: "GUARDIAN", label: "Опекун" },
+                  { value: "OTHER", label: "Другое" },
+                ]
+            ).map((option) => (
+              <ToggleGroupItem
+                key={option.value}
+                value={option.value}
+              >
+                {option.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
       </div>
     </ModalShell>
   );

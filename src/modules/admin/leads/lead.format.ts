@@ -3,6 +3,8 @@ export const LEAD_STATUS_LABELS: Record<string, string> = {
   IN_PROGRESS: "В работе",
   TRIAL_SCHEDULED: "Пробное назначено",
   DECISION_PENDING: "Ожидает решения",
+  CONTRACT_PENDING: "Оформление договора",
+  PAYMENT_PENDING: "Ожидает оплату",
   CONVERTED: "Клиент оформлен",
   LOST: "Отказ",
   REJECTED: "Отказ",

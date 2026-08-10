@@ -48,6 +48,8 @@ const COLUMN_TITLES: Record<LeadColumnStatus, string> = {
   IN_PROGRESS: "В работе",
   TRIAL_SCHEDULED: "Пробное назначено",
   DECISION_PENDING: "Ожидают решения",
+  CONTRACT_PENDING: "Оформление договора",
+  PAYMENT_PENDING: "Ожидают оплату",
 };
 
 const COLUMN_COLORS: Record<
@@ -77,6 +79,16 @@ const COLUMN_COLORS: Record<
     column: "bg-violet-50/90 border-violet-200",
     header: "bg-violet-100/90 text-violet-700 border-violet-200",
     badge: "bg-violet-200 text-violet-700",
+  },
+  CONTRACT_PENDING: {
+    column: "bg-cyan-50/90 border-cyan-200",
+    header: "bg-cyan-100/90 text-cyan-700 border-cyan-200",
+    badge: "bg-cyan-200 text-cyan-700",
+  },
+  PAYMENT_PENDING: {
+    column: "bg-orange-50/90 border-orange-200",
+    header: "bg-orange-100/90 text-orange-700 border-orange-200",
+    badge: "bg-orange-200 text-orange-700",
   },
 };
 
