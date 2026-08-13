@@ -1,4 +1,4 @@
-export type TrialBookingStatus = "SCHEDULED" | "CONFIRMED" | "CANCELED" | "COMPLETED";
+export type TrialBookingStatus = "SCHEDULED" | "CANCELED" | "COMPLETED";
 export type TrialAttendanceStatus = "UNMARKED" | "ATTENDED" | "NO_SHOW";
 export type TrialResult = "PENDING" | "INTERESTED" | "FOLLOW_UP" | "NOT_INTERESTED" | "CONVERTED";
 export type TrialNextActionType =
@@ -55,7 +55,6 @@ export interface TrialDetails {
   outcome?: { result: TrialResult; coachFeedback?: string | null; recommendedGroupId?: string | null; recommendedGroupName?: string | null } | null;
   nextAction?: { type: TrialNextActionType; dueAt?: string | null } | null;
   capabilities: {
-    canConfirm: boolean;
     canCancel: boolean;
     canReschedule: boolean;
     canMarkAttendance: boolean;

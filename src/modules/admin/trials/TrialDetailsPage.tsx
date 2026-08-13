@@ -26,6 +26,7 @@ import {
   Textarea,
   WorkspaceBreadcrumbs,
   WorkspaceHeader,
+  DatePicker,
   type ActionMenuItem,
 } from "../../../shared/ui";
 import {
@@ -39,6 +40,10 @@ import {
 } from "../../../shared/ui/shadcn/form";
 import { TrialsApi, attendanceLabels, resultLabels, trialStatusLabels, trialStatusTone } from "./trials.api";
 import type { TrialAttendanceStatus, TrialDetails, TrialNextActionType, TrialResult } from "./trials.types";
+import {
+  AdminSessionApi,
+  type AdminSessionListItem,
+} from "../groups/session.api";
 
 const nextActionLabels: Record<TrialNextActionType, string> = {
   CALL: "Позвонить",
@@ -130,6 +135,13 @@ const TrialDetailsPage: React.FC = () => {
   const secondaryActions = useMemo<ActionMenuItem[]>(() => {
     if (!trial) return [];
     return [
+      ...(trial.capabilities.canReschedule && trial.group ? [{
+        key: "reschedule",
+        label: "Перенести пробное",
+        icon: <CalendarDays />,
+        to: drawerHref("reschedule"),
+        disabled: acting,
+      }] : []),
       ...(trial.capabilities.canMarkAttendance ? [{
         key: "attendance",
         label: "Отметить посещение",
@@ -169,14 +181,11 @@ const TrialDetailsPage: React.FC = () => {
     <PageShell className="space-y-6">
       <WorkspaceBreadcrumbs items={[{ label: "Пробные занятия", to: "/admin/trials" }, { label: studentName }]} />
       <WorkspaceHeader
-        actions={<>
-          {trial.capabilities.canConfirm ? (
-            <Button isLoading={acting} onClick={() => void apply(() => TrialsApi.confirm(trial.id), "Пробное подтверждено")}>
-              <CheckCircle className="h-4 w-4" /> Подтвердить
-            </Button>
-          ) : null}
-          {secondaryActions.length ? <ActionMenu items={secondaryActions} /> : null}
-        </>}
+        actions={
+          secondaryActions.length
+            ? <ActionMenu items={secondaryActions} />
+            : undefined
+        }
       >
         <div className="flex min-w-0 items-start gap-4">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]">
@@ -253,6 +262,24 @@ const TrialDetailsPage: React.FC = () => {
         </aside>
       </div>
 
+      {drawer === "reschedule" && trial.group ? (
+        <RescheduleTrialSheet
+          groupId={trial.group.id}
+          currentSessionId={trial.session?.id}
+          initialDate={trial.session?.date}
+          close={() => setDrawer()}
+          saving={acting}
+          onSubmit={(trainingSessionId) =>
+            void apply(
+              () => TrialsApi.reschedule(
+                trial.id,
+                trainingSessionId,
+              ),
+              "Пробное перенесено",
+            )
+          }
+        />
+      ) : null}
       {drawer === "cancel" ? (
         <CancelTrialSheet
           close={() => setDrawer()}
@@ -297,6 +324,203 @@ const StateEvent: React.FC<{ label: string; value: string; active?: boolean }> =
     </div>
   </div>
 );
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+const RescheduleTrialSheet: React.FC<{
+  groupId: string;
+  currentSessionId?: string;
+  initialDate?: string;
+  close: () => void;
+  saving: boolean;
+  onSubmit: (trainingSessionId: string) => void;
+}> = ({
+  groupId,
+  currentSessionId,
+  initialDate,
+  close,
+  saving,
+  onSubmit,
+}) => {
+  const [date, setDate] = useState(
+    initialDate && initialDate >= today()
+      ? initialDate
+      : today(),
+  );
+  const [sessions, setSessions] = useState<
+    AdminSessionListItem[]
+  >([]);
+  const [selectedSessionId, setSelectedSessionId] =
+    useState("");
+  const [loadingSessions, setLoadingSessions] =
+    useState(false);
+  const [loadError, setLoadError] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    setSelectedSessionId("");
+    setLoadingSessions(true);
+    setLoadError(null);
+
+    void AdminSessionApi
+      .listByGroup(
+        groupId,
+        { from: date, to: date },
+        "",
+      )
+      .then((response) => {
+        if (!mounted) return;
+
+        setSessions(
+          response.items.filter(
+            (session) =>
+              session.status === "PLANNED"
+              && session.id !== currentSessionId
+              && new Date(session.startsAt).getTime()
+                > Date.now(),
+          ),
+        );
+      })
+      .catch(() => {
+        if (mounted) {
+          setLoadError(
+            "Не удалось загрузить доступные занятия",
+          );
+        }
+      })
+      .finally(() => {
+        if (mounted) setLoadingSessions(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [currentSessionId, date, groupId]);
+
+  return (
+    <EntitySheet
+      title="Перенести пробное занятие"
+      description="Выберите другую будущую тренировку текущей группы."
+      onClose={close}
+      closeDisabled={saving}
+      footer={
+        <div className="flex w-full justify-end gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={close}
+            disabled={saving}
+          >
+            Отмена
+          </Button>
+
+          <Button
+            type="button"
+            isLoading={saving}
+            disabled={!selectedSessionId}
+            onClick={() => onSubmit(selectedSessionId)}
+          >
+            Перенести
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-5">
+        <div>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">
+            Новая дата
+          </span>
+
+          <DatePicker
+            min={today()}
+            value={date}
+            onValueChange={setDate}
+          />
+        </div>
+
+        {loadingSessions ? (
+          <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
+            Загрузка доступных занятий...
+          </div>
+        ) : null}
+
+        {!loadingSessions && loadError ? (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            {loadError}
+          </div>
+        ) : null}
+
+        {!loadingSessions
+          && !loadError
+          && sessions.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+              На выбранную дату нет других доступных занятий.
+            </div>
+          ) : null}
+
+        {!loadingSessions && sessions.length > 0 ? (
+          <div className="space-y-2">
+            {sessions.map((session) => {
+              const selected =
+                selectedSessionId === session.id;
+
+              return (
+                <button
+                  key={session.id}
+                  type="button"
+                  onClick={() =>
+                    setSelectedSessionId(session.id)
+                  }
+                  className={[
+                    "flex w-full items-center justify-between",
+                    "rounded-lg border p-3 text-left transition",
+                    selected
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-slate-200 bg-white hover:border-blue-300",
+                  ].join(" ")}
+                >
+                  <span>
+                    <span className="block font-semibold text-slate-900">
+                      {formatTime(session.startsAt)}
+                      {"–"}
+                      {formatTime(session.endsAt)}
+                    </span>
+
+                    <span className="mt-1 block text-xs text-slate-500">
+                      {session.coaches
+                        .map((coach) => coach.fullName)
+                        .join(", ")
+                        || "Тренер не указан"}
+
+                      {session.location?.name
+                        ? ` · ${session.location.name}`
+                        : ""}
+                    </span>
+                  </span>
+
+                  <span
+                    className={[
+                      "rounded-full px-2 py-1",
+                      "text-[11px] font-semibold",
+                      selected
+                        ? "bg-[#0066cc] text-white"
+                        : "bg-slate-100 text-slate-600",
+                    ].join(" ")}
+                  >
+                    {selected ? "Выбрано" : "Выбрать"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    </EntitySheet>
+  );
+};
 
 const CancelTrialSheet: React.FC<{ close: () => void; saving: boolean; onSubmit: (reason: string) => void }> = ({ close, saving, onSubmit }) => {
   const form = useForm<CancelFormValues>({

@@ -196,7 +196,7 @@ const TrialsPage: React.FC = () => {
   const metrics = useMemo(() => {
     const items = data?.content ?? [];
     return {
-      scheduled: items.filter((item) => item.status === "SCHEDULED" || item.status === "CONFIRMED").length,
+      scheduled: items.filter((item) => item.status === "SCHEDULED").length,
       completed: items.filter((item) => item.status === "COMPLETED").length,
       unmarked: items.filter((item) => item.attendanceStatus === "UNMARKED").length,
     };

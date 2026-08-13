@@ -38,12 +38,18 @@ export const TrialsApi = {
     return apiClient.get(`/admin/trials/${trialId}`);
   },
 
-  confirm(trialId: string): Promise<TrialDetails> {
-    return apiClient.post(`/admin/trials/${trialId}/confirm`, {});
-  },
-
   cancel(trialId: string, reason: string): Promise<TrialDetails> {
     return apiClient.post(`/admin/trials/${trialId}/cancel`, { reason });
+  },
+
+  reschedule(
+    trialId: string,
+    trainingSessionId: string,
+  ): Promise<TrialDetails> {
+    return apiClient.post(
+      `/admin/trials/${trialId}/reschedule`,
+      { trainingSessionId },
+    );
   },
 
   markAttendance(trialId: string, status: TrialAttendanceStatus, comment?: string): Promise<TrialDetails> {
@@ -70,14 +76,12 @@ export const TrialsApi = {
 
 export const trialStatusLabels: Record<TrialBookingStatus, string> = {
   SCHEDULED: "Запланировано",
-  CONFIRMED: "Подтверждено",
   CANCELED: "Отменено",
   COMPLETED: "Завершено",
 };
 
 export const trialStatusTone = {
   SCHEDULED: "info",
-  CONFIRMED: "success",
   CANCELED: "danger",
   COMPLETED: "neutral",
 } as const satisfies Record<TrialBookingStatus, "info" | "success" | "danger" | "neutral">;
