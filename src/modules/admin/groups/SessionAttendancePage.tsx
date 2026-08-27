@@ -25,7 +25,13 @@ import {
   AdminSessionAttendanceParticipant,
   AdminSessionDetailsOutput,
   AdminSessionEffectiveStatus,
+  AdminSessionTrialParticipant,
 } from "./session.api";
+import {
+  attendanceLabels as trialAttendanceLabels,
+  coachRecommendationLabels,
+  resultLabels as trialResultLabels,
+} from "../trials/trials.api";
 
 type AttendanceUiParticipant = Omit<AdminSessionAttendanceParticipant, "status"> & {
   status: AdminAttendanceStatus;
@@ -61,6 +67,12 @@ const attendanceTone: Record<AdminAttendanceStatus, string> = {
   EXCUSED: "border-sky-200 bg-sky-50 text-sky-700 focus:border-sky-500 focus:ring-sky-100",
   LATE: "border-amber-200 bg-amber-50 text-amber-800 focus:border-amber-500 focus:ring-amber-100",
   UNMARKED: "border-slate-200 bg-white text-slate-600 focus:border-[#0066cc] focus:ring-blue-100",
+};
+
+const trialAttendanceTone: Record<AdminSessionTrialParticipant["attendanceStatus"], StatusTone> = {
+  UNMARKED: "warning",
+  ATTENDED: "success",
+  NO_SHOW: "danger",
 };
 
 const attendanceOptions: AdminPersistedAttendanceStatus[] = ["PRESENT", "ABSENT", "EXCUSED", "LATE"];
@@ -238,6 +250,7 @@ const SessionAttendancePage: React.FC = () => {
   if (!attendance) return <PageShell><ErrorState message="Журнал посещаемости не найден" /></PageShell>;
 
   const effectiveStatus = attendance.effectiveStatus ?? attendance.status;
+  const trialParticipants =attendance.trialParticipants ?? [];
 
   return (
     <PageShell className="space-y-4 pb-4">
@@ -310,6 +323,44 @@ const SessionAttendancePage: React.FC = () => {
           )}
         </div>
 
+        {trialParticipants.length > 0 ? (
+          <div className="border-t border-slate-200 bg-blue-50/30 p-4 sm:p-5">
+            <div className="mb-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="ui-card-title">
+                  Пробные ученики
+                </h2>
+
+                <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-[#0066cc]">
+                  {trialParticipants.length}
+                </span>
+              </div>
+
+              <p className="mt-1 text-xs text-slate-500">
+                Не входят в постоянный состав и общую статистику группы.
+              </p>
+            </div>
+
+            <div className="overflow-hidden rounded-lg border border-blue-100 bg-white">
+              <div className="hidden grid-cols-[minmax(220px,1fr)_160px_minmax(220px,1fr)_140px] gap-4 border-b border-blue-100 bg-blue-50/70 px-4 py-3 text-[11px] font-semibold uppercase text-slate-500 lg:grid">
+                <div>Ученик</div>
+                <div>Посещение</div>
+                <div>Комментарий</div>
+                <div />
+              </div>
+
+              <div className="divide-y divide-blue-50">
+                {trialParticipants.map((participant) => (
+                  <TrialParticipantRow
+                    key={participant.trialBookingId}
+                    participant={participant}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {canEdit ? (
           <div className="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div className="text-sm">
@@ -337,6 +388,85 @@ const SummaryTile: React.FC<{ label: string; value: number; tone: "slate" | "eme
     amber: "border-amber-100 bg-amber-50 text-amber-700",
   };
   return <div className={`rounded-lg border px-3 py-3 text-center ${tones[tone]}`}><div className="text-xl font-semibold">{value}</div><div className="mt-1 text-xs font-medium opacity-75">{label}</div></div>;
+};
+
+const TrialParticipantRow: React.FC<{
+  participant: AdminSessionTrialParticipant;
+}> = ({ participant }) => {
+  const fullName =
+    participant.fullName || "Участник пробного";
+
+  return (
+    <div className="grid grid-cols-1 gap-3 px-4 py-3.5 lg:grid-cols-[minmax(220px,1fr)_160px_minmax(220px,1fr)_140px] lg:items-center lg:gap-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <ParticipantAvatar
+          fullName={fullName}
+          src={null}
+        />
+
+        <div className="min-w-0">
+          <Link
+            to={`/admin/trials/${participant.trialBookingId}`}
+            className="block truncate ui-section-title transition hover:text-[#0066cc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066cc]"
+          >
+            {fullName}
+          </Link>
+
+          <div className="mt-0.5 text-xs text-slate-400">
+            Пробное занятие
+            {participant.age
+              ? ` · ${participant.age} лет`
+              : ""}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <StatusBadge
+          tone={
+            trialAttendanceTone[
+              participant.attendanceStatus
+            ]
+          }
+        >
+          {
+            trialAttendanceLabels[
+              participant.attendanceStatus
+            ]
+          }
+        </StatusBadge>
+      </div>
+
+      <div className="min-w-0">
+        <div className="text-sm font-medium text-slate-700">
+          {participant.coachRecommendation
+            ? coachRecommendationLabels[participant.coachRecommendation]
+            : "Рекомендация тренера не указана"}
+        </div>
+
+        {participant.coachRecommendationComment ? (
+          <div className="mt-1 truncate text-xs text-slate-500">
+            {participant.coachRecommendationComment}
+          </div>
+        ) : participant.attendanceComment ? (
+          <div className="mt-1 truncate text-xs text-slate-500">
+            Посещение: {participant.attendanceComment}
+          </div>
+        ) : null}
+
+        <div className="mt-1 text-xs text-slate-400">
+          CRM-результат: {trialResultLabels[participant.result]}
+        </div>
+      </div>
+
+      <Link
+        to={`/admin/trials/${participant.trialBookingId}`}
+        className="inline-flex h-9 items-center justify-center rounded-lg border border-blue-200 bg-white px-3 text-sm font-medium text-[#0066cc] transition hover:bg-blue-50"
+      >
+        Открыть
+      </Link>
+    </div>
+  );
 };
 
 const AttendanceRow: React.FC<{

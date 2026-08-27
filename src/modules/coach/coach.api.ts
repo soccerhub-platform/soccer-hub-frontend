@@ -17,6 +17,32 @@ export type CoachSessionStatus =
 
 export type CoachAttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
 
+export type CoachTrialAttendanceStatus =
+  | "UNMARKED"
+  | "ATTENDED"
+  | "NO_SHOW";
+
+export type CoachTrialRecommendation =
+  | "RECOMMEND_ENROLLMENT"
+  | "RECOMMEND_ANOTHER_GROUP"
+  | "RECOMMEND_REPEAT_TRIAL"
+  | "NOT_RECOMMENDED";
+
+export interface CoachTrialStudent {
+  trialBookingId: string;
+  studentId?: string | null;
+  name: string;
+  age?: number | null;
+  attendance: CoachTrialAttendanceStatus;
+  attendanceComment?: string | null;
+  result: string;
+  coachFeedback?: string | null;
+  coachRecommendation?: CoachTrialRecommendation | null;
+  coachRecommendedGroupId?: string | null;
+  coachRecommendationComment?: string | null;
+  coachRecommendationAt?: string | null;
+}
+
 export interface CoachSessionCard {
   id: string;
   groupName: string;
@@ -44,6 +70,7 @@ export interface CoachSessionReport {
 
 export interface CoachSessionDetailsResponse extends CoachSessionCard {
   students: CoachStudentAttendance[];
+  trialStudents: CoachTrialStudent[];
   report: CoachSessionReport;
 }
 
@@ -145,6 +172,33 @@ export const CoachApi = {
 
   markAllPresent: (sessionId: string) =>
     apiClient.post<CoachAttendanceUpdateResponse>(`/coach/sessions/${sessionId}/attendance/mark-all-present`),
+
+  markTrialAttendance: (
+    sessionId: string,
+    trialId: string,
+    status: CoachTrialAttendanceStatus,
+    comment?: string,
+  ) =>
+    apiClient.patch<CoachTrialStudent>(
+      `/coach/sessions/${sessionId}/trials/${trialId}/attendance`,
+      { status, comment },
+    ),
+
+  recordTrialRecommendation: (
+    sessionId: string,
+    trialId: string,
+    recommendation: CoachTrialRecommendation,
+    recommendedGroupId?: string,
+    comment?: string,
+  ) =>
+    apiClient.put<CoachTrialStudent>(
+      `/coach/sessions/${sessionId}/trials/${trialId}/recommendation`,
+      {
+        recommendation,
+        recommendedGroupId,
+        comment,
+      },
+    ),
 
   saveReport: (
     sessionId: string,

@@ -1,5 +1,11 @@
 import { apiClient } from "../../../shared/api";
 import { MediaAsset } from "../../../shared/media.types";
+import type {
+  TrialAttendanceStatus,
+  TrialBookingStatus,
+  TrialResult,
+  TrialCoachRecommendation
+} from "../trials/trials.types";
 
 export type AdminSessionStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 export type AdminSessionEffectiveStatus = AdminSessionStatus | "OVERDUE";
@@ -103,6 +109,25 @@ export interface AdminSessionAttendanceParticipant {
   avatar?: MediaAsset | null;
 }
 
+export interface AdminSessionTrialParticipant {
+  trialBookingId: string;
+  leadId?: string | null;
+  participantId?: string | null;
+  studentId?: string | null;
+  fullName?: string | null;
+  birthDate?: string | null;
+  age?: number | null;
+  bookingStatus: TrialBookingStatus;
+  attendanceStatus: TrialAttendanceStatus;
+  attendanceComment?: string | null;
+  result: TrialResult;
+  coachFeedback?: string | null;
+  coachRecommendation?: TrialCoachRecommendation | null;
+  coachRecommendedGroupId?: string | null;
+  coachRecommendationComment?: string | null;
+  coachRecommendationAt?: string | null;
+}
+
 export interface AdminSessionAttendanceOutput {
   sessionId: string;
   group: {
@@ -116,6 +141,7 @@ export interface AdminSessionAttendanceOutput {
   effectiveStatus: AdminSessionEffectiveStatus;
   summary: Required<AdminSessionAttendanceSummary>;
   participants: AdminSessionAttendanceParticipant[];
+  trialParticipants: AdminSessionTrialParticipant[];
   capabilities: {
     canEdit: boolean;
   };

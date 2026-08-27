@@ -1,8 +1,21 @@
-import { Button, Input, StatusBadge, Textarea, ToggleGroup, ToggleGroupItem, type StatusTone } from "../../../shared/ui";
+import { Button, Input, NativeSelect, StatusBadge, Textarea, ToggleGroup, ToggleGroupItem, type StatusTone } from "../../../shared/ui";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { CoachApi, CoachSessionDetailsResponse, CoachStudentAttendance } from "../coach.api";
-import { ATTENDANCE_LABELS, SESSION_STATUS_META } from "../coach.labels";
+import {
+  CoachApi,
+  CoachSessionDetailsResponse,
+  CoachStudentAttendance,
+  CoachTrialAttendanceStatus,
+  CoachTrialStudent,
+  CoachProfileGroup,
+  CoachTrialRecommendation,
+} from "../coach.api";
+import {
+  ATTENDANCE_LABELS,
+  SESSION_STATUS_META,
+  TRIAL_ATTENDANCE_LABELS,
+  TRIAL_RECOMMENDATION_LABELS,
+} from "../coach.labels";
 import toast from "react-hot-toast";
 
 const sessionStatusTones: Record<CoachSessionDetailsResponse["status"], StatusTone> = {
@@ -13,10 +26,24 @@ const sessionStatusTones: Record<CoachSessionDetailsResponse["status"], StatusTo
   OVERDUE: "warning",
 };
 
+const trialAttendanceOptions: Exclude<
+  CoachTrialAttendanceStatus,
+  "UNMARKED"
+>[] = ["ATTENDED", "NO_SHOW"];
+
+const trialRecommendationOptions: CoachTrialRecommendation[] = [
+  "RECOMMEND_ENROLLMENT",
+  "RECOMMEND_ANOTHER_GROUP",
+  "RECOMMEND_REPEAT_TRIAL",
+  "NOT_RECOMMENDED",
+];
+
 const CoachSessionDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<CoachSessionDetailsResponse | null>(null);
   const [students, setStudents] = useState<CoachStudentAttendance[]>([]);
+  const [trialStudents, setTrialStudents] = useState<CoachTrialStudent[]>([]);
+  const [recommendationGroups, setRecommendationGroups] = useState<CoachProfileGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +60,7 @@ const CoachSessionDetailsPage: React.FC = () => {
       const data = await CoachApi.getSessionDetails(sessionId);
       setSession(data);
       setStudents(data.students ?? []);
+      setTrialStudents(data.trialStudents ?? []);
       setTopic(data.report?.topic ?? "");
       setComment(data.report?.coachComment ?? "");
       setIncidents(data.report?.incidents ?? "");
@@ -42,6 +70,7 @@ const CoachSessionDetailsPage: React.FC = () => {
       setError("Не удалось загрузить данные тренировки");
       setSession(null);
       setStudents([]);
+      setTrialStudents([]);
     } finally {
       setLoading(false);
     }
@@ -51,6 +80,26 @@ const CoachSessionDetailsPage: React.FC = () => {
     if (!id) return;
     loadSession(id);
   }, [id]);
+
+  useEffect(() => {
+    let active = true;
+
+    CoachApi.getProfile()
+      .then((profile) => {
+        if (active) {
+          setRecommendationGroups(profile.groups ?? []);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setRecommendationGroups([]);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const attendanceSummary = useMemo(() => {
     if (session?.status === "COMPLETED" && session.attendanceSummary) {
@@ -115,6 +164,137 @@ const CoachSessionDetailsPage: React.FC = () => {
       toast.success("Все ученики отмечены как присутствующие");
     } catch {
       toast.error("Не удалось обновить посещаемость");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateTrialAttendance = (
+    trialBookingId: string,
+    value: Exclude<CoachTrialAttendanceStatus, "UNMARKED">,
+  ) => {
+    setTrialStudents((prev) =>
+      prev.map((trial) =>
+        trial.trialBookingId === trialBookingId
+          ? { ...trial, attendance: value }
+          : trial,
+      ),
+    );
+  };
+
+  const updateTrialAttendanceComment = (
+    trialBookingId: string,
+    attendanceComment: string,
+  ) => {
+    setTrialStudents((prev) =>
+      prev.map((trial) =>
+        trial.trialBookingId === trialBookingId
+          ? { ...trial, attendanceComment }
+          : trial,
+      ),
+    );
+  };
+
+  const persistTrialAttendance = async (trial: CoachTrialStudent) => {
+    if (!id) return;
+
+    if (trial.attendance === "UNMARKED") {
+      toast.error("Отметьте пробного ученика");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await CoachApi.markTrialAttendance(
+        id,
+        trial.trialBookingId,
+        trial.attendance,
+        trial.attendanceComment?.trim() || undefined,
+      );
+      toast.success("Пробный ученик отмечен");
+      await loadSession(id);
+    } catch {
+      toast.error("Не удалось сохранить пробного ученика");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateTrialRecommendation = (
+    trialBookingId: string,
+    coachRecommendation: CoachTrialRecommendation,
+  ) => {
+    setTrialStudents((prev) =>
+      prev.map((trial) =>
+        trial.trialBookingId === trialBookingId
+          ? {
+              ...trial,
+              coachRecommendation,
+              coachRecommendedGroupId:
+                coachRecommendation === "RECOMMEND_ANOTHER_GROUP"
+                  ? trial.coachRecommendedGroupId
+                  : null,
+            }
+          : trial,
+      ),
+    );
+  };
+
+  const updateTrialRecommendedGroup = (
+    trialBookingId: string,
+    coachRecommendedGroupId: string,
+  ) => {
+    setTrialStudents((prev) =>
+      prev.map((trial) =>
+        trial.trialBookingId === trialBookingId
+          ? { ...trial, coachRecommendedGroupId }
+          : trial,
+      ),
+    );
+  };
+
+  const updateTrialRecommendationComment = (
+    trialBookingId: string,
+    coachRecommendationComment: string,
+  ) => {
+    setTrialStudents((prev) =>
+      prev.map((trial) =>
+        trial.trialBookingId === trialBookingId
+          ? { ...trial, coachRecommendationComment }
+          : trial,
+      ),
+    );
+  };
+
+  const persistTrialRecommendation = async (trial: CoachTrialStudent) => {
+    if (!id) return;
+
+    if (!trial.coachRecommendation) {
+      toast.error("Выберите рекомендацию");
+      return;
+    }
+
+    if (
+      trial.coachRecommendation === "RECOMMEND_ANOTHER_GROUP" &&
+      !trial.coachRecommendedGroupId
+    ) {
+      toast.error("Выберите рекомендуемую группу");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await CoachApi.recordTrialRecommendation(
+        id,
+        trial.trialBookingId,
+        trial.coachRecommendation,
+        trial.coachRecommendedGroupId ?? undefined,
+        trial.coachRecommendationComment?.trim() || undefined,
+      );
+      toast.success("Рекомендация сохранена");
+      await loadSession(id);
+    } catch {
+      toast.error("Не удалось сохранить рекомендацию");
     } finally {
       setSaving(false);
     }
@@ -334,6 +514,184 @@ const CoachSessionDetailsPage: React.FC = () => {
           </Button>
         </div>
       )}
+
+      {trialStudents.length > 0 ? (
+        <div className="rounded-2xl border border-black/[0.12] bg-white p-4">
+          <div className="mb-3">
+            <h2 className="ui-section-title">Пробные ученики</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Пробные отмечаются отдельно и не влияют на посещаемость группы.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {trialStudents.map((trial) => {
+              const canSaveTrialAttendance =
+                canEditAttendance && trial.attendance !== "UNMARKED";
+
+              return (
+                <div
+                  key={trial.trialBookingId}
+                  className="rounded-xl border border-black/[0.06] bg-[#fbfdfb] p-3"
+                >
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-slate-950">
+                        {trial.name}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {trial.age ? `${trial.age} лет` : "Возраст не указан"}
+                      </div>
+                    </div>
+
+                    {!canEditAttendance ? (
+                      <StatusBadge tone={trial.attendance === "ATTENDED" ? "success" : trial.attendance === "NO_SHOW" ? "danger" : "neutral"}>
+                        {TRIAL_ATTENDANCE_LABELS[trial.attendance]}
+                      </StatusBadge>
+                    ) : null}
+                  </div>
+
+                  {canEditAttendance ? (
+                    <>
+                      <ToggleGroup
+                        type="single"
+                        value={trial.attendance === "UNMARKED" ? "" : trial.attendance}
+                        onValueChange={(value) =>
+                          value &&
+                          updateTrialAttendance(
+                            trial.trialBookingId,
+                            value as Exclude<CoachTrialAttendanceStatus, "UNMARKED">,
+                          )
+                        }
+                        variant="outline"
+                        className="mt-2 flex-wrap justify-start"
+                      >
+                        {trialAttendanceOptions.map((state) => (
+                          <ToggleGroupItem key={state} value={state} size="sm">
+                            {TRIAL_ATTENDANCE_LABELS[state]}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+
+                      <Textarea
+                        value={trial.attendanceComment ?? ""}
+                        onChange={(event) =>
+                          updateTrialAttendanceComment(
+                            trial.trialBookingId,
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Комментарий по пробному ученику"
+                        className="mt-2 w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+                        rows={2}
+                      />
+
+                      <Button
+                        disabled={saving || !canSaveTrialAttendance}
+                        onClick={() => persistTrialAttendance(trial)}
+                        variant="secondary"
+                        size="sm"
+                        className="mt-2"
+                        title={!canSaveTrialAttendance ? "Отметьте пробного ученика" : undefined}
+                      >
+                        Сохранить пробного
+                      </Button>
+                    </>
+                  ) : trial.attendanceComment ? (
+                    <div className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                      {trial.attendanceComment}
+                    </div>
+                  ) : null}
+
+                  {isCompleted && trial.attendance === "ATTENDED" ? (
+                    <div className="mt-3 border-t border-black/[0.06] pt-3">
+                      <div className="text-xs font-medium uppercase text-slate-500">
+                        Рекомендация тренера
+                      </div>
+
+                      <ToggleGroup
+                        type="single"
+                        value={trial.coachRecommendation ?? ""}
+                        onValueChange={(value) =>
+                          value &&
+                          updateTrialRecommendation(
+                            trial.trialBookingId,
+                            value as CoachTrialRecommendation,
+                          )
+                        }
+                        variant="outline"
+                        className="mt-2 flex-wrap justify-start"
+                      >
+                        {trialRecommendationOptions.map((recommendation) => (
+                          <ToggleGroupItem
+                            key={recommendation}
+                            value={recommendation}
+                            size="sm"
+                          >
+                            {TRIAL_RECOMMENDATION_LABELS[recommendation]}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+
+                      {trial.coachRecommendation === "RECOMMEND_ANOTHER_GROUP" ? (
+                        <NativeSelect
+                          value={trial.coachRecommendedGroupId ?? ""}
+                          onChange={(event) =>
+                            updateTrialRecommendedGroup(
+                              trial.trialBookingId,
+                              event.target.value,
+                            )
+                          }
+                          className="mt-2"
+                        >
+                          <option value="">Выберите группу</option>
+                          {recommendationGroups.map((group) => (
+                            <option key={group.groupId} value={group.groupId}>
+                              {group.groupName}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      ) : null}
+
+                      <Textarea
+                        value={trial.coachRecommendationComment ?? ""}
+                        onChange={(event) =>
+                          updateTrialRecommendationComment(
+                            trial.trialBookingId,
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Комментарий или рекомендация тренера"
+                        className="mt-2 w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+                        rows={2}
+                      />
+
+                      <Button
+                        disabled={saving || !trial.coachRecommendation}
+                        onClick={() => persistTrialRecommendation(trial)}
+                        variant="secondary"
+                        size="sm"
+                        className="mt-2"
+                      >
+                        Сохранить рекомендацию
+                      </Button>
+                    </div>
+                  ) : trial.coachRecommendation ? (
+                    <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                      <div className="font-medium text-slate-800">
+                        {TRIAL_RECOMMENDATION_LABELS[trial.coachRecommendation]}
+                      </div>
+                      {trial.coachRecommendationComment ? (
+                        <div className="mt-1">{trial.coachRecommendationComment}</div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {canEditReport ? (
       <div className="space-y-3 rounded-2xl border border-black/[0.12] bg-white p-4 ">

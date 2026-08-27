@@ -7,7 +7,8 @@ import type {
   TrialListQuery,
   TrialResult,
   TrialsPageResponse,
-  TrialNextActionType
+  TrialNextActionType,
+  TrialCoachRecommendation
 } from "./trials.types";
 
 const queryString = (query: TrialListQuery) => {
@@ -98,4 +99,11 @@ export const resultLabels: Record<TrialResult, string> = {
   FOLLOW_UP: "Нужен follow-up",
   NOT_INTERESTED: "Не заинтересован",
   CONVERTED: "Конвертирован",
+};
+
+export const coachRecommendationLabels: Record<TrialCoachRecommendation, string> = {
+  RECOMMEND_ENROLLMENT: "Рекомендует зачисление",
+  RECOMMEND_ANOTHER_GROUP: "Рекомендует другую группу",
+  RECOMMEND_REPEAT_TRIAL: "Рекомендует повторное пробное",
+  NOT_RECOMMENDED: "Не рекомендует зачисление",
 };

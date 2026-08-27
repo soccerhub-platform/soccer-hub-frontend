@@ -1,6 +1,7 @@
 export type TrialBookingStatus = "SCHEDULED" | "CANCELED" | "COMPLETED";
 export type TrialAttendanceStatus = "UNMARKED" | "ATTENDED" | "NO_SHOW";
 export type TrialResult = "PENDING" | "INTERESTED" | "FOLLOW_UP" | "NOT_INTERESTED" | "CONVERTED";
+export type TrialCoachRecommendation = "RECOMMEND_ENROLLMENT" | "RECOMMEND_ANOTHER_GROUP" | "RECOMMEND_REPEAT_TRIAL" | "NOT_RECOMMENDED";
 export type TrialNextActionType =
   | "CALL"
   | "MESSAGE"
