@@ -54,6 +54,7 @@ export interface TrialDetails {
   location?: { id: string; name: string } | null;
   attendance?: { status: TrialAttendanceStatus; markedAt?: string | null; markedBy?: string | null; comment?: string | null } | null;
   outcome?: { result: TrialResult; coachFeedback?: string | null; recommendedGroupId?: string | null; recommendedGroupName?: string | null } | null;
+  coachRecommendation?: { recommendation: TrialCoachRecommendation; recommendedGroupId?: string | null; comment?: string | null; recordedAt?: string | null; recordedBy?: string | null } | null;
   nextAction?: { type: TrialNextActionType; dueAt?: string | null } | null;
   capabilities: {
     canCancel: boolean;

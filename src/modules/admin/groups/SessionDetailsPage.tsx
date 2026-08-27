@@ -184,7 +184,7 @@ const SessionDetailsPage: React.FC = () => {
   const attendanceLabel = effectiveStatus === "CANCELLED"
     ? "Для отменённого занятия журнал не требуется"
     : effectiveStatus === "PLANNED"
-      ? "Журнал откроется после начала занятия"
+      ? "Журнал можно открыть заранее, отметки доступны после начала занятия"
       : attendanceComplete
         ? `${session.attendance.marked} из ${session.attendance.total} учеников отмечено`
         : `${session.attendance.marked} из ${session.attendance.total} учеников отмечено`;
@@ -254,7 +254,7 @@ const SessionDetailsPage: React.FC = () => {
                 <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${attendanceComplete ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-[#0066cc]"}`}><ClipboardCheck className="h-5 w-5" /></span>
                 <div className="min-w-0 flex-1"><h2 className="ui-section-title">Посещаемость</h2><p className="mt-1 text-sm text-slate-500">{attendanceLabel}</p></div>
               </div>
-              {effectiveStatus !== "PLANNED" && effectiveStatus !== "CANCELLED" && session.capabilities.canOpenAttendance ? (
+              {effectiveStatus !== "CANCELLED" && session.capabilities.canOpenAttendance ? (
                 <Button type="button" className="mt-4 w-full justify-center" onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/sessions/${session.id}/attendance`)}><ClipboardCheck className="h-4 w-4" />{attendanceComplete ? "Открыть журнал" : "Заполнить журнал"}</Button>
               ) : null}
             </section>
@@ -417,13 +417,17 @@ const RescheduleSessionModal: React.FC<{
       toast.error("Укажите время начала и окончания");
       return;
     }
+    if (!form.reason.trim()) {
+      toast.error("Укажите причину переноса");
+      return;
+    }
     setSaving(true);
     try {
       const next = await AdminSessionApi.reschedule(session.id, {
         startsAt: fromDateTimeLocal(form.startsAt),
         endsAt: fromDateTimeLocal(form.endsAt),
         locationId: form.locationId || undefined,
-        reason: form.reason.trim() || undefined,
+        reason: form.reason.trim(),
       }, token);
       toast.success("Занятие перенесено");
       onSaved(next);
@@ -472,12 +476,13 @@ const RescheduleSessionModal: React.FC<{
             Выбор другой площадки появится после подключения справочника площадок.
           </div>
         </div>
-        <FormField label="Причина" className="sm:col-span-2">
+        <FormField label="Причина *" className="sm:col-span-2">
           <Textarea
             rows={3}
             value={form.reason}
             onChange={(event) => setForm((prev) => ({ ...prev, reason: event.target.value }))}
             className={formControlClassName}
+            placeholder="Например: перенос по расписанию"
           />
         </FormField>
       </div>

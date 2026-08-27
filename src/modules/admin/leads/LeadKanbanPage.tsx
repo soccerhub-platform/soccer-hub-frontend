@@ -41,6 +41,7 @@ import {
   isQualifyAction,
   isScheduleTrialAction,
   getConvertibleParticipants,
+  getConvertedParticipants,
 } from "./lead.ui-actions";
 
 const COLUMN_TITLES: Record<LeadColumnStatus, string> = {
@@ -240,6 +241,25 @@ const LeadKanbanPage: React.FC = () => {
         navigate(`/admin/leads/${encodeURIComponent(lead.id)}`);
       }
 
+      return;
+    }
+
+    if (action.type === "CREATE_CONTRACT") {
+      const convertedParticipant = getConvertedParticipants(lead)[0];
+
+      if (!lead.clientId || !convertedParticipant?.playerId) {
+        toast.error(
+          "Для создания договора сначала должны быть оформлены клиент и ученик"
+        );
+        return;
+      }
+
+      navigate(
+        `/admin/contracts?drawer=create-contract` +
+          `&clientId=${encodeURIComponent(lead.clientId)}` +
+          `&playerId=${encodeURIComponent(convertedParticipant.playerId)}` +
+          `&leadId=${encodeURIComponent(lead.id)}`
+      );
       return;
     }
 

@@ -89,7 +89,7 @@ export interface AdminRescheduleSessionInput {
   startsAt: string;
   endsAt: string;
   locationId?: string;
-  reason?: string;
+  reason: string;
 }
 
 export interface AdminSubstituteCoachInput {

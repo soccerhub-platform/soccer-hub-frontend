@@ -55,6 +55,10 @@ const roleLabel = (value?: string | null) => value === "MAIN" ? "Главный 
 const roleShort = (value?: string | null) => value === "MAIN" ? "MAIN" : value === "ASSISTANT" ? "ASSISTANT" : "COACH";
 const roleAccent = (value?: string | null) => value === "MAIN" ? "border-emerald-500" : "border-indigo-400";
 const rolePill = (value?: string | null) => value === "MAIN" ? "bg-emerald-50 text-emerald-700" : "bg-indigo-50 text-indigo-700";
+const sessionDateKey = (session: CoachUpcomingSession) => session.sessionDate;
+const sessionStartKey = (session: CoachUpcomingSession) => shortTime(session.startTime);
+const scheduleSlotKey = (groupId: string, date: Date, startsAt?: string | null) =>
+  `${groupId}:${isoDate(date)}:${shortTime(startsAt)}`;
 
 const slotIsActiveOn = (slot: CoachWeeklyScheduleItem, date: Date) => {
   const value = isoDate(date);
@@ -106,6 +110,17 @@ const CoachScheduleTab: React.FC<CoachScheduleTabProps> = ({ profile, onNavigate
     && (locationFilter === "ALL" || session.location?.id === locationFilter)
   ), [groupFilter, locationFilter, profile.upcomingSessions, typeFilter]);
 
+  const sessionsByDate = useMemo(() => {
+    const result = new Map<string, CoachUpcomingSession[]>();
+    filteredSessions.forEach((session) => {
+      const items = result.get(sessionDateKey(session)) ?? [];
+      items.push(session);
+      result.set(sessionDateKey(session), items);
+    });
+    result.forEach((items) => items.sort((left, right) => sessionStartKey(left).localeCompare(sessionStartKey(right))));
+    return result;
+  }, [filteredSessions]);
+
   const navigatePeriod = (direction: -1 | 1) => {
     if (view === "day") setAnchorDate((current) => addDays(current, direction));
     else if (view === "week") setAnchorDate((current) => addDays(current, direction * 7));
@@ -124,6 +139,7 @@ const CoachScheduleTab: React.FC<CoachScheduleTabProps> = ({ profile, onNavigate
   };
 
   const openSession = (session: CoachUpcomingSession) => onNavigate(`/admin/groups/${session.groupId}/sessions/${session.sessionId}`);
+  const openSessionDirect = (session: CoachUpcomingSession) => onNavigate(`/admin/sessions/${session.sessionId}`);
 
   return (
     <div className="space-y-4">
@@ -154,10 +170,28 @@ const CoachScheduleTab: React.FC<CoachScheduleTabProps> = ({ profile, onNavigate
         <div className="mt-4 overflow-x-auto rounded-lg">
           <div className={`grid overflow-hidden rounded-lg border border-slate-200 bg-slate-200 ${view === "day" ? "grid-cols-1" : "min-w-[920px] grid-cols-7"}`}>
             {calendarDates.map((date) => {
-            const slots = profile.weeklySchedule.filter((slot) => slotIsActiveOn(slot, date)).sort((left, right) => left.startTime.localeCompare(right.startTime));
+            const daySessions = sessionsByDate.get(isoDate(date)) ?? [];
+            const materializedSlotKeys = new Set(
+              daySessions.map((session) => scheduleSlotKey(session.groupId, date, session.startTime))
+            );
+            const slots = profile.weeklySchedule
+              .filter((slot) => groupFilter === "ALL" || slot.groupId === groupFilter)
+              .filter(() => typeFilter === "ALL" || typeFilter === "REGULAR")
+              .filter(() => locationFilter === "ALL")
+              .filter((slot) => slotIsActiveOn(slot, date))
+              .filter((slot) => !materializedSlotKeys.has(scheduleSlotKey(slot.groupId, date, slot.startTime)))
+              .sort((left, right) => left.startTime.localeCompare(right.startTime));
+            const calendarItems = [
+              ...daySessions.map((session) => ({ type: "session" as const, session })),
+              ...slots.map((slot) => ({ type: "slot" as const, slot })),
+            ].sort((left, right) => {
+              const leftTime = left.type === "session" ? sessionStartKey(left.session) : shortTime(left.slot.startTime);
+              const rightTime = right.type === "session" ? sessionStartKey(right.session) : shortTime(right.slot.startTime);
+              return leftTime.localeCompare(rightTime);
+            });
             const today = isoDate(date) === isoDate(new Date());
             const outsideMonth = view === "month" && date.getMonth() !== anchorDate.getMonth();
-            const displayedSlots = view === "month" ? slots.slice(0, 2) : slots;
+            const displayedItems = view === "month" ? calendarItems.slice(0, 2) : calendarItems;
             return (
               <div key={isoDate(date)} className={`min-w-0 bg-white p-2.5 ${view === "month" ? "min-h-32" : "min-h-60"} ${today ? "ring-1 ring-inset ring-emerald-500" : ""} ${outsideMonth ? "bg-slate-50/80" : ""}`}>
                 <div className={`mb-3 text-center ${today ? "text-emerald-700" : outsideMonth ? "text-slate-400" : "text-slate-700"}`}>
@@ -165,8 +199,20 @@ const CoachScheduleTab: React.FC<CoachScheduleTabProps> = ({ profile, onNavigate
                   <div className="mt-0.5 text-xs">{dateLabel(date)}</div>
                 </div>
                 <div className="space-y-2">
-                  {displayedSlots.map((slot) => {
-                    const assignment = profile.groups.find((group) => group.groupId === slot.groupId);
+                  {displayedItems.map((item) => {
+                    const groupId = item.type === "session" ? item.session.groupId : item.slot.groupId;
+                    const assignment = profile.groups.find((group) => group.groupId === groupId);
+                    if (item.type === "session") {
+                      const session = item.session;
+                      return (
+                        <button key={session.sessionId} type="button" onClick={() => openSessionDirect(session)} className={`w-full rounded-md border-l-2 bg-blue-50/80 px-2.5 py-2 text-left transition hover:bg-blue-100 ${roleAccent(assignment?.role)}`}>
+                          <span className="block text-xs font-semibold text-slate-900">{shortTime(session.startTime)}–{shortTime(session.endTime)}</span>
+                          <span className="mt-1 block truncate text-xs font-medium text-blue-800">{session.groupName}</span>
+                          {view !== "month" ? <span className="mt-1 block truncate text-[11px] text-slate-500">{sessionTypeLabel(session.scheduleType)} · {roleLabel(assignment?.role)}</span> : null}
+                        </button>
+                      );
+                    }
+                    const slot = item.slot;
                     return (
                       <button key={`${isoDate(date)}-${slot.scheduleId}`} type="button" onClick={() => openSlot(slot, date)} className={`w-full rounded-md border-l-2 bg-emerald-50/70 px-2.5 py-2 text-left transition hover:bg-emerald-100/80 ${roleAccent(assignment?.role)}`}>
                         <span className="block text-xs font-semibold text-slate-900">{shortTime(slot.startTime)}–{shortTime(slot.endTime)}</span>
@@ -175,8 +221,8 @@ const CoachScheduleTab: React.FC<CoachScheduleTabProps> = ({ profile, onNavigate
                       </button>
                     );
                   })}
-                  {!slots.length && view !== "month" ? <div className="flex min-h-28 items-center justify-center text-xs text-slate-400">Нет занятий</div> : null}
-                  {view === "month" && slots.length > 2 ? <div className="text-center text-xs font-medium text-slate-500">Ещё {slots.length - 2}</div> : null}
+                  {!calendarItems.length && view !== "month" ? <div className="flex min-h-28 items-center justify-center text-xs text-slate-400">Нет занятий</div> : null}
+                  {view === "month" && calendarItems.length > 2 ? <div className="text-center text-xs font-medium text-slate-500">Ещё {calendarItems.length - 2}</div> : null}
                 </div>
               </div>
             );

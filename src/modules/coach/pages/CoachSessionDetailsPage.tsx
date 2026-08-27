@@ -370,16 +370,16 @@ const CoachSessionDetailsPage: React.FC = () => {
 
   const runPrimaryAction = async () => {
     if (!primaryActionLabel) return;
+    if (canStart) {
+      await runStatusAction(() => CoachApi.startSession(id), "Тренировка начата");
+      return;
+    }
     if (hasUnmarkedStudents) {
       toast.error("Отметьте посещаемость для всех учеников");
       return;
     }
     if (isOverdue && !hasRequiredReportFields) {
       toast.error("Укажите тему тренировки");
-      return;
-    }
-    if (canStart) {
-      await runStatusAction(() => CoachApi.startSession(id), "Тренировка начата");
       return;
     }
     if (isOverdue) {

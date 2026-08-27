@@ -38,7 +38,7 @@ import {
   FormLabel,
   FormMessage,
 } from "../../../shared/ui/shadcn/form";
-import { TrialsApi, attendanceLabels, resultLabels, trialStatusLabels, trialStatusTone } from "./trials.api";
+import { TrialsApi, attendanceLabels, coachRecommendationLabels, resultLabels, trialStatusLabels, trialStatusTone } from "./trials.api";
 import type { TrialAttendanceStatus, TrialDetails, TrialNextActionType, TrialResult } from "./trials.types";
 import {
   AdminSessionApi,
@@ -237,7 +237,11 @@ const TrialDetailsPage: React.FC = () => {
             </SectionCard>
             <SectionCard title="Результат" description="Итог занятия и следующий шаг">
               <DetailLine label="Результат" value={resultLabels[trial.result]} />
+              <DetailLine label="Рекомендация тренера" value={trial.coachRecommendation ? coachRecommendationLabels[trial.coachRecommendation.recommendation] : "Не указана"} />
               <DetailLine label="Комментарий тренера" value={trial.outcome?.coachFeedback || "Нет комментария"} />
+              {trial.coachRecommendation?.comment ? (
+                <DetailLine label="Комментарий к рекомендации" value={trial.coachRecommendation.comment} />
+              ) : null}
               <DetailLine label="Следующее действие" value={trial.nextAction ? `${nextActionLabels[trial.nextAction.type]} · ${formatDateTime(trial.nextAction.dueAt)}` : "Не назначено"} />
             </SectionCard>
           </div>

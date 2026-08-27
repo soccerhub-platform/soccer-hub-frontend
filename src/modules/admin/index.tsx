@@ -71,6 +71,8 @@ const AdminRoutes: React.FC = () => {
               <Route path="trials" element={<TrialsPage />} />
               <Route path="trials/:trialId" element={<TrialDetailsPage />} />
               <Route path="trials/:trialId/:section" element={<TrialDetailsPage />} />
+              <Route path="sessions/:sessionId/attendance" element={<SessionAttendancePage />} />
+              <Route path="sessions/:sessionId" element={<SessionDetailsPage />} />
               <Route path="groups" element={<GroupsPage />} />
               <Route path="groups/:groupId" element={<Navigate to="overview" replace />} />
               <Route path="groups/:groupId/sessions/:sessionId/attendance" element={<SessionAttendancePage />} />

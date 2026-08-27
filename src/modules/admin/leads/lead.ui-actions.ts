@@ -24,6 +24,13 @@ const MODERN_ACTION_TYPES = new Set<LeadAction["type"]>([
   "RECORD_PAYMENT",
 ]);
 
+const TRIAL_RECORD_ACTION_TYPES = new Set<LeadAction["type"]>([
+  "CANCEL_TRIAL",
+  "COMPLETE_TRIAL",
+  "MARK_TRIAL_DONE",
+  "MARK_NO_SHOW",
+]);
+
 export const getConvertibleParticipants = (
   lead: Pick<Lead, "participants">
 ) =>
@@ -53,6 +60,7 @@ export const buildLeadUiActions = (
   if (hasModernActions) {
     return actions.filter(
       (item) =>
+        !TRIAL_RECORD_ACTION_TYPES.has(item.type) &&
         !(
           item.type === "CONVERT_TO_CLIENT" &&
           !hasConvertibleParticipants
@@ -95,7 +103,10 @@ export const getLeadActionEvent = (action: LeadAction) => {
     case "CANCEL_TRIAL":
       return "CANCEL_TRIAL";
     case "CLOSE_LEAD":
-      return "LOST";
+    case "LOST":
+      return "REJECT";
+    case "CREATE_CONTRACT":
+      return "START_CONTRACT";
     default:
       return action.type;
   }
