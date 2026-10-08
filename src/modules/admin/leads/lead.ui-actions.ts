@@ -25,6 +25,7 @@ const MODERN_ACTION_TYPES = new Set<LeadAction["type"]>([
 ]);
 
 const TRIAL_RECORD_ACTION_TYPES = new Set<LeadAction["type"]>([
+  "RESCHEDULE_TRIAL",
   "CANCEL_TRIAL",
   "COMPLETE_TRIAL",
   "MARK_TRIAL_DONE",
@@ -133,6 +134,7 @@ export const getLeadLossStage = (
   action: LeadAction,
   leadStatus?: Lead["status"]
 ): LeadLossStage => {
+  if (leadStatus === "PAYMENT_PENDING") return "PAYMENT_REJECT";
   if (action.type === "MARK_NO_SHOW" || action.type === "NO_SHOW") {
     return "TRIAL_NO_SHOW";
   }

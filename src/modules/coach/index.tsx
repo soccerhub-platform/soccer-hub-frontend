@@ -1,12 +1,12 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "../../shared/ProtectedRoute";
-import CoachLayout from "./CoachLayout";
-import CoachTodayPage from "./pages/CoachTodayPage";
-import CoachSessionDetailsPage from "./pages/CoachSessionDetailsPage";
-import CoachSchedulePage from "./pages/CoachSchedulePage";
-import CoachHistoryPage from "./pages/CoachHistoryPage";
-import CoachProfilePage from "./pages/CoachProfilePage";
+const CoachLayout = React.lazy(() => import("./CoachLayout"));
+const CoachTodayPage = React.lazy(() => import("./pages/CoachTodayPage"));
+const CoachSessionDetailsPage = React.lazy(() => import("./pages/CoachSessionDetailsPage"));
+const CoachSchedulePage = React.lazy(() => import("./pages/CoachSchedulePage"));
+const CoachHistoryPage = React.lazy(() => import("./pages/CoachHistoryPage"));
+const CoachProfilePage = React.lazy(() => import("./pages/CoachProfilePage"));
 
 const CoachRoutes: React.FC = () => {
   return (

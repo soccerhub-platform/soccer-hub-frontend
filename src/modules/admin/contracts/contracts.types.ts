@@ -85,6 +85,7 @@ export interface CreateContractRequest {
   amount: number;
   currency: string;
   notes?: string;
+  sourceLeadId?: string;
 }
 
 export interface UpdateContractRequest {

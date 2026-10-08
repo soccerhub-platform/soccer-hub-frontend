@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Link, useNavigate, useParams } from "react-router-dom";
+  Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   CalendarDays,
@@ -16,6 +16,7 @@ import { Input, NativeSelect, Button, EmptyState, ErrorState, LoadingState, Page
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import { MediaAsset } from "../../../shared/media.types";
 import CoachProfileLink from "./components/CoachProfileLink";
+import { calendarReturnTo } from "../calendar/navigation";
 import {
   AdminAttendanceStatus,
   AdminGroupAttendanceSession,
@@ -42,7 +43,7 @@ const statusLabels: Record<AdminSessionEffectiveStatus, string> = {
   IN_PROGRESS: "Идёт сейчас",
   COMPLETED: "Завершено",
   CANCELLED: "Отменено",
-  OVERDUE: "Требует заполнения",
+  OVERDUE: "Не закрыто",
 };
 
 const statusTones: Record<AdminSessionEffectiveStatus, StatusTone> = {
@@ -130,6 +131,7 @@ const participantAvatarUrl = (avatar?: MediaAsset | null) => {
 const SessionAttendancePage: React.FC = () => {
   const { groupId, sessionId } = useParams<{ groupId: string; sessionId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const token = user?.accessToken;
 
@@ -186,7 +188,8 @@ const SessionAttendancePage: React.FC = () => {
   const summary = useMemo(() => buildSummary(participants), [participants]);
   const isDirty = useMemo(() => JSON.stringify(serializeParticipants(participants)) !== JSON.stringify(serializeParticipants(initialParticipants)), [initialParticipants, participants]);
   const canEdit = attendance?.capabilities.canEdit ?? false;
-  const backTo = groupId && sessionId ? `/admin/groups/${groupId}/sessions/${sessionId}` : "/admin/groups";
+  const calendarBack = calendarReturnTo(searchParams.get("returnTo"), groupId);
+  const backTo = groupId && sessionId ? `/admin/groups/${groupId}/sessions/${sessionId}${calendarBack ? `?returnTo=${encodeURIComponent(calendarBack)}` : ""}` : "/admin/groups";
 
   useEffect(() => {
     if (!isDirty) return undefined;

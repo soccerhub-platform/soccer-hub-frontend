@@ -7,7 +7,10 @@ export type DashboardFunnelStatus =
   | "IN_PROGRESS"
   | "TRIAL_SCHEDULED"
   | "DECISION_PENDING"
-  | "CONVERTED";
+  | "CONTRACT_PENDING"
+  | "PAYMENT_PENDING"
+  | "CONVERTED"
+  | "LOST";
 
 export type DashboardMeta = {
   branchId: string;
@@ -163,4 +166,5 @@ export type AdminDashboardSummaryResponse = {
   funnel: DashboardFunnel;
   todaySchedule: DashboardTodaySchedule;
   weeklyDynamics: DashboardWeeklyDynamics;
+  todayTrials?: import("./trials/trials.types").TrialBookingListItem[];
 };

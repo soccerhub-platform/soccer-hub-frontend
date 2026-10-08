@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './shared/AuthContext';
-import DispatcherRoutes from './modules/dispatcher';
-import AdminRoutes from './modules/admin';
-import CoachRoutes from './modules/coach';
 import LoginPage from './modules/auth/Login';
 import AccessDeniedPage from './shared/AccessDeniedPage';
 import { Toaster } from 'react-hot-toast';
+
+const DispatcherRoutes = React.lazy(() => import('./modules/dispatcher'));
+const AdminRoutes = React.lazy(() => import('./modules/admin'));
+const CoachRoutes = React.lazy(() => import('./modules/coach'));
 
 /**
  * The root component of the Football CRM application.  It defines
@@ -48,19 +49,21 @@ const App: React.FC = () => {
       />
 
 
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/403" element={<AccessDeniedPage />} />
-        {/* Dispatcher module */}
-        <Route path="/dispatcher/*" element={<DispatcherRoutes />} />
-        {/* Admin module */}
-        <Route path="/admin/*" element={<AdminRoutes />} />
-        {/* Coach module */}
-        <Route path="/coach/*" element={<CoachRoutes />} />
-        {/* Fallback for unknown routes */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <Suspense fallback={<div className="min-h-screen bg-[#eef5f1]" aria-label="Загрузка приложения" />}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/403" element={<AccessDeniedPage />} />
+          {/* Dispatcher module */}
+          <Route path="/dispatcher/*" element={<DispatcherRoutes />} />
+          {/* Admin module */}
+          <Route path="/admin/*" element={<AdminRoutes />} />
+          {/* Coach module */}
+          <Route path="/coach/*" element={<CoachRoutes />} />
+          {/* Fallback for unknown routes */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Suspense>
     </AuthProvider>
   );
 };

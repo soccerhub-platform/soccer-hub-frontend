@@ -126,6 +126,29 @@ export interface Lead {
   notes?: string | null;
   createdAt: string;
   updatedAt: string;
+  source?: string | null;
+  currentTrials?: import("../trials/trials.types").TrialBookingListItem[];
+  work?: LeadWork;
+}
+
+export interface LeadWork {
+  priority: "NORMAL" | "HIGH" | "URGENT";
+  nextAction?: string | null;
+  nextActionAt?: string | null;
+  lastContactAt?: string | null;
+  stageChangedAt?: string | null;
+  version: number;
+}
+
+export interface LeadWorkCommand {
+  operation: "PLAN" | "CONTACT" | "COMPLETE";
+  version: number;
+  priority: LeadWork["priority"];
+  nextAction?: string | null;
+  nextActionAt?: string | null;
+  channel?: "PHONE" | "WHATSAPP" | "EMAIL" | "IN_PERSON";
+  outcome?: "REACHED" | "NO_ANSWER" | "FOLLOW_UP" | "WRONG_NUMBER";
+  comment?: string;
 }
 
 export type LeadKanbanColumns = Record<string, Lead[]>;

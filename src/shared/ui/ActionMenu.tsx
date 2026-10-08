@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import { ChevronDown, MoreHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Button from "./Button";
@@ -39,8 +39,10 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
   className,
 }) => {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const navigating = useRef(false);
 
-  return <DropdownMenu>
+  return <DropdownMenu open={open} onOpenChange={setOpen}>
     <DropdownMenuTrigger asChild>
       <Button
         type="button"
@@ -53,6 +55,10 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent
+      onCloseAutoFocus={event => {
+        if (navigating.current) event.preventDefault();
+        navigating.current = false;
+      }}
       align={align}
       className="min-w-52 rounded-xl border-black/[0.1] p-1.5 shadow-none"
     >
@@ -62,9 +68,10 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
             {item.separatorBefore ? <DropdownMenuSeparator className="bg-black/[0.08]" /> : null}
             <DropdownMenuItem
               disabled={item.disabled}
-              onSelect={(event) => {
+              onSelect={() => {
+                setOpen(false);
                 if (item.to) {
-                  event.preventDefault();
+                  navigating.current = true;
                   navigate(item.to);
                   return;
                 }

@@ -10,7 +10,8 @@ import {
 import { getApiErrorMessage } from "../../../../shared/api";
 import { useAuth } from "../../../../shared/AuthContext";
 import {
-  Input,
+  ToggleGroup,
+  ToggleGroupItem,
   NativeSelect,
   Button,
   DatePicker,
@@ -27,6 +28,7 @@ import {
   ScheduleType,
   DayOfWeek,
 } from "./schedule.types";
+import { validCalendarDate } from "../../sessions.workspace";
 import { DAYS } from "./schedule.utils";
 import { CoachApi, type CoachAvailability } from "../../сoaches/coach.api";
 
@@ -90,11 +92,11 @@ const EditScheduleModal: React.FC<Props> = ({
   const errors = useMemo(() => {
     const result: string[] = [];
     if (!coachId) result.push("Выберите тренера");
-    if (!from || !to) result.push("Укажите даты начала и окончания периода");
+    if (!validCalendarDate(from) || !validCalendarDate(to)) result.push("Укажите даты начала и окончания периода");
     if (from && to && from > to) result.push("Дата окончания не может быть раньше даты начала");
     if (enabledSlots.length === 0) result.push("Выберите хотя бы один день недели");
     enabledSlots.forEach((slot) => {
-      if (slot.startTime >= slot.endTime) {
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(slot.startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(slot.endTime) || slot.startTime >= slot.endTime) {
         result.push(`${dayLabel(slot.dayOfWeek)}: время окончания должно быть позже начала`);
       }
     });
@@ -141,6 +143,7 @@ const EditScheduleModal: React.FC<Props> = ({
   };
 
   const save = async () => {
+    if (saving) return;
     setAttemptedSubmit(true);
     if (errors.length > 0) return;
 
@@ -201,29 +204,12 @@ const EditScheduleModal: React.FC<Props> = ({
           />
 
           <div className="mt-4 space-y-4">
-            <div>
-              <div className="mb-2 text-xs font-medium text-slate-500">Тип периода</div>
-              <div className="grid grid-cols-2 gap-2">
-                <TypeOption
-                  active={type === "REGULAR"}
-                  title="Регулярный"
-                  description="Основное расписание группы"
-                  onClick={() => {
-                    setType("REGULAR");
-                    clearServerFeedback();
-                  }}
-                />
-                <TypeOption
-                  active={type === "TEMPORARY"}
-                  title="Временный"
-                  description="Замена на ограниченный срок"
-                  onClick={() => {
-                    setType("TEMPORARY");
-                    clearServerFeedback();
-                  }}
-                />
-              </div>
-            </div>
+            <fieldset disabled={saving} className="flex flex-col gap-2"><legend className="mb-2 text-xs font-medium text-slate-600">Тип периода</legend>
+              <ToggleGroup type="single" variant="outline" value={type} aria-label="Тип периода" onValueChange={value=>{if(value){setType(value as ScheduleType);clearServerFeedback();}}}>
+                <ToggleGroupItem value="REGULAR">Регулярный</ToggleGroupItem><ToggleGroupItem value="TEMPORARY">Временный</ToggleGroupItem>
+              </ToggleGroup>
+              <p className="text-xs text-slate-600">{type==="REGULAR"?"Основное расписание группы":"Дополнительное расписание на ограниченный срок"}</p>
+            </fieldset>
 
             <FormField
               label="Ответственный тренер"
@@ -301,45 +287,20 @@ const EditScheduleModal: React.FC<Props> = ({
             </span>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
-            {slots.map((slot, index) => {
-              const day = DAYS[index];
-              const invalidTime = slot.enabled && slot.startTime >= slot.endTime;
-              return (
-                <div
-                  key={slot.dayOfWeek}
-                  className={`flex min-h-[64px] flex-col gap-2.5 border-b border-slate-100 px-3 py-2.5 last:border-b-0 sm:grid sm:grid-cols-[minmax(150px,1fr)_minmax(280px,auto)] sm:items-center sm:gap-3 ${slot.enabled ? "bg-white" : "bg-slate-50/70"}`}
-                >
-                  <label className="flex min-w-0 cursor-pointer items-center gap-3">
-                    <Input
-                      type="checkbox"
-                      checked={slot.enabled}
-                      onChange={(event) => updateSlot(index, { enabled: event.target.checked })}
-                      className="h-4 w-4 rounded border-slate-300 text-[#0066cc] accent-[#0066cc] focus:ring-[#0066cc]"
-                    />
-                    <span className={`text-sm font-semibold ${slot.enabled ? "text-slate-900" : "text-slate-500"}`}>{day.label}</span>
-                  </label>
 
-                  <div className="grid gap-2 xl:grid-cols-2">
-                    <TimePicker
-                      aria-label={`Начало: ${day.label}`}
-                      disabled={!slot.enabled}
-                      value={slot.startTime}
-                      onValueChange={(startTime) => updateSlot(index, { startTime })}
-                      aria-invalid={invalidTime}
-                    />
-                    <TimePicker
-                      aria-label={`Окончание: ${day.label}`}
-                      disabled={!slot.enabled}
-                      value={slot.endTime}
-                      onValueChange={(endTime) => updateSlot(index, { endTime })}
-                      aria-invalid={invalidTime}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <fieldset disabled={saving} className="mt-4 flex min-w-0 flex-col gap-3">
+            <legend className="sr-only">Дни занятий</legend>
+            <ToggleGroup type="multiple" variant="outline" value={enabledSlots.map(s=>s.dayOfWeek)} aria-label="Дни занятий" onValueChange={values=>{clearServerFeedback();setSlots(current=>current.map(slot=>({...slot,enabled:values.includes(slot.dayOfWeek)})));}}>
+              {slots.map((slot,index)=><ToggleGroupItem key={slot.dayOfWeek} value={slot.dayOfWeek}>{DAYS[index].short}</ToggleGroupItem>)}
+            </ToggleGroup>
+            {slots.map((slot,index)=>slot.enabled && <div key={slot.dayOfWeek} className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3">
+              <span className="text-sm font-medium">{DAYS[index].label}</span>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Начало"><TimePicker aria-label={`Начало: ${DAYS[index].label}`} value={slot.startTime} onValueChange={startTime=>updateSlot(index,{startTime})} aria-invalid={!slot.startTime || slot.startTime>=slot.endTime}/></FormField>
+                <FormField label="Окончание"><TimePicker aria-label={`Окончание: ${DAYS[index].label}`} value={slot.endTime} onValueChange={endTime=>updateSlot(index,{endTime})} aria-invalid={!slot.endTime || slot.startTime>=slot.endTime}/></FormField>
+              </div>
+            </div>)}
+          </fieldset>
 
           {attemptedSubmit && enabledSlots.length === 0 ? (
             <p className="mt-2 text-xs font-medium text-rose-600">Выберите хотя бы один день недели.</p>
@@ -403,27 +364,6 @@ const SectionHeading: React.FC<{
   </div>
 );
 
-const TypeOption: React.FC<{
-  active: boolean;
-  title: string;
-  description: string;
-  onClick: () => void;
-}> = ({ active, title, description, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`rounded-lg border px-3 py-3 text-left transition ${active ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"}`}
-  >
-    <div className="flex items-center justify-between gap-2">
-      <span className="ui-section-title">{title}</span>
-      <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${active ? "border-[#0066cc] bg-[#0066cc] text-white" : "border-slate-300 bg-white"}`}>
-        {active ? <Check className="h-3.5 w-3.5" /> : null}
-      </span>
-    </div>
-    <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
-  </button>
-);
-
 const CoachAvailabilitySummary: React.FC<{
   availability: CoachAvailability | null;
   loading: boolean;
@@ -442,7 +382,7 @@ const CoachAvailabilitySummary: React.FC<{
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800">
       <span className="inline-flex items-center gap-1.5 font-semibold"><CalendarDays className="h-4 w-4" />{formatAvailabilityDays(availability.days)}</span>
       <span className="inline-flex items-center gap-1.5"><Clock3 className="h-4 w-4" />{availability.timeFrom.slice(0, 5)}–{availability.timeTo.slice(0, 5)}</span>
-      <span className="text-emerald-700/70">{availability.timezone}</span>
+      <span className="text-emerald-800">{availability.timezone}</span>
     </div>
   );
 };

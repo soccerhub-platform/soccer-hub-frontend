@@ -16,8 +16,6 @@ interface LoginLocationState {
   from?: { pathname?: string };
 }
 
-const ROLE_CANDIDATES = ["ADMIN", "SUPER_ADMIN", "DISPATCHER", "COACH"] as const;
-
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,21 +32,7 @@ const LoginPage: React.FC = () => {
     setError(null);
 
     try {
-      let loggedIn = false;
-
-      for (const role of ROLE_CANDIDATES) {
-        try {
-          await login(email.trim(), password, role);
-          loggedIn = true;
-          break;
-        } catch {
-          // The backend still expects role during login, so we try known workspaces.
-        }
-      }
-
-      if (!loggedIn) {
-        throw new Error("Invalid credentials");
-      }
+      await login(email.trim(), password);
 
       const user = readStoredUser();
       const roles = user?.roles ?? [];
@@ -114,9 +98,9 @@ const LoginPage: React.FC = () => {
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <div className="ui-detail-title">
+                <h1 className="ui-detail-title">
                   Вход в Soccer Hub
-                </div>
+                </h1>
                 <p className="mt-1 text-sm text-slate-600">
                   Введите рабочий email и пароль.
                 </p>
@@ -140,10 +124,11 @@ const LoginPage: React.FC = () => {
                 />
               </label>
 
-              <label className="block">
-                <span className="text-sm font-medium text-slate-950">Пароль</span>
+              <div className="block">
+                <label htmlFor="login-password" className="text-sm font-medium text-slate-950">Пароль</label>
                 <div className="relative mt-1">
                   <Input
+                    id="login-password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -161,7 +146,7 @@ const LoginPage: React.FC = () => {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
-              </label>
+              </div>
 
               {error && (
                 <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">

@@ -33,12 +33,13 @@ const TimePicker: React.FC<TimePickerProps> = ({
   "aria-label": ariaLabel,
   "aria-invalid": ariaInvalid,
 }) => (
-  <InputGroup data-disabled={disabled || undefined} aria-label={ariaLabel} className={cn("w-full", className)}>
+  <InputGroup data-disabled={disabled || undefined} className={cn("w-full", className)}>
     <InputGroupAddon align="inline-start">
       <Clock3 />
     </InputGroupAddon>
     <InputGroupInput
       type="time"
+      aria-label={ariaLabel || "Время"}
       value={value}
       step={minuteStep * 60}
       disabled={disabled}

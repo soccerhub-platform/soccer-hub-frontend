@@ -130,6 +130,8 @@ const ContractsPage: React.FC = () => {
   const page = Math.max(Number(searchParams.get("page") ?? 0), 0);
   const createOpen = searchParams.get("drawer") === "create-contract";
   const contextClientId = searchParams.get("clientId") ?? undefined;
+  const contextPlayerId = searchParams.get("playerId") ?? undefined;
+  const contextLeadId = searchParams.get("leadId") ?? undefined;
 
   const load = useCallback(async () => {
     if (!branchId) return;
@@ -223,6 +225,8 @@ const ContractsPage: React.FC = () => {
         <ContractCreateDrawer
           branchId={branchId}
           initialClientId={contextClientId}
+          initialPlayerId={contextPlayerId}
+          sourceLeadId={contextLeadId}
           onClose={() => updateQuery("drawer")}
           onCreated={(contractId) => navigate(`/admin/contracts/${contractId}/overview`, { replace: true })}
         />

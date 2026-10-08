@@ -3,6 +3,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useCallback,
   useState,
 } from "react";
 import { apiClient } from "../../shared/api";
@@ -32,20 +33,20 @@ export const AdminBranchProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isResolved, setIsResolved] = useState(false);
 
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-
-    if (raw) {
-        const parsed = JSON.parse(raw);
-        setBranchId(parsed.branchId);
-        setBranchName(parsed.branchName);
-    }
-
     const loadBranchesCount = async () => {
         try {
         const user = readStoredUser();
         if (!user?.accessToken) return;
-        const data = await apiClient.get<{ branches?: Array<unknown> }>("/admin/branches");
-        setBranchesCount(data?.branches?.length ?? 0);
+        const data = await apiClient.get<{ branches?: Array<{branchId:string;name:string}> }>("/admin/branches");
+        const branches = data?.branches ?? [];
+        setBranchesCount(branches.length);
+        let saved: {branchId?:string} = {};
+        try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { /* Invalid storage must not crash the app. */ }
+        const selected = branches.find(b => b.branchId === saved?.branchId) ?? (branches.length === 1 ? branches[0] : null);
+        if (selected) {
+          setBranchId(selected.branchId); setBranchName(selected.name);
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify({branchId:selected.branchId,branchName:selected.name})); } catch { /* Session selection remains usable. */ }
+        } else { setBranchId(null); setBranchName(null); }
         } catch {
             setBranchesCount(0);
         } finally {
@@ -56,14 +57,14 @@ export const AdminBranchProvider: React.FC<{ children: React.ReactNode }> = ({ c
     loadBranchesCount();
     }, []);
 
-  const setBranch = (id: string, name: string) => {
+  const setBranch = useCallback((id: string, name: string) => {
     setBranchId(id);
     setBranchName(name);
-    localStorage.setItem(
+    try { localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ branchId: id, branchName: name })
-    );
-  };
+    ); } catch { /* The selected branch remains available for this session. */ }
+  }, []);
 
   const value = useMemo(
     () => ({

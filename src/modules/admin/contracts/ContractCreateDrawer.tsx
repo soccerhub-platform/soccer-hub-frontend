@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { CheckCircle, FileText } from "lucide-react";
 import { getApiErrorMessage } from "../../../shared/api";
+import { businessDate } from "../../../shared/business-time";
 import {
   Alert,
   AlertDescription,
@@ -28,10 +29,14 @@ import type { ClientListItem } from "../clients/client.types";
 import { ContractsApi } from "./contracts.api";
 import type { ContractParticipantOption } from "./contracts.types";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = businessDate;
 const monthLater = () => {
-  const date = new Date();
-  date.setMonth(date.getMonth() + 1);
+  const date = new Date(`${businessDate()}T12:00:00Z`);
+  const day = date.getUTCDate();
+  date.setUTCDate(1);
+  date.setUTCMonth(date.getUTCMonth() + 1);
+  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+  date.setUTCDate(Math.min(day, lastDay));
   return date.toISOString().slice(0, 10);
 };
 
@@ -52,21 +57,24 @@ type ContractFormValues = z.infer<typeof contractSchema>;
 const ContractCreateDrawer: React.FC<{
   branchId: string;
   initialClientId?: string;
+  initialPlayerId?: string;
+  sourceLeadId?: string;
   onClose: () => void;
   onCreated: (contractId: string) => void;
-}> = ({ branchId, initialClientId, onClose, onCreated }) => {
-  const [clients, setClients] = useState<ClientListItem[]>([]);
+}> = ({ branchId, initialClientId, initialPlayerId, sourceLeadId, onClose, onCreated }) => {
+  const [clients, setClients] = useState<Pick<ClientListItem, "id" | "fullName" | "phone" | "email">[]>([]);
   const [students, setStudents] = useState<ContractParticipantOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [saving, setSaving] = useState<"draft" | "activate" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [createdDraftId, setCreatedDraftId] = useState<string | null>(null);
 
   const form = useForm<ContractFormValues>({
     resolver: zodResolver(contractSchema),
     defaultValues: {
       clientId: initialClientId ?? "",
-      playerId: "",
+      playerId: initialPlayerId ?? "",
       startDate: today(),
       endDate: monthLater(),
       amount: "30000",
@@ -81,11 +89,16 @@ const ContractCreateDrawer: React.FC<{
   const student = useMemo(() => students.find((item) => item.id === playerId), [playerId, students]);
 
   useEffect(() => {
-    ClientApi.list({ branchId, page: 0, size: 100, sort: "fullName,asc" })
-      .then((response) => setClients(response.content))
-      .catch((reason) => setError(getApiErrorMessage(reason, "Не удалось загрузить клиентов")))
-      .finally(() => setLoading(false));
-  }, [branchId]);
+    let active = true;
+    setLoading(true);
+    const load = initialClientId
+      ? ClientApi.get(initialClientId).then(detail => [detail.client])
+      : ClientApi.list({ branchId, page: 0, size: 100, sort: "fullName,asc" }).then(response => response.content);
+    void load.then(items => { if (active) setClients(items); })
+      .catch((reason) => { if (active) setError(getApiErrorMessage(reason, "Не удалось загрузить клиентов")); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [branchId, initialClientId]);
 
   useEffect(() => {
     if (!clientId) {
@@ -95,20 +108,27 @@ const ContractCreateDrawer: React.FC<{
     }
 
     setStudentsLoading(true);
-    form.setValue("playerId", "");
+    form.setValue("playerId", initialPlayerId ?? "");
     ContractsApi.listParticipants(branchId, clientId)
       .then((items) => {
         setStudents(items);
-        if (items.length === 1) form.setValue("playerId", items[0].id, { shouldValidate: true });
+        if (initialPlayerId && items.some((item) => item.id === initialPlayerId)) {
+          form.setValue("playerId", initialPlayerId, { shouldValidate: true });
+        } else if (items.length === 1) {
+          form.setValue("playerId", items[0].id, { shouldValidate: true });
+        }
       })
       .catch((reason) => setError(getApiErrorMessage(reason, "Не удалось загрузить учеников клиента")))
       .finally(() => setStudentsLoading(false));
-  }, [branchId, clientId, form]);
+  }, [branchId, clientId, form, initialPlayerId]);
 
   const submit = async (values: ContractFormValues, activate: boolean) => {
+    if (saving) return;
     setSaving(activate ? "activate" : "draft");
     setError(null);
     try {
+      let contractId = createdDraftId;
+      if (!contractId) {
       const created = await ContractsApi.create({
         branchId,
         clientId: values.clientId,
@@ -118,9 +138,13 @@ const ContractCreateDrawer: React.FC<{
         amount: Number(values.amount),
         currency: "KZT",
         notes: values.notes.trim() || undefined,
+        sourceLeadId,
       });
-      const result = activate ? await ContractsApi.activate(created.id) : created;
-      onCreated(result.id);
+      contractId = created.id;
+      setCreatedDraftId(contractId);
+      }
+      if (activate) await ContractsApi.activate(contractId);
+      onCreated(contractId);
     } catch (reason) {
       setError(getApiErrorMessage(reason, "Не удалось создать договор"));
     } finally {
@@ -147,7 +171,7 @@ const ContractCreateDrawer: React.FC<{
             disabled={saving !== null}
             onClick={() => void handleSubmit(false)}
           >
-            <FileText className="h-4 w-4" /> Сохранить черновик
+            <FileText className="h-4 w-4" /> {createdDraftId ? "Открыть черновик" : "Сохранить черновик"}
           </Button>
           <Button
             type="button"
@@ -155,24 +179,26 @@ const ContractCreateDrawer: React.FC<{
             disabled={saving !== null}
             onClick={() => void handleSubmit(true)}
           >
-            <CheckCircle className="h-4 w-4" /> Создать и активировать
+            <CheckCircle className="h-4 w-4" /> {createdDraftId ? "Повторить активацию" : "Создать и активировать"}
           </Button>
         </div>
       )}
     >
       <Form {...form}>
+        {createdDraftId && <p role="status" className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">Черновик уже создан. Повторная активация использует этот же договор. Для редактирования откройте черновик.</p>}
         <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
+          <fieldset disabled={saving !== null || Boolean(createdDraftId)} className="flex min-w-0 flex-col gap-5">
           <section className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-xl border border-black/[0.08] bg-[#f5f5f7] p-4">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wide text-[#0066cc]">Клиент</div>
               <div className="mt-1 font-semibold text-slate-950">{client?.fullName || "Не выбран"}</div>
-              <div className="mt-1 text-xs text-slate-500">заключает и оплачивает</div>
+              <div className="mt-1 text-xs text-slate-600">заключает и оплачивает</div>
             </div>
             <span className="text-slate-300" aria-hidden="true">→</span>
             <div>
               <div className="text-xs font-semibold uppercase tracking-wide text-[#0066cc]">Ученик</div>
               <div className="mt-1 font-semibold text-slate-950">{student?.fullName || "Не выбран"}</div>
-              <div className="mt-1 text-xs text-slate-500">получает услугу</div>
+              <div className="mt-1 text-xs text-slate-600">получает услугу</div>
             </div>
           </section>
 
@@ -271,6 +297,7 @@ const ContractCreateDrawer: React.FC<{
             </FormItem>
           )} />
 
+          </fieldset>
           {error ? <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div> : null}
         </form>
       </Form>

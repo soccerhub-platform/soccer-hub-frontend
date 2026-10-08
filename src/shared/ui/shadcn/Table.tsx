@@ -29,7 +29,7 @@ const InteractiveTableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttr
   />
 ));
 InteractiveTableRow.displayName = "InteractiveTableRow";
-const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<HTMLTableCellElement>>(({ className, ...props }, ref) => <th ref={ref} className={cn("h-11 whitespace-nowrap px-4 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400", className)} {...props} />);
+const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<HTMLTableCellElement>>(({ className, ...props }, ref) => <th ref={ref} className={cn("h-11 whitespace-nowrap px-4 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600", className)} {...props} />);
 TableHead.displayName = "TableHead";
 const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTableCellElement>>(({ className, ...props }, ref) => <td ref={ref} className={cn("px-4 py-4 align-middle", className)} {...props} />);
 TableCell.displayName = "TableCell";

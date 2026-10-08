@@ -84,7 +84,7 @@ export const trialStatusLabels: Record<TrialBookingStatus, string> = {
 export const trialStatusTone = {
   SCHEDULED: "info",
   CANCELED: "danger",
-  COMPLETED: "neutral",
+  COMPLETED: "success",
 } as const satisfies Record<TrialBookingStatus, "info" | "success" | "danger" | "neutral">;
 
 export const attendanceLabels: Record<TrialAttendanceStatus, string> = {
@@ -96,7 +96,7 @@ export const attendanceLabels: Record<TrialAttendanceStatus, string> = {
 export const resultLabels: Record<TrialResult, string> = {
   PENDING: "Ожидает результата",
   INTERESTED: "Заинтересован",
-  FOLLOW_UP: "Нужен follow-up",
+  FOLLOW_UP: "Повторный контакт",
   NOT_INTERESTED: "Не заинтересован",
   CONVERTED: "Конвертирован",
 };

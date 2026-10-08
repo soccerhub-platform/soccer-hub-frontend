@@ -24,7 +24,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install deps
@@ -32,6 +32,15 @@ jobs:
 
       - name: Typecheck
         run: npx -y npm@10.9.2 run typecheck
+
+      - name: Lint
+        run: npx -y npm@10.9.2 run lint
+
+      - name: Unit tests
+        run: npx -y npm@10.9.2 test
+
+      - name: Dependency security audit
+        run: npx -y npm@10.9.2 audit --audit-level=high
 
       - name: Build
         run: npx -y npm@10.9.2 run build
