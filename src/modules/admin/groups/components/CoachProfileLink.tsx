@@ -16,10 +16,10 @@ const CoachProfileLink: React.FC<Props> = ({ coachId, children, className = "", 
     <Link
       to={`/admin/coaches/${coachId}`}
       onClick={(event) => event.stopPropagation()}
-      className={`group/coach inline-flex min-w-0 items-center gap-1 font-medium text-slate-900 outline-none transition hover:text-[#0066cc] focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[#0066cc] focus-visible:ring-offset-2 ${className}`}
+      className={`group/coach inline-flex min-w-0 items-center gap-1 font-medium text-slate-900 outline-hidden transition hover:text-admin-600 focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-admin-600 focus-visible:ring-offset-2 ${className}`}
     >
       <span className="truncate">{children}</span>
-      {showArrow ? <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover/coach:text-[#0066cc]" /> : null}
+      {showArrow ? <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover/coach:text-admin-600" /> : null}
     </Link>
   );
 };

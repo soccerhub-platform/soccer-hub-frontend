@@ -22,9 +22,9 @@ import {
 } from "../../../shared/profile/foundation";
 
 const inputClassName =
-  "w-full rounded-xl border border-black/[0.12] bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100";
+  "w-full rounded-xl border border-black/12 bg-white px-3 py-2.5 text-sm text-slate-950 outline-hidden transition focus:border-admin-600 focus:ring-4 focus:ring-blue-100";
 const cardClassName =
-  "rounded-2xl border border-black/[0.12] bg-white p-4 ";
+  "rounded-2xl border border-black/12 bg-white p-4 ";
 
 const SectionError: React.FC<{ message: string }> = ({ message }) => {
   if (!message) return null;
@@ -257,7 +257,7 @@ const CoachProfilePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-black/[0.12] bg-white px-4 py-3 text-sm text-slate-500">
+      <div className="rounded-2xl border border-black/12 bg-white px-4 py-3 text-sm text-slate-500">
         Загрузка профиля...
       </div>
     );
@@ -273,7 +273,7 @@ const CoachProfilePage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-black/[0.12] bg-white p-5 ">
+      <section className="rounded-2xl border border-black/12 bg-white p-5 ">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#1d1d1f] text-lg font-semibold text-white">
             {initials || <CircleUserRound className="h-8 w-8" />}
@@ -309,7 +309,7 @@ const CoachProfilePage: React.FC = () => {
 
       <section className={cardClassName}>
         <div className="mb-4 flex items-center gap-2 ui-section-title">
-          <Badge className="h-5 w-5 text-[#0066cc]" />
+          <Badge className="h-5 w-5 text-admin-600" />
           Основные данные
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -373,7 +373,7 @@ const CoachProfilePage: React.FC = () => {
 
       <section className={cardClassName}>
         <div className="mb-4 flex items-center gap-2 ui-section-title">
-          <Clock3 className="h-5 w-5 text-[#0066cc]" />
+          <Clock3 className="h-5 w-5 text-admin-600" />
           Доступность
         </div>
         <ToggleGroup type="multiple" value={availableDays} onValueChange={setAvailableDays} variant="outline" className="grid grid-cols-7 gap-2">
@@ -400,7 +400,7 @@ const CoachProfilePage: React.FC = () => {
 
       <section className={cardClassName}>
         <div className="mb-4 flex items-center gap-2 ui-section-title">
-          <Bell className="h-5 w-5 text-[#0066cc]" />
+          <Bell className="h-5 w-5 text-admin-600" />
           Уведомления
         </div>
         {[
@@ -408,7 +408,7 @@ const CoachProfilePage: React.FC = () => {
           ["overdueReports", "Показывать напоминания о незакрытых отчетах"],
           ["scheduleChanges", "Сообщать об изменениях расписания"],
         ].map(([key, label]) => (
-          <label key={key} className="flex items-center justify-between gap-3 border-t border-black/[0.06] py-3 first:border-t-0">
+          <label key={key} className="flex items-center justify-between gap-3 border-t border-black/6 py-3 first:border-t-0">
             <span className="text-sm text-slate-950">{label}</span>
             <Checkbox
               checked={notifications[key as keyof typeof notifications]}
@@ -429,7 +429,7 @@ const CoachProfilePage: React.FC = () => {
 
       <section className={cardClassName}>
         <div className="mb-4 flex items-center gap-2 ui-section-title">
-          <LockKeyhole className="h-5 w-5 text-[#0066cc]" />
+          <LockKeyhole className="h-5 w-5 text-admin-600" />
           Безопасность
         </div>
         <div className="space-y-3">
@@ -469,9 +469,9 @@ const CoachProfilePage: React.FC = () => {
         </Button>
       </section>
 
-      <section className="rounded-2xl border border-black/[0.12] bg-blue-50 p-4">
+      <section className="rounded-2xl border border-black/12 bg-blue-50 p-4">
         <div className="flex items-start gap-3">
-          <Phone className="mt-0.5 h-5 w-5 shrink-0 text-[#0066cc]" />
+          <Phone className="mt-0.5 h-5 w-5 shrink-0 text-admin-600" />
           <div>
             <div className="ui-section-title">Нужна помощь?</div>
             <div className="mt-1 text-sm text-slate-500">

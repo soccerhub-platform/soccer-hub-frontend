@@ -402,7 +402,7 @@ const GroupDetailsPage: React.FC = () => {
                 openSection("schedule");
               }}
             >
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#0066cc]">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-50 text-admin-600">
                 <CalendarDays className="h-6 w-6" />
               </span>
               <span className="min-w-0 flex-1">
@@ -411,7 +411,7 @@ const GroupDetailsPage: React.FC = () => {
                   {nextSessionStart ? "Откройте занятие для управления и посещаемости" : "Откройте расписание, чтобы запланировать занятие"}
                 </span>
               </span>
-              <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#0066cc]" />
+              <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-admin-600" />
             </button>
           </SectionCard>
 

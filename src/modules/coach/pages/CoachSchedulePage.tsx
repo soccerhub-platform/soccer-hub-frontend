@@ -48,10 +48,10 @@ const CoachSchedulePage: React.FC = () => {
       </div>
 
       {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-      {loading && <div className="rounded-2xl border border-black/[0.12] bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>}
+      {loading && <div className="rounded-2xl border border-black/12 bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>}
 
       {days.map((day) => (
-        <div key={day.date} className="rounded-2xl border border-black/[0.12] bg-white p-4 ">
+        <div key={day.date} className="rounded-2xl border border-black/12 bg-white p-4 ">
           <div className="ui-section-title">{day.date}</div>
           <div className="mt-2 space-y-2">
             {day.sessions.map((session) => (
@@ -65,7 +65,7 @@ const CoachSchedulePage: React.FC = () => {
       ))}
 
       {!loading && days.length === 0 && (
-        <div className="rounded-2xl border border-black/[0.12] bg-white p-4 text-sm text-slate-500">Расписание на выбранную неделю пустое.</div>
+        <div className="rounded-2xl border border-black/12 bg-white p-4 text-sm text-slate-500">Расписание на выбранную неделю пустое.</div>
       )}
     </div>
   );

@@ -89,7 +89,7 @@ const ClientsPage: React.FC = () => {
           <div className="relative mt-1">
             <NativeSelect
               id="status"
-              className="block h-10 w-full appearance-none rounded-lg border border-black/[0.12] bg-white px-3 pr-8 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+              className="block h-10 w-full appearance-none rounded-lg border border-black/12 bg-white px-3 pr-8 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
               value={statusFilter}
               onChange={(e) => {
                 const next = e.target.value;

@@ -69,11 +69,11 @@ const ModalShell: React.FC<ModalShellProps> = ({
       >
         <DialogHeader className="shrink-0 border-b border-slate-200 bg-white px-5 py-3.5 pr-14">
               {eyebrow ? (
-                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0066cc]">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-admin-600">
                   {eyebrow}
                 </div>
               ) : null}
-              <DialogTitle className="ui-modal-title !text-[#1d1d1f]">{title}</DialogTitle>
+              <DialogTitle className="ui-modal-title text-[#1d1d1f]!">{title}</DialogTitle>
               {description ? <DialogDescription className="text-xs leading-5 text-slate-500">{description}</DialogDescription> : null}
         </DialogHeader>
 

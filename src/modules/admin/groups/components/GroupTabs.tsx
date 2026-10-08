@@ -68,7 +68,7 @@ const GroupTabs: React.FC<{ groupId: string; branchId?: string | null }> = ({
                   : "text-slate-500 hover:bg-white/70 hover:text-slate-800"
               }`}
             >
-              <Icon className={`h-5 w-5 shrink-0 ${isActive ? "text-[#0066cc]" : "text-slate-400"}`} />
+              <Icon className={`h-5 w-5 shrink-0 ${isActive ? "text-admin-600" : "text-slate-400"}`} />
               <span>
                 <span className="block text-sm font-semibold">{tab.label}</span>
                 <span className="mt-0.5 block truncate text-xs text-slate-500">{tab.description}</span>

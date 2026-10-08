@@ -76,7 +76,7 @@ export default function BranchSelectPage() {
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex items-center gap-3 text-sm text-slate-500">
-            <RefreshCw className="h-5 w-5 animate-spin text-[#0066cc]" />
+            <RefreshCw className="h-5 w-5 animate-spin text-admin-600" />
             Загрузка филиалов...
           </div>
           <div className="mt-4 space-y-3">
@@ -93,7 +93,7 @@ export default function BranchSelectPage() {
       <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
-            <Building2 className="h-6 w-6 text-[#0066cc]" />
+            <Building2 className="h-6 w-6 text-admin-600" />
           </div>
           <div>
             <h1 className="ui-page-title">
@@ -142,7 +142,7 @@ export default function BranchSelectPage() {
                 className="group flex w-full items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-blue-200 hover:bg-blue-50/40"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 transition group-hover:bg-white">
-                  <Building2 className="h-5 w-5 text-slate-500 group-hover:text-[#0066cc]" />
+                  <Building2 className="h-5 w-5 text-slate-500 group-hover:text-admin-600" />
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -154,7 +154,7 @@ export default function BranchSelectPage() {
                   )}
                 </div>
 
-                <ChevronRight className="h-5 w-5 text-slate-300 transition group-hover:text-[#0066cc]" />
+                <ChevronRight className="h-5 w-5 text-slate-300 transition group-hover:text-admin-600" />
               </button>
             ))}
           </div>

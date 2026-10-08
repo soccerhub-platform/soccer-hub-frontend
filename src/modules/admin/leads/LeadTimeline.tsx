@@ -55,8 +55,8 @@ const getActivityMeta = (type: string) => {
   if (normalized.includes("PAYMENT")) {
     return {
       icon: Banknote,
-      iconClassName: "text-[#0066cc]",
-      dotClassName: "bg-[#0066cc]",
+      iconClassName: "text-admin-600",
+      dotClassName: "bg-admin-600",
     };
   }
 

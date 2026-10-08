@@ -38,7 +38,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_STYLES: Record<string, string> = {
-  MAIN: "border-blue-100 bg-blue-50 text-[#0066cc]",
+  MAIN: "border-blue-100 bg-blue-50 text-admin-600",
   ASSISTANT: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
@@ -76,7 +76,7 @@ const CoachAvatar: React.FC<{ firstName: string; lastName: string; avatar?: Medi
     return <img src={src} alt={`Фото ${firstName} ${lastName}`} className="h-10 w-10 rounded-full border border-white object-cover ring-1 ring-slate-200" onError={() => setFailed(true)} />;
   }
 
-  return <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-blue-100 text-xs font-bold text-slate-700 ring-1 ring-slate-200">{coachInitials(firstName, lastName)}</span>;
+  return <span className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-slate-100 to-blue-100 text-xs font-bold text-slate-700 ring-1 ring-slate-200">{coachInitials(firstName, lastName)}</span>;
 };
 
 const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) => {
@@ -162,7 +162,7 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2 ui-card-title">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-admin-600">
                 <UserPlus className="h-4 w-4" />
               </span>
               Тренеры
@@ -251,14 +251,14 @@ const GroupCoachesTab: React.FC<Props> = ({ groupId, branchId: branchIdProp }) =
                   <span className="text-slate-400">{coach.load?.groupsCount ?? 1} гр.</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                  <div className={`h-full rounded-full ${coach.load?.status === "OVERLOADED" ? "bg-rose-500" : coach.load?.status === "HIGH" ? "bg-amber-500" : "bg-[#0066cc]"}`} style={{ width: `${Math.min(coach.load?.percentage ?? 0, 100)}%` }} />
+                  <div className={`h-full rounded-full ${coach.load?.status === "OVERLOADED" ? "bg-rose-500" : coach.load?.status === "HIGH" ? "bg-amber-500" : "bg-admin-600"}`} style={{ width: `${Math.min(coach.load?.percentage ?? 0, 100)}%` }} />
                 </div>
               </div>
 
               <div className="text-xs">
                 {coach.nextSession ? (
-                  <Link to={`/admin/groups/${groupId}/sessions/${coach.nextSession.sessionId}`} className="group inline-flex items-start gap-2 font-medium text-slate-700 hover:text-[#0066cc]">
-                    <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 group-hover:text-[#0066cc]" />
+                  <Link to={`/admin/groups/${groupId}/sessions/${coach.nextSession.sessionId}`} className="group inline-flex items-start gap-2 font-medium text-slate-700 hover:text-admin-600">
+                    <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 group-hover:text-admin-600" />
                     <span><span className="block">{formatDate(coach.nextSession.sessionDate)}</span><span className="mt-0.5 block text-slate-400">{coach.nextSession.startsAt.slice(0, 5)}{coach.nextSession.endsAt ? `–${coach.nextSession.endsAt.slice(0, 5)}` : ""}</span></span>
                   </Link>
                 ) : <span className="text-slate-400">Не запланировано</span>}

@@ -112,7 +112,7 @@ const membershipLabel = (status: string) => {
 
 const membershipClassName = (status: string) => {
   if (status === "ACTIVE") return "border-emerald-100 bg-emerald-50 text-emerald-700";
-  if (status === "UPCOMING") return "border-blue-100 bg-blue-50 text-[#0066cc]";
+  if (status === "UPCOMING") return "border-blue-100 bg-blue-50 text-admin-600";
   if (status === "REMOVED") return "border-rose-100 bg-rose-50 text-rose-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
 };
@@ -150,7 +150,7 @@ const riskIconClassName = (risk: StudentRisk) =>
     ? "bg-rose-50 text-rose-700"
     : risk.severity === "WARNING"
     ? "bg-amber-50 text-amber-700"
-    : "bg-blue-50 text-[#0066cc]";
+    : "bg-blue-50 text-admin-600";
 
 interface StudentActivityItem {
   id: string;
@@ -186,7 +186,7 @@ const StudentAvatar: React.FC<{
   }
 
   return (
-    <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-xl font-semibold text-[#0066cc] sm:h-32 sm:w-32">
+    <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-xl font-semibold text-admin-600 sm:h-32 sm:w-32">
       {getInitials(name)}
     </div>
   );
@@ -213,7 +213,7 @@ const MembershipRow: React.FC<{
         </span>
       )}
       <div className="min-w-0">
-        <button type="button" onClick={onOpen} className="truncate text-left ui-section-title transition hover:text-[#0066cc]">
+        <button type="button" onClick={onOpen} className="truncate text-left ui-section-title transition hover:text-admin-600">
           {membership.group.name}
         </button>
         <div className="mt-1 text-xs text-slate-500">
@@ -228,7 +228,7 @@ const MembershipRow: React.FC<{
       {onTransfer ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" onClick={onTransfer}><ArrowLeftRight className="h-4 w-4" /> Перевести</Button> : null}
       {onRemove ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" onClick={onRemove}><Trash2 className="h-4 w-4" /> Исключить</Button> : null}
       {onCancelContract ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" onClick={onCancelContract}><FileText className="h-4 w-4" /> Отменить договор</Button> : null}
-      <button type="button" onClick={onOpen} aria-label={`Открыть группу ${membership.group.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-blue-50 hover:text-[#0066cc]">
+      <button type="button" onClick={onOpen} aria-label={`Открыть группу ${membership.group.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-blue-50 hover:text-admin-600">
         <ChevronRight className="h-4 w-4" />
       </button>
     </div>
@@ -542,7 +542,7 @@ const StudentDetailsPage: React.FC = () => {
               type="button"
               onClick={canManageAvatar ? openDrawer : undefined}
               disabled={!canManageAvatar}
-              className={`group relative shrink-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 ${canManageAvatar ? "cursor-pointer" : "cursor-default"}`}
+              className={`group relative shrink-0 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-100 ${canManageAvatar ? "cursor-pointer" : "cursor-default"}`}
               aria-label="Изменить фото ученика"
             >
               <StudentAvatar name={student.player.fullName} avatar={student.player.avatar} onError={() => void loadStudent()} />
@@ -550,7 +550,7 @@ const StudentDetailsPage: React.FC = () => {
             </button>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="ui-detail-title w-full break-words sm:w-auto">{student.player.fullName}</h1>
+                <h1 className="ui-detail-title w-full wrap-break-word sm:w-auto">{student.player.fullName}</h1>
                 <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusActive ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
                   {statusActive ? "Активный ученик" : "Без активного участия"}
                 </span>
@@ -564,9 +564,9 @@ const StudentDetailsPage: React.FC = () => {
                 <span>{currentMemberships.length} активных групп</span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <button type="button" disabled={!primaryClientRelation} onClick={() => primaryClientRelation && navigate(`/admin/clients/${primaryClientRelation.clientId}/overview`)} className="inline-flex items-center gap-2 font-medium text-slate-700 transition hover:text-[#0066cc] disabled:cursor-default disabled:hover:text-slate-700"><User className="h-4 w-4 text-muted-foreground" />{primaryClientRelation?.clientName ?? student.client.fullName}</button>
-                {activeClientRelations.length > 1 ? <NavLink to={sectionPath("clients")} className="text-xs font-semibold text-[#0066cc]">Ещё {activeClientRelations.length - 1}</NavLink> : null}
-                {phoneHref ? <a href={phoneHref} className="inline-flex items-center gap-2 font-medium text-[#0066cc] hover:text-[#0066cc]"><Phone className="h-4 w-4" />{student.client.phone}</a> : null}
+                <button type="button" disabled={!primaryClientRelation} onClick={() => primaryClientRelation && navigate(`/admin/clients/${primaryClientRelation.clientId}/overview`)} className="inline-flex items-center gap-2 font-medium text-slate-700 transition hover:text-admin-600 disabled:cursor-default disabled:hover:text-slate-700"><User className="h-4 w-4 text-muted-foreground" />{primaryClientRelation?.clientName ?? student.client.fullName}</button>
+                {activeClientRelations.length > 1 ? <NavLink to={sectionPath("clients")} className="text-xs font-semibold text-admin-600">Ещё {activeClientRelations.length - 1}</NavLink> : null}
+                {phoneHref ? <a href={phoneHref} className="inline-flex items-center gap-2 font-medium text-admin-600 hover:text-admin-600"><Phone className="h-4 w-4" />{student.client.phone}</a> : null}
               </div>
               {student.client.email ? <div className="mt-2 truncate text-sm text-slate-500">Email: <span className="font-medium text-slate-700">{student.client.email}</span></div> : null}
             </div>
@@ -584,7 +584,7 @@ const StudentDetailsPage: React.FC = () => {
                 {currentMemberships.slice(0, 3).map((item) => (
                   <div key={item.membershipId} className="rounded-md border border-slate-200 p-3">
                     <div className="flex items-center gap-3">
-                      {getAvatarUrl(item.group.avatar) ? <img src={resolveApiUrl(getAvatarUrl(item.group.avatar)!)} alt="" className="h-10 w-10 rounded-md object-cover" /> : <span className="grid h-10 w-10 place-items-center rounded-md bg-blue-50 text-xs font-semibold text-[#0066cc]">{getInitials(item.group.name)}</span>}
+                      {getAvatarUrl(item.group.avatar) ? <img src={resolveApiUrl(getAvatarUrl(item.group.avatar)!)} alt="" className="h-10 w-10 rounded-md object-cover" /> : <span className="grid h-10 w-10 place-items-center rounded-md bg-blue-50 text-xs font-semibold text-admin-600">{getInitials(item.group.name)}</span>}
                       <div className="min-w-0 flex-1"><div className="truncate ui-section-title">{item.group.name}</div><div className="mt-0.5 truncate text-xs text-slate-500">{student.currentGroup?.id === item.group.id ? student.currentGroup.coachName || "Тренер не указан" : "Активное участие"}</div></div>
                       <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Активно</span>
                     </div>
@@ -593,7 +593,7 @@ const StudentDetailsPage: React.FC = () => {
                 ))}
                 {currentMemberships.length === 0 ? <EmptyState title="Нет активных групп" /> : null}
               </div>
-              <NavLink to={sectionPath("groups")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">История участия в группах <ChevronRight className="h-4 w-4" /></NavLink>
+              <NavLink to={sectionPath("groups")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-admin-600">История участия в группах <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-3">
@@ -634,7 +634,7 @@ const StudentDetailsPage: React.FC = () => {
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-3 xl:row-span-2">
               <h2 className="ui-section-title">Последняя активность</h2>
               <div className="mt-3">{activityItems.length ? <ActivityTimeline items={activityItems} onNavigate={navigate} /> : <EmptyState title="Событий пока нет" />}</div>
-              <NavLink to={sectionPath("activity")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">Вся активность <ChevronRight className="h-4 w-4" /></NavLink>
+              <NavLink to={sectionPath("activity")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-admin-600">Вся активность <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-5">
@@ -646,16 +646,16 @@ const StudentDetailsPage: React.FC = () => {
                 <div><div className="ui-card-title">{overviewAttendance?.summary.absentCount ?? student.attendanceSummary?.absentCount ?? 0}</div><div className="text-[11px] text-slate-500">Пропущено</div></div>
               </div>
               <div className="mt-4 flex h-20 items-end gap-1.5 overflow-hidden">
-                {attendanceItems.slice(-24).map((item) => <div key={item.sessionId} title={`${formatDate(item.sessionDate)} · ${item.attendanceStatus}`} className="flex h-full min-w-1 flex-1 items-end"><span className={`block w-full rounded-sm ${attendanceBarClassName(item.attendanceStatus)}`} /></div>)}
+                {attendanceItems.slice(-24).map((item) => <div key={item.sessionId} title={`${formatDate(item.sessionDate)} · ${item.attendanceStatus}`} className="flex h-full min-w-1 flex-1 items-end"><span className={`block w-full rounded-xs ${attendanceBarClassName(item.attendanceStatus)}`} /></div>)}
                 {attendanceItems.length === 0 ? <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Нет занятий за период</div> : null}
               </div>
-              <NavLink to={sectionPath("attendance")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">Открыть полную посещаемость <ChevronRight className="h-4 w-4" /></NavLink>
+              <NavLink to={sectionPath("attendance")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-admin-600">Открыть полную посещаемость <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-4">
               <h2 className="ui-section-title">Договор</h2>
               {contract ? <div className="mt-3 rounded-md border border-slate-200 p-3"><div className="flex items-center gap-2"><span className="ui-section-title">{contract.contractNumber}</span><span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Активен</span></div><div className="mt-1 text-xs text-slate-500">{formatDate(contract.startDate)} — {formatDate(contract.endDate)}</div><div className="mt-4 grid grid-cols-3 gap-3"><FinancialOverview label="Сумма" value={formatAmount(contract.amount, contract.currency)} /><FinancialOverview label="Оплачено" value={formatAmount(contract.paidAmount, contract.currency)} /><FinancialOverview label="Остаток" value={formatAmount(contract.outstandingAmount, contract.currency)} /></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${contract.amount ? Math.min(100, Math.round((contract.paidAmount / contract.amount) * 100)) : 0}%` }} /></div><Button className="mt-3" size="sm" variant="secondary" rounded="rounded-md" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(contract.id)}/overview`)}>Открыть договор</Button></div> : <EmptyState title="Нет активного договора" />}
-              <NavLink to={sectionPath("contracts")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">Все договоры <ChevronRight className="h-4 w-4" /></NavLink>
+              <NavLink to={sectionPath("contracts")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-admin-600">Все договоры <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
           </div>
         </div>
@@ -692,9 +692,9 @@ const StudentDetailsPage: React.FC = () => {
               <div className="divide-y divide-slate-100">
                 {activeClientRelations.map((relation) => (
                   <button key={relation.id} type="button" onClick={() => navigate(`/admin/clients/${relation.clientId}/overview`)} className="flex w-full flex-col gap-3 py-4 text-left first:pt-0 last:pb-0 sm:flex-row sm:items-center">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-blue-50 text-sm font-semibold text-[#0066cc]">{getInitials(relation.clientName)}</span>
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-blue-50 text-sm font-semibold text-admin-600">{getInitials(relation.clientName)}</span>
                     <span className="min-w-0 flex-1"><span className="block truncate ui-section-title">{relation.clientName}</span><span className="mt-1 block text-xs text-slate-500">{clientRelationshipLabel(relation.relationshipType)} · с {formatDate(relation.startedAt)}</span></span>
-                    <span className="flex flex-wrap items-center gap-2">{relation.primaryContact ? <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#0066cc]">Основной контакт</span> : null}{relation.primaryPayer ? <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Плательщик</span> : null}{relation.legalRepresentative ? <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">Представитель</span> : null}<ChevronRight className="h-4 w-4 text-muted-foreground" /></span>
+                    <span className="flex flex-wrap items-center gap-2">{relation.primaryContact ? <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-admin-600">Основной контакт</span> : null}{relation.primaryPayer ? <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Плательщик</span> : null}{relation.legalRepresentative ? <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">Представитель</span> : null}<ChevronRight className="h-4 w-4 text-muted-foreground" /></span>
                   </button>
                 ))}
               </div>
@@ -752,7 +752,7 @@ const StudentDetailsPage: React.FC = () => {
               <div className="mt-3 ui-section-title">{primaryClientRelation?.clientName ?? student.client.fullName}</div>
               <div className="mt-1 text-sm text-slate-500">{student.client.phone}{student.client.email ? ` · ${student.client.email}` : ""}</div>
               <p className="mt-2 text-xs leading-5 text-slate-500">Контакты принадлежат Client Workspace и не изменяются вместе с данными ученика.</p>
-              <NavLink to={sectionPath("clients")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">Все связанные клиенты <ChevronRight className="h-4 w-4" /></NavLink>
+              <NavLink to={sectionPath("clients")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-admin-600">Все связанные клиенты <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
           </div>
         </ModalShell>

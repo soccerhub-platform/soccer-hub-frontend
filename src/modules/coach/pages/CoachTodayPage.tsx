@@ -38,14 +38,14 @@ const CoachTodayPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-black/[0.12] bg-white p-5 ">
+      <div className="rounded-2xl border border-black/12 bg-white p-5 ">
         <div className="ui-page-title">Сегодня</div>
         <p className="mt-1 text-sm text-slate-500">
           Здесь собраны тренировки на день. Откройте карточку, отметьте посещаемость и заполните короткий отчет.
         </p>
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div className="rounded-2xl bg-blue-50 p-3">
-            <Clock3 className="h-5 w-5 text-[#0066cc]" />
+            <Clock3 className="h-5 w-5 text-admin-600" />
             <div className="mt-2 ui-card-title">{todaySessions.length}</div>
             <div className="text-[11px] text-slate-500">тренировки</div>
           </div>
@@ -67,12 +67,12 @@ const CoachTodayPage: React.FC = () => {
       </div>
 
       {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-      {loading && <div className="rounded-2xl border border-black/[0.12] bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>}
+      {loading && <div className="rounded-2xl border border-black/12 bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>}
 
       {todaySessions.map((session) => {
         const meta = SESSION_STATUS_META[session.status];
         return (
-          <div key={session.id} className="rounded-2xl border border-black/[0.12] bg-white p-4 ">
+          <div key={session.id} className="rounded-2xl border border-black/12 bg-white p-4 ">
             <div className="flex items-center justify-between">
               <div className="ui-modal-title text-slate-950">{session.time}</div>
               <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${meta.tone}`}>{meta.label}</span>
@@ -81,7 +81,7 @@ const CoachTodayPage: React.FC = () => {
             <div className="mt-1 text-sm text-slate-500">Учеников в группе: {session.studentCount}</div>
             <Link
               to={`/coach/sessions/${session.id}`}
-              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#1d1d1f] px-3 text-sm font-semibold text-white transition hover:bg-[#0066cc]"
+              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#1d1d1f] px-3 text-sm font-semibold text-white transition hover:bg-admin-600"
             >
               {meta.action}
             </Link>

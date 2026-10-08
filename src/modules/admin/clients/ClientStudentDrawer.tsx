@@ -170,7 +170,7 @@ const ClientStudentDrawer: React.FC<{
     >
       <div className="space-y-5">
         <div className="grid gap-2 sm:grid-cols-3">
-          {modes.map((item) => <button key={item.id} type="button" onClick={() => chooseMode(item.id)} className={`min-h-28 rounded-lg border p-3 text-left transition ${mode === item.id ? "border-[#0066cc] bg-blue-50 ring-1 ring-blue-700" : "border-slate-200 bg-white hover:border-slate-300"}`}><item.icon className={`h-5 w-5 ${mode === item.id ? "text-[#0066cc]" : "text-slate-500"}`} /><span className="mt-3 block ui-section-title">{item.title}</span><span className="mt-1 block text-xs leading-5 text-slate-500">{item.note}</span></button>)}
+          {modes.map((item) => <button key={item.id} type="button" onClick={() => chooseMode(item.id)} className={`min-h-28 rounded-lg border p-3 text-left transition ${mode === item.id ? "border-admin-600 bg-blue-50 ring-1 ring-blue-700" : "border-slate-200 bg-white hover:border-slate-300"}`}><item.icon className={`h-5 w-5 ${mode === item.id ? "text-admin-600" : "text-slate-500"}`} /><span className="mt-3 block ui-section-title">{item.title}</span><span className="mt-1 block text-xs leading-5 text-slate-500">{item.note}</span></button>)}
         </div>
 
         {mode === "EXISTING" ? <div className="space-y-4">

@@ -7,7 +7,7 @@ import {
 
 export const SESSION_STATUS_META: Record<CoachSessionStatus, { label: string; action: string; tone: string }> = {
   PLANNED: { label: "Запланирована", action: "Начать тренировку", tone: "bg-slate-100 text-slate-700" },
-  IN_PROGRESS: { label: "Идет сейчас", action: "Открыть посещаемость", tone: "bg-blue-50 text-[#0066cc]" },
+  IN_PROGRESS: { label: "Идет сейчас", action: "Открыть посещаемость", tone: "bg-blue-50 text-admin-600" },
   COMPLETED: { label: "Завершена", action: "Посмотреть отчет", tone: "bg-emerald-100 text-emerald-700" },
   CANCELLED: { label: "Отменена", action: "Посмотреть причину", tone: "bg-rose-100 text-rose-700" },
   OVERDUE: { label: "Нужен отчет", action: "Заполнить отчет", tone: "bg-amber-100 text-amber-700" },

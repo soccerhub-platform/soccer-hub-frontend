@@ -310,7 +310,7 @@ const EditScheduleModal: React.FC<Props> = ({
           ) : null}
         </section>
 
-        <div className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50 px-3.5 py-3 text-xs leading-5 text-[#0066cc]">
+        <div className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50 px-3.5 py-3 text-xs leading-5 text-admin-600">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
             При сохранении система проверит пересечения тренера и группы. Изменения применятся к будущим занятиям этого периода.
@@ -354,7 +354,7 @@ const SectionHeading: React.FC<{
   description: string;
 }> = ({ icon, title, description }) => (
   <div className="flex items-start gap-3">
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-admin-600">
       {React.cloneElement(icon, { className: "h-4 w-4" })}
     </span>
     <div>

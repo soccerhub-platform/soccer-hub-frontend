@@ -20,14 +20,14 @@ export function PageTable<T>({
   onPageChange,
 }: PageTableProps<T>) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-white">
+    <div className="overflow-hidden rounded-2xl border border-black/8 bg-white">
       <Table>
         <TableHeader>{renderHeader()}</TableHeader>
         <TableBody>{page.content.map(renderRow)}</TableBody>
       </Table>
 
       {!page.empty && (
-        <div className="flex items-center justify-between border-t border-black/[0.08] bg-slate-50/60 px-4 py-3">
+        <div className="flex items-center justify-between border-t border-black/8 bg-slate-50/60 px-4 py-3">
           <span className="text-xs text-slate-500">
             Страница {page.number + 1} из {page.totalPages}
           </span>

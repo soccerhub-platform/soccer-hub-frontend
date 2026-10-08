@@ -181,7 +181,7 @@ const RemoveCoachDrawer: React.FC<Props> = ({ coach, onClose, onRemoved }) => {
                           <span className="block truncate ui-section-title">{candidate.coachName}</span>
                           <span className="mt-0.5 block text-xs text-slate-500">{candidate.role === "MAIN" ? "Главный тренер" : "Ассистент"}</span>
                         </span>
-                        <span className={`h-5 w-5 rounded-full border ${selected ? "border-[#0066cc] bg-[#0066cc] ring-4 ring-blue-100" : "border-slate-300"}`} />
+                        <span className={`h-5 w-5 rounded-full border ${selected ? "border-admin-600 bg-admin-600 ring-4 ring-blue-100" : "border-slate-300"}`} />
                       </button>
                     );
                   })}

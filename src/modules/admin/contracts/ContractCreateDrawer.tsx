@@ -188,15 +188,15 @@ const ContractCreateDrawer: React.FC<{
         {createdDraftId && <p role="status" className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">Черновик уже создан. Повторная активация использует этот же договор. Для редактирования откройте черновик.</p>}
         <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
           <fieldset disabled={saving !== null || Boolean(createdDraftId)} className="flex min-w-0 flex-col gap-5">
-          <section className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-xl border border-black/[0.08] bg-[#f5f5f7] p-4">
+          <section className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-xl border border-black/8 bg-[#f5f5f7] p-4">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-[#0066cc]">Клиент</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-admin-600">Клиент</div>
               <div className="mt-1 font-semibold text-slate-950">{client?.fullName || "Не выбран"}</div>
               <div className="mt-1 text-xs text-slate-600">заключает и оплачивает</div>
             </div>
             <span className="text-slate-300" aria-hidden="true">→</span>
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-[#0066cc]">Ученик</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-admin-600">Ученик</div>
               <div className="mt-1 font-semibold text-slate-950">{student?.fullName || "Не выбран"}</div>
               <div className="mt-1 text-xs text-slate-600">получает услугу</div>
             </div>

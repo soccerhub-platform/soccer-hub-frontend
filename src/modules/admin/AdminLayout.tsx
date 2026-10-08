@@ -72,7 +72,7 @@ const AdminLayout: React.FC = () => {
       sidebarCollapsed ? "justify-center px-0 py-3" : "gap-2.5 px-3 py-2"
     } ${
       isActive
-        ? "bg-blue-50 text-[#0066cc]"
+        ? "bg-blue-50 text-admin-600"
         : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
     }`;
 
@@ -91,7 +91,7 @@ const AdminLayout: React.FC = () => {
           <>
             <Icon
               className={`h-[18px] w-[18px] shrink-0 ${
-                isActive ? "text-[#0066cc]" : "text-slate-400 group-hover:text-[#0066cc]"
+                isActive ? "text-admin-600" : "text-slate-400 group-hover:text-admin-600"
               }`}
             />
             {!sidebarCollapsed ? <span className="min-w-0 truncate">{item.label}</span> : null}
@@ -102,10 +102,10 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="admin-flat-ui flex h-[100dvh] overflow-hidden app-bg-admin">
-      <a href="#admin-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-white focus:p-3">Перейти к содержимому</a>
+    <div className="admin-flat-ui flex h-dvh overflow-hidden app-bg-admin">
+      <a href="#admin-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:bg-white focus:p-3">Перейти к содержимому</a>
       <aside
-        className={`sticky top-0 hidden h-[100dvh] shrink-0 flex-col border-r border-black/[0.08] bg-[#f8f9fb] transition-[width] duration-300 md:flex ${
+        className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-black/8 bg-[#f8f9fb] transition-[width] duration-300 md:flex ${
           sidebarCollapsed ? "w-[68px]" : "w-[216px]"
         }`}
       >
@@ -127,7 +127,7 @@ const AdminLayout: React.FC = () => {
                 setCollapsed((value) => !value);
                 setProfileMenuOpen(false);
               }}
-              className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-black/[0.08] bg-white text-slate-500 transition hover:border-blue-200 hover:text-[#0066cc] md:flex ${
+              className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-black/8 bg-white text-slate-500 transition hover:border-blue-200 hover:text-admin-600 md:flex ${
                 collapsed ? "absolute left-[58px] top-6 z-20" : ""
               }`}
               aria-label={collapsed ? "Открыть меню" : "Свернуть меню"}
@@ -140,9 +140,9 @@ const AdminLayout: React.FC = () => {
 
         <nav aria-label="Разделы администратора" className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pb-4">
           {!sidebarCollapsed ? (
-            <div className="mb-3 px-6 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">Рабочее пространство</div>
+            <div className="mb-3 px-6 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Рабочее пространство</div>
           ) : null}
-          {MAIN_NAV_ITEMS.map((item, i) => <React.Fragment key={item.to}>{!sidebarCollapsed && (i === 4 || i === 8) && <div className="px-6 pb-2 pt-6 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">{i === 4 ? "Клуб и занятия" : "Финансы"}</div>}{renderNavItem(item)}</React.Fragment>)}
+          {MAIN_NAV_ITEMS.map((item, i) => <React.Fragment key={item.to}>{!sidebarCollapsed && (i === 4 || i === 8) && <div className="px-6 pb-2 pt-6 text-[10px] font-semibold uppercase tracking-widest text-slate-500">{i === 4 ? "Клуб и занятия" : "Финансы"}</div>}{renderNavItem(item)}</React.Fragment>)}
         </nav>
 
         <div className="px-3 pb-4 pt-2">
@@ -152,11 +152,11 @@ const AdminLayout: React.FC = () => {
                 type="button"
                 title={sidebarCollapsed ? "Профиль" : undefined}
                 aria-label="Меню профиля"
-                className={`flex w-full items-center rounded-2xl border border-black/[0.08] bg-transparent px-3 py-3 text-left transition hover:border-slate-300 hover:bg-white ${
+                className={`flex w-full items-center rounded-2xl border border-black/8 bg-transparent px-3 py-3 text-left transition hover:border-slate-300 hover:bg-white ${
                   profileMenuOpen ? "border-slate-300 bg-slate-50" : ""
                 } ${sidebarCollapsed ? "justify-center px-0" : "gap-3"}`}
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0066cc] text-sm font-semibold text-white">{(user?.email?.[0] ?? "A").toUpperCase()}</div>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-admin-600 text-sm font-semibold text-white">{(user?.email?.[0] ?? "A").toUpperCase()}</div>
                 {!sidebarCollapsed ? <div className="min-w-0 flex-1"><div className="truncate ui-section-title">Администратор</div><div className="truncate text-xs text-slate-500">{branchLabel ?? "Филиал не выбран"}</div></div> : null}
                 {!sidebarCollapsed ? <ChevronRight className={`h-4 w-4 shrink-0 text-slate-400 transition ${profileMenuOpen ? "rotate-90" : ""}`} /> : null}
               </button>

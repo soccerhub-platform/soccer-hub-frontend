@@ -98,7 +98,7 @@ const SortHeader: React.FC<{ label: string; active: boolean; onClick: () => void
       event.stopPropagation();
       onClick();
     }}
-    className={`inline-flex items-center gap-1 transition hover:text-slate-950 ${active ? "font-semibold text-[#0066cc]" : ""}`}
+    className={`inline-flex items-center gap-1 transition hover:text-slate-950 ${active ? "font-semibold text-admin-600" : ""}`}
   >
     {label}<ArrowUpDown className="h-3.5 w-3.5" />
   </button>
@@ -192,7 +192,7 @@ const ClientsPage: React.FC = () => {
       header: () => <SortHeader label="Клиент" active={sort.startsWith("fullName,")} onClick={() => toggleSort("fullName")} />,
       cell: ({ row }) => (
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-[#0066cc]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-admin-600">
             {initials(row.original.fullName)}
           </span>
           <span className="min-w-0">
@@ -325,12 +325,12 @@ const ClientsPage: React.FC = () => {
         </div>
         <Button variant="secondary" onClick={() => setFiltersOpen((value) => !value)}>
           <ListFilter className="h-4 w-4" /> Фильтры
-          {activeFilters ? <span className="rounded-full bg-[#0066cc] px-1.5 py-0.5 text-[10px] font-semibold text-white">{activeFilters}</span> : null}
+          {activeFilters ? <span className="rounded-full bg-admin-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">{activeFilters}</span> : null}
         </Button>
       </FilterBar>
 
       {filtersOpen || activeFilters ? (
-        <section className="grid gap-3 rounded-2xl border border-black/[0.08] bg-white p-4 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto] xl:items-end">
+        <section className="grid gap-3 rounded-2xl border border-black/8 bg-white p-4 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto] xl:items-end">
           <FilterSelect label="Статус клиента" value={status} onChange={(value) => updateQuery("status", value)} options={[
             ["ALL", "Все статусы"], ["ACTIVE", "Активные"], ["NEW", "Новые"], ["IN_PROGRESS", "В работе"],
             ["CONTRACT_PENDING", "Оформление договора"], ["PAUSED", "Приостановленные"], ["INACTIVE", "Неактивные"],

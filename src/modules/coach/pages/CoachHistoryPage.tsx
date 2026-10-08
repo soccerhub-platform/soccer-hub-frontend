@@ -47,12 +47,12 @@ const CoachHistoryPage: React.FC = () => {
 
       <div className="space-y-2">
         {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-        {loading && <div className="rounded-2xl border border-black/[0.12] bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>}
+        {loading && <div className="rounded-2xl border border-black/12 bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>}
         {history.map((session) => (
           <Link
             to={`/coach/sessions/${session.id}`}
             key={session.id}
-            className="block rounded-2xl border border-black/[0.12] bg-white p-4 "
+            className="block rounded-2xl border border-black/12 bg-white p-4 "
           >
             <div className="text-sm font-medium text-slate-950">{session.date} · {session.groupName}</div>
             <div className="mt-1 text-xs text-slate-500">Статус: {SESSION_STATUS_META[session.status].label}</div>

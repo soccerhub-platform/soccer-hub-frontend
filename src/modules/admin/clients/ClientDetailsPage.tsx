@@ -126,7 +126,7 @@ const OverviewPanel: React.FC<{
   </section>
 );
 
-const panelLinkClassName = "text-xs font-semibold text-[#0066cc] transition hover:text-[#004b99]";
+const panelLinkClassName = "text-xs font-semibold text-admin-600 transition hover:text-[#004b99]";
 
 const ClientDetailsPage: React.FC = () => {
   const { clientId, section } = useParams<{ clientId: string; section: string }>();
@@ -372,12 +372,12 @@ const ClientDetailsPage: React.FC = () => {
             {activeStudents.map((relation) => (
               <div key={relation.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 lg:flex-row lg:items-center">
                 <button type="button" onClick={() => navigate(`/admin/students/${relation.playerId}/overview`)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-sm font-semibold text-[#0066cc]">{initials(relation.playerName)}</span>
-                  <span className="min-w-0 flex-1"><span className="block text-xs font-semibold uppercase text-[#0066cc]">Ученик · посещает занятия</span><span className="mt-1 block truncate ui-section-title">{relation.playerName}</span><span className="mt-1 block text-xs text-slate-500">Добавлен {relation.startedAt}</span></span>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-sm font-semibold text-admin-600">{initials(relation.playerName)}</span>
+                  <span className="min-w-0 flex-1"><span className="block text-xs font-semibold uppercase text-admin-600">Ученик · посещает занятия</span><span className="mt-1 block truncate ui-section-title">{relation.playerName}</span><span className="mt-1 block text-xs text-slate-500">Добавлен {relation.startedAt}</span></span>
                 </button>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">{relationshipLabels[relation.relationshipType]}</span>
-                  {relation.primaryContact ? <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#0066cc]">Основной контакт</span> : null}
+                  {relation.primaryContact ? <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-admin-600">Основной контакт</span> : null}
                   {relation.primaryPayer ? <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Плательщик</span> : null}
                   <Button size="sm" variant="ghost" rounded="rounded-lg" onClick={() => openRelationDrawer("edit-relation", relation)} aria-label={`Изменить связь с ${relation.playerName}`}><Pencil className="h-4 w-4" /></Button>
                   <Button size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50" onClick={() => openRelationDrawer("end-relation", relation)} aria-label={`Завершить связь с ${relation.playerName}`}><CircleX className="h-4 w-4" /></Button>
@@ -411,7 +411,7 @@ const ClientDetailsPage: React.FC = () => {
       </SectionCard> : null}
 
       {drawer === "edit-client" ? <ClientFormDrawer client={client} saving={saving} error={formError} onClose={() => setDrawer()} onSubmit={(input) => void update(input)} /> : null}
-      {drawer === "change-status" && statusTarget ? <EntitySheet title={statusTarget === "ACTIVE" ? "Активировать клиента" : statusTarget === "PAUSED" ? "Приостановить клиента" : "Деактивировать клиента"} description={client.client.fullName} onClose={() => setDrawer()} closeDisabled={saving} footer={<div className="flex w-full justify-end gap-2"><Button variant="secondary" onClick={() => setDrawer()} disabled={saving}>Отмена</Button><Button variant={statusTarget === "INACTIVE" ? "danger" : "primary"} onClick={() => void changeStatus()} isLoading={saving}>{statusTarget === "ACTIVE" ? "Активировать" : statusTarget === "PAUSED" ? "Приостановить" : "Деактивировать"}</Button></div>}><div className={`rounded-lg border p-4 text-sm leading-6 ${statusTarget === "INACTIVE" ? "border-rose-200 bg-rose-50 text-rose-900" : "border-black/[0.08] bg-[#f5f5f7] text-slate-700"}`}>{statusTarget === "ACTIVE" ? "Клиент снова станет активным. Доступные операции будут рассчитаны backend после изменения." : statusTarget === "PAUSED" ? "Клиент останется в системе, но его текущее состояние будет отмечено как приостановленное." : "Новые связи и договоры для клиента станут недоступны. Существующие данные, договоры и платежи сохранятся."}</div>{formError ? <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{formError}</div> : null}</EntitySheet> : null}
+      {drawer === "change-status" && statusTarget ? <EntitySheet title={statusTarget === "ACTIVE" ? "Активировать клиента" : statusTarget === "PAUSED" ? "Приостановить клиента" : "Деактивировать клиента"} description={client.client.fullName} onClose={() => setDrawer()} closeDisabled={saving} footer={<div className="flex w-full justify-end gap-2"><Button variant="secondary" onClick={() => setDrawer()} disabled={saving}>Отмена</Button><Button variant={statusTarget === "INACTIVE" ? "danger" : "primary"} onClick={() => void changeStatus()} isLoading={saving}>{statusTarget === "ACTIVE" ? "Активировать" : statusTarget === "PAUSED" ? "Приостановить" : "Деактивировать"}</Button></div>}><div className={`rounded-lg border p-4 text-sm leading-6 ${statusTarget === "INACTIVE" ? "border-rose-200 bg-rose-50 text-rose-900" : "border-black/8 bg-[#f5f5f7] text-slate-700"}`}>{statusTarget === "ACTIVE" ? "Клиент снова станет активным. Доступные операции будут рассчитаны backend после изменения." : statusTarget === "PAUSED" ? "Клиент останется в системе, но его текущее состояние будет отмечено как приостановленное." : "Новые связи и договоры для клиента станут недоступны. Существующие данные, договоры и платежи сохранятся."}</div>{formError ? <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{formError}</div> : null}</EntitySheet> : null}
       {drawer === "add-student" ? <ClientStudentDrawer clientId={client.client.id} clientName={client.client.fullName} branchId={client.client.branchId} linkedPlayerIds={activeStudents.map((item) => item.playerId)} onClose={() => setDrawer()} onCreated={() => { toast.success("Ученик добавлен"); setDrawer(); void load(); }} /> : null}
       {drawer === "edit-relation" && selectedRelation ? (
         <EntitySheet title="Изменить связь" description={`Настройте роль ${client.client.fullName} для ученика ${selectedRelation.playerName}.`} onClose={() => setDrawer()} closeDisabled={saving} footer={<div className="flex w-full justify-end gap-2"><Button variant="secondary" onClick={() => setDrawer()} disabled={saving}>Отмена</Button><Button onClick={() => void updateRelation()} isLoading={saving}>Сохранить</Button></div>}>
@@ -423,7 +423,7 @@ const ClientDetailsPage: React.FC = () => {
                 ["primaryPayer", "Основной плательщик"],
                 ["legalRepresentative", "Юридический представитель"],
                 ["receivesNotifications", "Получает уведомления"],
-              ] as const).map(([key, label]) => <label key={key} className="flex items-center justify-between gap-4 rounded-lg border border-black/[0.08] p-3 text-sm font-medium text-slate-700"><span>{label}</span><Checkbox checked={relationForm[key]} onCheckedChange={(checked) => setRelationForm((current) => ({ ...current, [key]: checked === true }))} /></label>)}
+              ] as const).map(([key, label]) => <label key={key} className="flex items-center justify-between gap-4 rounded-lg border border-black/8 p-3 text-sm font-medium text-slate-700"><span>{label}</span><Checkbox checked={relationForm[key]} onCheckedChange={(checked) => setRelationForm((current) => ({ ...current, [key]: checked === true }))} /></label>)}
             </div>
             {formError ? <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{formError}</div> : null}
           </div>

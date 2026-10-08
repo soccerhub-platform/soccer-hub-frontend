@@ -116,20 +116,20 @@ const CoachSessionDetailsPage: React.FC = () => {
     return (
       <div className="space-y-3">
         <div className="text-sm text-rose-600">Тренировка не найдена</div>
-        <Link to="/coach/today" className="text-sm text-[#0066cc]">Вернуться на сегодня</Link>
+        <Link to="/coach/today" className="text-sm text-admin-600">Вернуться на сегодня</Link>
       </div>
     );
   }
 
   if (loading) {
-    return <div className="rounded-2xl border border-black/[0.12] bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>;
+    return <div className="rounded-2xl border border-black/12 bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>;
   }
 
   if (error || !session) {
     return (
       <div className="space-y-3">
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error ?? "Не удалось загрузить тренировку"}</div>
-        <Link to="/coach/today" className="text-sm text-[#0066cc]">Вернуться на сегодня</Link>
+        <Link to="/coach/today" className="text-sm text-admin-600">Вернуться на сегодня</Link>
       </div>
     );
   }
@@ -412,7 +412,7 @@ const CoachSessionDetailsPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-black/[0.12] bg-white p-5 ">
+      <div className="rounded-2xl border border-black/12 bg-white p-5 ">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="ui-page-title">Карточка тренировки</h1>
@@ -420,7 +420,7 @@ const CoachSessionDetailsPage: React.FC = () => {
           </div>
           <StatusBadge tone={sessionStatusTones[session.status]}>{statusMeta.label}</StatusBadge>
         </div>
-        <div className="mt-4 rounded-2xl bg-blue-50/80 px-4 py-3 text-sm text-[#0066cc]">
+        <div className="mt-4 rounded-2xl bg-blue-50/80 px-4 py-3 text-sm text-admin-600">
           {nextStepText}
         </div>
         {(primaryActionLabel || canCancel) && (
@@ -454,7 +454,7 @@ const CoachSessionDetailsPage: React.FC = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-black/[0.12] bg-white p-3 text-sm ">
+      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-black/12 bg-white p-3 text-sm ">
         <div>
           <div className="text-[11px] uppercase text-slate-700/45">Дата</div>
           <div className="mt-1 font-medium text-slate-950">{session.date}</div>
@@ -470,7 +470,7 @@ const CoachSessionDetailsPage: React.FC = () => {
       </div>
 
       {canEditAttendance && (
-        <div className="rounded-2xl border border-black/[0.12] bg-white p-4 ">
+        <div className="rounded-2xl border border-black/12 bg-white p-4 ">
           <div className="mb-2 flex items-center justify-between">
             <div>
               <h2 className="ui-section-title">Посещаемость</h2>
@@ -496,7 +496,7 @@ const CoachSessionDetailsPage: React.FC = () => {
           ) : null}
           <div className="space-y-3">
             {students.map((student) => (
-              <div key={student.id} className="rounded-xl border border-black/[0.06] bg-[#fbfdfb] p-3">
+              <div key={student.id} className="rounded-xl border border-black/6 bg-[#fbfdfb] p-3">
                 <div className="text-sm text-slate-950">{student.name}</div>
                 <ToggleGroup type="single" value={student.attendance ?? ""} onValueChange={(value) => value && updateAttendance(student.id, value as CoachStudentAttendance["attendance"])} variant="outline" className="mt-2 flex-wrap justify-start">
                   {(Object.keys(ATTENDANCE_LABELS) as CoachStudentAttendance["attendance"][]).map((state) => <ToggleGroupItem key={state} value={state} size="sm">{ATTENDANCE_LABELS[state]}</ToggleGroupItem>)}
@@ -516,7 +516,7 @@ const CoachSessionDetailsPage: React.FC = () => {
       )}
 
       {trialStudents.length > 0 ? (
-        <div className="rounded-2xl border border-black/[0.12] bg-white p-4">
+        <div className="rounded-2xl border border-black/12 bg-white p-4">
           <div className="mb-3">
             <h2 className="ui-section-title">Пробные ученики</h2>
             <p className="mt-1 text-xs text-slate-500">
@@ -532,7 +532,7 @@ const CoachSessionDetailsPage: React.FC = () => {
               return (
                 <div
                   key={trial.trialBookingId}
-                  className="rounded-xl border border-black/[0.06] bg-[#fbfdfb] p-3"
+                  className="rounded-xl border border-black/6 bg-[#fbfdfb] p-3"
                 >
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -582,7 +582,7 @@ const CoachSessionDetailsPage: React.FC = () => {
                           )
                         }
                         placeholder="Комментарий по пробному ученику"
-                        className="mt-2 w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+                        className="mt-2 w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
                         rows={2}
                       />
 
@@ -604,7 +604,7 @@ const CoachSessionDetailsPage: React.FC = () => {
                   ) : null}
 
                   {isCompleted && trial.attendance === "ATTENDED" ? (
-                    <div className="mt-3 border-t border-black/[0.06] pt-3">
+                    <div className="mt-3 border-t border-black/6 pt-3">
                       <div className="text-xs font-medium uppercase text-slate-500">
                         Рекомендация тренера
                       </div>
@@ -662,7 +662,7 @@ const CoachSessionDetailsPage: React.FC = () => {
                           )
                         }
                         placeholder="Комментарий или рекомендация тренера"
-                        className="mt-2 w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+                        className="mt-2 w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
                         rows={2}
                       />
 
@@ -694,19 +694,19 @@ const CoachSessionDetailsPage: React.FC = () => {
       ) : null}
 
       {canEditReport ? (
-      <div className="space-y-3 rounded-2xl border border-black/[0.12] bg-white p-4 ">
+      <div className="space-y-3 rounded-2xl border border-black/12 bg-white p-4 ">
         <div>
           <h2 className="ui-section-title">Отчет тренера</h2>
         </div>
-        <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Тема тренировки" className="w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100" />
+        <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Тема тренировки" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" />
         {!hasRequiredReportFields ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             Укажите тему тренировки перед сохранением отчета.
           </div>
         ) : null}
-        <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Комментарий тренера" className="w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100" rows={3} />
-        <Textarea value={incidents} onChange={(e) => setIncidents(e.target.value)} placeholder="Инциденты или важные заметки" className="w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100" rows={2} />
-        <Textarea value={homework} onChange={(e) => setHomework(e.target.value)} placeholder="Домашнее задание" className="w-full rounded-xl border border-black/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100" rows={2} />
+        <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Комментарий тренера" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" rows={3} />
+        <Textarea value={incidents} onChange={(e) => setIncidents(e.target.value)} placeholder="Инциденты или важные заметки" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" rows={2} />
+        <Textarea value={homework} onChange={(e) => setHomework(e.target.value)} placeholder="Домашнее задание" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" rows={2} />
         <Button
           disabled={saving || !canSaveReport}
           onClick={saveReport}
@@ -717,7 +717,7 @@ const CoachSessionDetailsPage: React.FC = () => {
         </Button>
       </div>
       ) : isCompleted ? (
-        <div className="space-y-3 rounded-2xl border border-black/[0.12] bg-white p-4 text-sm ">
+        <div className="space-y-3 rounded-2xl border border-black/12 bg-white p-4 text-sm ">
           <h2 className="ui-section-title">Отчет тренера</h2>
           <div className="space-y-2 text-slate-600">
             <div><span className="font-medium text-slate-950">Тема:</span> {topic || "Не указано"}</div>

@@ -266,7 +266,7 @@ const membershipStatusLabel = (status?: string | null) => {
 const membershipStatusClassName = (status?: string | null) => {
   switch (status) {
     case "UPCOMING":
-      return "border-blue-100 bg-blue-50 text-[#0066cc]";
+      return "border-blue-100 bg-blue-50 text-admin-600";
     case "ACTIVE":
       return "border-emerald-100 bg-emerald-50 text-emerald-800";
     case "TRANSFERRED":
@@ -542,7 +542,7 @@ const StudentsPage: React.FC = () => {
                 setPage(0);
               }}
               placeholder="Поиск ученика, родителя, телефона или договора"
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-hidden transition focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
           <DropdownMenu open={sortOpen} onOpenChange={(open) => { setSortOpen(open); if (open) setFiltersOpen(false); }}>
@@ -643,7 +643,7 @@ const StudentsPage: React.FC = () => {
               type="button"
               onClick={() => setPage(index)}
               className={`flex h-9 min-w-9 items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${
-                page === index ? "bg-[#0066cc] text-white" : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                page === index ? "bg-admin-600 text-white" : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
               }`}
             >
               {index + 1}
@@ -712,7 +712,7 @@ const StudentRow: React.FC<{
       <button
         type="button"
         onClick={student.groupId ? onOpenGroup : undefined}
-        className="truncate font-semibold text-slate-900 transition hover:text-[#0066cc] disabled:hover:text-slate-900"
+        className="truncate font-semibold text-slate-900 transition hover:text-admin-600 disabled:hover:text-slate-900"
         disabled={!student.groupId}
       >
         {student.groupName || "Без группы"}
@@ -790,7 +790,7 @@ const QuickRiskFilters: React.FC<{
           onClick={() => onChange(item.value)}
           className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
             active
-              ? "border-[#0066cc] bg-blue-50 text-[#0066cc]"
+              ? "border-admin-600 bg-blue-50 text-admin-600"
               : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
           }`}
         >
@@ -815,7 +815,7 @@ const FilterSelect: React.FC<{
       value={value}
       onChange={(event) => onChange(event.target.value)}
       disabled={disabled}
-      className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400"
+      className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 outline-hidden transition focus:border-admin-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400"
     >
       {children}
     </NativeSelect>
@@ -866,7 +866,7 @@ const StudentAvatar: React.FC<{
 
   return (
     <div
-      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-blue-100 bg-blue-50 font-semibold text-[#0066cc]`}
+      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-blue-100 bg-blue-50 font-semibold text-admin-600`}
       aria-label={name}
     >
       {initialsFromName(name)}
@@ -1249,7 +1249,7 @@ const SummaryTile: React.FC<{ label: string; value: string; icon?: React.ReactNo
 const MiniStat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
     <div className="text-[11px] font-medium uppercase text-muted-foreground">{label}</div>
-    <div className="mt-1 break-words ui-section-title">{value}</div>
+    <div className="mt-1 wrap-break-word ui-section-title">{value}</div>
   </div>
 );
 

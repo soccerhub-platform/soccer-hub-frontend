@@ -246,13 +246,13 @@ const PaymentsPage: React.FC = () => {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Номер договора, клиент, игрок, идентификатор платежа, комментарий"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-hidden transition focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
           />
           <NativeSelect
             value={statusFilter}
             aria-label="Статус платежа"
             onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-hidden transition focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
           >
             <option value="all">Все статусы</option>
             <option value="PAID">Зафиксирован</option>
@@ -262,7 +262,7 @@ const PaymentsPage: React.FC = () => {
             value={methodFilter}
             aria-label="Способ оплаты"
             onChange={(event) => setMethodFilter(event.target.value as MethodFilter)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-hidden transition focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
           >
             <option value="all">Все методы</option>
             <option value="KASPI">Kaspi</option>
@@ -520,14 +520,14 @@ const PaymentDetailsModal: React.FC<{
                 value={cancelReason}
                 onChange={(event) => setCancelReason(event.target.value)}
                 placeholder="Причина отмены"
-                className="w-full rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-rose-500 focus:ring-4 focus:ring-rose-100"
+                className="w-full rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-sm outline-hidden transition focus:border-rose-500 focus:ring-4 focus:ring-rose-100"
               />
               <Textarea
                 value={cancelComment}
                 onChange={(event) => setCancelComment(event.target.value)}
                 rows={4}
                 placeholder="Комментарий"
-                className="w-full rounded-2xl border border-rose-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-rose-500 focus:ring-4 focus:ring-rose-100"
+                className="w-full rounded-2xl border border-rose-200 bg-white px-3 py-3 text-sm outline-hidden transition focus:border-rose-500 focus:ring-4 focus:ring-rose-100"
               />
             </div>
           </div>

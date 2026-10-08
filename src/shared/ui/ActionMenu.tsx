@@ -60,12 +60,12 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
         navigating.current = false;
       }}
       align={align}
-      className="min-w-52 rounded-xl border-black/[0.1] p-1.5 shadow-none"
+      className="min-w-52 rounded-xl border-black/10 p-1.5 shadow-none"
     >
       <DropdownMenuGroup>
         {items.map((item) => (
           <React.Fragment key={item.key}>
-            {item.separatorBefore ? <DropdownMenuSeparator className="bg-black/[0.08]" /> : null}
+            {item.separatorBefore ? <DropdownMenuSeparator className="bg-black/8" /> : null}
             <DropdownMenuItem
               disabled={item.disabled}
               onSelect={() => {

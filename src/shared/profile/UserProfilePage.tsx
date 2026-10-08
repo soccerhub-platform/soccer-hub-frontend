@@ -361,7 +361,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       [key]: event.target.checked,
                     })
                   }
-                  className={`h-5 w-5 rounded border-slate-300 ${theme.ring}`}
+                  className={`h-5 w-5 rounded-sm border-slate-300 ${theme.ring}`}
                 />
               </label>
             ))}

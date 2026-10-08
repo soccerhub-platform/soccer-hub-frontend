@@ -62,7 +62,7 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen bg-[#eef5f1]">
       <div className="mx-auto grid min-h-screen w-full max-w-6xl grid-cols-1 lg:grid-cols-[1fr_460px]">
         <section className="hidden flex-col justify-between px-10 py-10 lg:flex">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-[#0066cc]">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-admin-600">
             <BrandMark compact />
             <span className="font-semibold">Soccer Hub</span>
           </div>
@@ -119,7 +119,7 @@ const LoginPage: React.FC = () => {
                   onChange={(event) => setEmail(event.target.value)}
                   autoComplete="username"
                   required
-                  className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+                  className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-hidden transition focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
                   placeholder="name@club.kz"
                 />
               </label>
@@ -134,13 +134,13 @@ const LoginPage: React.FC = () => {
                     onChange={(event) => setPassword(event.target.value)}
                     autoComplete="current-password"
                     required
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm outline-hidden transition focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
                     placeholder="Введите пароль"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((value) => !value)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-[#0066cc] hover:bg-blue-50 hover:text-[#0066cc]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-admin-600 hover:bg-blue-50 hover:text-admin-600"
                     aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -157,7 +157,7 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0066cc] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0066cc] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-admin-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-admin-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "Проверяем доступ..." : "Войти"}
                 <ArrowRight className="h-4 w-4" />

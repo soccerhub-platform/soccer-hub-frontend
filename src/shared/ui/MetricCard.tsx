@@ -26,9 +26,9 @@ const toneClassNames: Record<MetricTone, { icon: string; value: string; delta: s
     delta: "text-slate-500",
   },
   info: {
-    icon: "bg-blue-50 text-[#0066cc]",
+    icon: "bg-blue-50 text-admin-600",
     value: "text-slate-950",
-    delta: "text-[#0066cc]",
+    delta: "text-admin-600",
   },
   success: {
     icon: "bg-emerald-50 text-emerald-700",
@@ -87,7 +87,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
         ) : null}
         {progress !== undefined ? (
           <span className="mt-3 block h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <span className="block h-full rounded-full bg-[#0066cc]" style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }} />
+            <span className="block h-full rounded-full bg-admin-600" style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }} />
           </span>
         ) : null}
       </span>
@@ -95,9 +95,9 @@ const MetricCard: React.FC<MetricCardProps> = ({
   );
 
   const baseClassName = classNames(
-    "flex items-center rounded-2xl border border-black/[0.08] bg-white",
+    "flex items-center rounded-2xl border border-black/8 bg-white",
     variant === "compact" ? "min-h-0 gap-3 p-3" : "min-h-[104px] gap-4 p-4",
-    onClick ? "text-left transition hover:border-blue-200 hover:bg-blue-50/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100" : null,
+    onClick ? "text-left transition hover:border-blue-200 hover:bg-blue-50/30 focus-visible:outline-hidden focus-visible:ring-4 focus-visible:ring-blue-100" : null,
     className,
   );
 

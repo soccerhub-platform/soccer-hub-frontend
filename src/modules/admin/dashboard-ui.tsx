@@ -60,7 +60,7 @@ export const getToneClasses = (tone: DashboardAttentionItem["tone"]) => {
     case "success":
       return "border-emerald-200 bg-emerald-50 text-emerald-900";
     default:
-      return "border-blue-200 bg-blue-50 text-[#0066cc]";
+      return "border-blue-200 bg-blue-50 text-admin-600";
   }
 };
 
@@ -73,7 +73,7 @@ export const getToneDotClasses = (tone: DashboardAttentionItem["tone"]) => {
     case "success":
       return "bg-emerald-500";
     default:
-      return "bg-[#0066cc]";
+      return "bg-admin-600";
   }
 };
 
@@ -86,7 +86,7 @@ export const getToneBadgeClasses = (tone: DashboardAttentionItem["tone"]) => {
     case "success":
       return "bg-emerald-100 text-emerald-700";
     default:
-      return "bg-blue-100 text-[#0066cc]";
+      return "bg-blue-100 text-admin-600";
   }
 };
 
@@ -114,7 +114,7 @@ export const PanelCard = ({
   children: React.ReactNode;
   className?: string;
 }) => (
-  <section className={`relative overflow-hidden rounded-2xl border border-black/[0.08] bg-white p-4 ${className}`}>
+  <section className={`relative overflow-hidden rounded-2xl border border-black/8 bg-white p-4 ${className}`}>
     <div className="text-base font-semibold tracking-tight text-slate-950">{title}</div>
     <div className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">{description}</div>
     <div className="mt-4">{children}</div>
@@ -122,7 +122,7 @@ export const PanelCard = ({
 );
 
 export const HeaderPulseCard = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-2xl border border-black/[0.08] bg-white px-3.5 py-3.5">
+  <div className="rounded-2xl border border-black/8 bg-white px-3.5 py-3.5">
     <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</div>
     <div className="mt-1.5 text-sm font-semibold leading-5 text-slate-950">{value}</div>
   </div>
@@ -157,7 +157,7 @@ export const LeadFunnelCompact = ({ totals }: { totals: Record<string, number> }
           <div className="h-3 rounded-full bg-slate-100 ring-1 ring-slate-200/70">
             <div
               className={`h-3 rounded-full ${
-                row.status === "CONVERTED" ? "bg-emerald-600" : row.status === "LOST" ? "bg-rose-500" : "bg-[#0066cc]"
+                row.status === "CONVERTED" ? "bg-emerald-600" : row.status === "LOST" ? "bg-rose-500" : "bg-admin-600"
               }`}
               style={{ width: `${Math.max(row.value > 0 ? 10 : 0, (row.value / max) * 100)}%` }}
             />
@@ -208,7 +208,7 @@ export const TodayScheduleList = ({
         <div className="rounded-2xl border border-blue-200 bg-blue-50/70 px-4 py-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0066cc]">Ближайшая тренировка</div>
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-admin-600">Ближайшая тренировка</div>
               <div className="mt-2 ui-card-title">
                 {formatOffsetTimeRange(nextSession.startAt, nextSession.endAt)} · {nextSession.groupName}
               </div>
@@ -245,7 +245,7 @@ export const TodayScheduleList = ({
               className={`w-full rounded-2xl border px-4 py-4 text-left transition hover:border-slate-300 ${
                 isCancelled
                   ? "border-rose-200 bg-rose-50/70"
-                  : "border-black/[0.08] bg-white"
+                  : "border-black/8 bg-white"
               }`}
             >
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -260,7 +260,7 @@ export const TodayScheduleList = ({
                     <span
                       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
                         liveState === "Сейчас идет"
-                          ? "bg-blue-100 text-[#0066cc]"
+                          ? "bg-blue-100 text-admin-600"
                           : liveState === "Дальше по плану"
                             ? "bg-emerald-100 text-emerald-700"
                             : liveState === "Требует отчет"
@@ -300,10 +300,10 @@ export const QuickActionButton = ({ label, onClick }: { label: string; onClick: 
   <button
     type="button"
     onClick={onClick}
-    className="group flex min-h-[60px] items-center justify-between rounded-2xl border border-black/[0.08] bg-white px-4 py-3 text-left text-sm font-medium text-slate-800 transition hover:border-blue-200 hover:bg-blue-50/60"
+    className="group flex min-h-[60px] items-center justify-between rounded-2xl border border-black/8 bg-white px-4 py-3 text-left text-sm font-medium text-slate-800 transition hover:border-blue-200 hover:bg-blue-50/60"
   >
     <span>{label}</span>
-    <span className="text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#0066cc]">→</span>
+    <span className="text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-admin-600">→</span>
   </button>
 );
 
@@ -345,7 +345,7 @@ export const WeeklyTrendCompact = ({ rows }: { rows: LegacyWeeklyTrendItem[] }) 
         const bucketTotal = metrics.reduce((sum, metric) => sum + metric.value, 0);
 
         return (
-          <div key={bucket} className="rounded-2xl border border-black/[0.08] bg-white px-4 py-4">
+          <div key={bucket} className="rounded-2xl border border-black/8 bg-white px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-slate-800">{bucket}</div>
               <div className="text-xs font-medium text-slate-500">Всего событий: {bucketTotal}</div>
@@ -357,7 +357,7 @@ export const WeeklyTrendCompact = ({ rows }: { rows: LegacyWeeklyTrendItem[] }) 
                     <span
                       className={`h-2.5 w-2.5 rounded-full ${
                         metric.tone === "info"
-                          ? "bg-[#0066cc]"
+                          ? "bg-admin-600"
                           : metric.tone === "success"
                             ? "bg-emerald-500"
                             : "bg-rose-500"
@@ -462,7 +462,7 @@ export const WeekCalendar: React.FC<{
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => START_HOUR + index);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-white">
+    <div className="overflow-hidden rounded-2xl border border-black/8 bg-white">
       <div className="grid grid-cols-[88px_repeat(7,1fr)] border-b border-slate-200 bg-slate-50">
         <div className="p-2 text-xs text-slate-400">Время</div>
         {DAYS.map((day) => (

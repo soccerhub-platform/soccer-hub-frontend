@@ -125,8 +125,8 @@ const getActivityMeta = (type: string) => {
   if (type.includes("SESSION") || type.includes("ATTENDANCE")) {
     return {
       icon: CalendarDays,
-      dotClassName: "bg-[#0066cc]",
-      iconClassName: "text-[#0066cc]",
+      dotClassName: "bg-admin-600",
+      iconClassName: "text-admin-600",
     };
   }
 

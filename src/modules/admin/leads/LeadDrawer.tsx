@@ -346,12 +346,12 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 text-xs text-slate-600">
-                  <button type="button" onClick={onClose} className="hover:text-[#0066cc]">Лиды</button>
+                  <button type="button" onClick={onClose} className="hover:text-admin-600">Лиды</button>
                   <span>→</span>
                   <span>Лид #{leadId.slice(0, 8)}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="break-words text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                  <h2 className="wrap-break-word text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
                     {loading ? "Загрузка..." : lead?.primaryContact.fullName ?? "Лид"}
                   </h2>
                   {lead ? (
@@ -366,7 +366,7 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
                 type="button"
                 onClick={onClose}
                 aria-label={embedded ? "Назад к лидам" : "Закрыть карточку лида"}
-                className={embedded ? "shrink-0 rounded-lg p-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-[#0066cc]" : "rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600"}
+                className={embedded ? "shrink-0 rounded-lg p-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-admin-600" : "rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600"}
               >
                 {embedded ? <><span aria-hidden="true">←</span><span className="hidden sm:inline"> Назад к лидам</span></> : "✕"}
               </button>
@@ -389,8 +389,8 @@ const LeadDrawer: React.FC<LeadDrawerProps> = ({
           {lead ? (
             <div className="mx-5 mt-4 flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
               <div className="min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-[#0066cc]">Следующее действие</div>
-                <div className="mt-1 break-words ui-section-title">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-admin-600">Следующее действие</div>
+                <div className="mt-1 wrap-break-word ui-section-title">
                   <p>{nextStep(lead)}</p>
                   {isActiveLead(lead) && lead.work?.nextActionAt && <div className={`mt-1 text-sm ${overdue(lead) ? "text-red-700" : "text-slate-600"}`}>{overdue(lead) ? "Просрочено · " : "Срок · "}{new Date(lead.work.nextActionAt).toLocaleString("ru-RU")}</div>}
                   {isActiveLead(lead) && <div className="mt-1 text-xs text-slate-600">Приоритет: {PRIORITY_LABELS[lead.work?.priority ?? "NORMAL"]}</div>}

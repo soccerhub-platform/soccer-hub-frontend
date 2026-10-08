@@ -160,7 +160,7 @@ const MemberAvatar: React.FC<{ name: string; avatar?: MediaAsset | null }> = ({ 
     return <img src={src} alt="" className="h-9 w-9 shrink-0 rounded-full border border-white object-cover ring-1 ring-slate-200" onError={() => setFailed(true)} />;
   }
 
-  return <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-emerald-100 text-xs font-bold text-[#0066cc] ring-1 ring-blue-200">{initials(name)}</div>;
+  return <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-100 to-emerald-100 text-xs font-bold text-admin-600 ring-1 ring-blue-200">{initials(name)}</div>;
 };
 
 const ColumnTitle: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
@@ -567,7 +567,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-2 ui-card-title">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-admin-600">
                 <UsersRound className="h-4 w-4" />
               </span>
               Ученики
@@ -825,7 +825,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                             )}
                           </div>
                         </div>
-                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-[#0066cc] bg-[#0066cc] text-white" : "border-slate-300 bg-white"}`}>
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-admin-600 bg-admin-600 text-white" : "border-slate-300 bg-white"}`}>
                           {selected ? <CheckCircle className="h-4 w-4" /> : null}
                         </span>
                       </div>
@@ -963,7 +963,7 @@ const GroupMembersTab: React.FC<Props> = ({ groupId, groupName, branchId, capaci
                       ? "border-blue-100 bg-blue-50 text-blue-800"
                       : (selectedCandidate.currentMemberships ?? []).length > 0
                       ? "border-amber-100 bg-amber-50 text-amber-800"
-                      : "border-blue-100 bg-blue-50 text-[#0066cc]"
+                      : "border-blue-100 bg-blue-50 text-admin-600"
                   }`}
                 >
                   {addMode === "transfer" && selectedCurrentMembership ? (

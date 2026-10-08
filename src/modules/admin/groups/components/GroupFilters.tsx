@@ -35,7 +35,7 @@ const GroupFilters: React.FC<Props> = ({ value, onChange }) => {
             onChange={(e) =>
               onChange({ ...value, search: e.target.value })
             }
-            className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-[#0066cc] focus:ring-2 focus:ring-blue-100"
+            className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-hidden transition focus:border-admin-600 focus:ring-2 focus:ring-blue-100"
           />
         </span>
       </label>
@@ -51,7 +51,7 @@ const GroupFilters: React.FC<Props> = ({ value, onChange }) => {
             onChange={(e) =>
               onChange({ ...value, status: e.target.value })
             }
-            className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm outline-none transition focus:border-[#0066cc] focus:ring-2 focus:ring-blue-100"
+            className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm outline-hidden transition focus:border-admin-600 focus:ring-2 focus:ring-blue-100"
           >
             <option value="">Все статусы</option>
             <option value="ACTIVE">Активные</option>
@@ -73,7 +73,7 @@ const GroupFilters: React.FC<Props> = ({ value, onChange }) => {
             onChange={(e) =>
               onChange({ ...value, health: e.target.value as GroupHealthFilter })
             }
-            className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm outline-none transition focus:border-[#0066cc] focus:ring-2 focus:ring-blue-100"
+            className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm outline-hidden transition focus:border-admin-600 focus:ring-2 focus:ring-blue-100"
           >
             <option value="all">Все состояния</option>
             <option value="NO_COACH">Без тренера</option>

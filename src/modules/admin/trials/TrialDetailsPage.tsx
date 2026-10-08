@@ -80,7 +80,7 @@ const TrialDetailsPage: React.FC = () => {
   return <PageShell className="trial-workspace">
     <div className="flex items-center justify-between gap-3"><Link to={back} className="trial-text-link"><ArrowLeft aria-hidden="true"/>Пробные занятия</Link><Button size="sm" variant="ghost" disabled={acting} onClick={() => setRevision(v => v + 1)} aria-label="Обновить пробное"><RefreshCw data-icon="inline-start"/></Button></div>
     <header className="trial-detail-header">
-      <div className="flex min-w-0 items-start gap-4"><div className="min-w-0"><p className="trial-eyebrow">Пробное занятие</p><h1 className="ui-detail-title break-words">{name}</h1><p className="trial-subtitle">{formatTrialDate(trial.session?.date)} · {trialInterval(trial.session?.startsAt, trial.session?.endsAt)} · Алматы</p></div></div>
+      <div className="flex min-w-0 items-start gap-4"><div className="min-w-0"><p className="trial-eyebrow">Пробное занятие</p><h1 className="ui-detail-title wrap-break-word">{name}</h1><p className="trial-subtitle">{formatTrialDate(trial.session?.date)} · {trialInterval(trial.session?.startsAt, trial.session?.endsAt)} · Алматы</p></div></div>
       <div className="flex flex-wrap items-center gap-2"><StatusBadge tone={trialStatusTone[trial.status]}>{trialStatusLabels[trial.status]}</StatusBadge>{available.some(key => key !== primary) && <ActionMenu items={available.filter(key => key !== primary).map(key => ({ key, label: actionLabels[key], onSelect: () => setDrawer(key), disabled: acting, danger: key === "cancel" }))}/>}</div>
     </header>
     <div className="trial-detail-grid">

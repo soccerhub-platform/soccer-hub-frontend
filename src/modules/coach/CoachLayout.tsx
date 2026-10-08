@@ -21,7 +21,7 @@ const CoachLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#eef5f1]">
-      <header className="sticky top-0 z-10 border-b border-black/[0.12] bg-white/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-black/12 bg-white/95 px-4 py-3 backdrop-blur-sm">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between">
           <div className="flex items-center gap-3">
             <BrandMark compact />
@@ -35,7 +35,7 @@ const CoachLayout: React.FC = () => {
               logout();
               navigate("/login");
             }}
-            className="inline-flex items-center gap-1 rounded-xl border border-black/[0.12] px-3 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50"
+            className="inline-flex items-center gap-1 rounded-xl border border-black/12 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50"
           >
             <LogOut className="h-4 w-4" />
             Выйти
@@ -47,7 +47,7 @@ const CoachLayout: React.FC = () => {
         <Outlet />
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 border-t border-black/[0.12] bg-white/95 px-3 py-2 backdrop-blur">
+      <nav className="fixed bottom-0 left-0 right-0 border-t border-black/12 bg-white/95 px-3 py-2 backdrop-blur-sm">
         <div className="mx-auto grid w-full max-w-4xl grid-cols-4 gap-2">
           <NavLink to="/coach/today" className={linkClass}>
             <Home className="h-4 w-4" />

@@ -50,7 +50,7 @@ const GroupAvatar: React.FC<{
 
   return (
     <div
-      className={`${sizeClasses[size]} flex shrink-0 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 font-semibold text-[#0066cc] ${className}`}
+      className={`${sizeClasses[size]} flex shrink-0 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 font-semibold text-admin-600 ${className}`}
       aria-label={`Группа ${name}`}
     >
       {initials(name)}

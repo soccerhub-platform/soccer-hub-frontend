@@ -222,7 +222,7 @@ const GroupAttendanceTab: React.FC<{ groupId: string }> = ({ groupId }) => {
       <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-2 ui-card-title">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-admin-600">
               <ClipboardCheck className="h-4 w-4" />
             </span>
             Посещаемость
@@ -344,7 +344,7 @@ const AttendanceViewButton: React.FC<{
   >
     {icon}
     <span>{label}</span>
-    <span className={`rounded px-1.5 py-0.5 text-xs ${active ? "bg-blue-50 text-[#0066cc]" : "bg-slate-200/70 text-slate-500"}`}>{count}</span>
+    <span className={`rounded-sm px-1.5 py-0.5 text-xs ${active ? "bg-blue-50 text-admin-600" : "bg-slate-200/70 text-slate-500"}`}>{count}</span>
   </button>
 );
 
@@ -374,7 +374,7 @@ const AttendanceSessionRow: React.FC<{
     : future
       ? { label: "Предстоит", className: "bg-blue-50 text-blue-700" }
       : inProgress
-        ? { label: "Идёт сейчас", className: "bg-blue-50 text-[#0066cc]" }
+        ? { label: "Идёт сейчас", className: "bg-blue-50 text-admin-600" }
     : total > 0 && marked >= total
       ? { label: "Заполнено", className: "bg-emerald-50 text-emerald-700" }
       : marked > 0
@@ -394,7 +394,7 @@ const AttendanceSessionRow: React.FC<{
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="truncate ui-section-title">{formatFullDate(session.startsAt)}</span>
-            {today ? <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[#0066cc]">Сегодня</span> : null}
+            {today ? <span className="rounded-sm bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-admin-600">Сегодня</span> : null}
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500"><Clock3 className="h-3.5 w-3.5" />{formatTime(session.startsAt)}-{formatTime(session.endsAt)}</div>
         </div>
@@ -421,9 +421,9 @@ const AttendanceSessionRow: React.FC<{
       <div className="text-sm font-semibold text-slate-700">
         {future || cancelled || percent == null ? "-" : `${presentLike} из ${marked} · ${percent}%`}
       </div>
-      <div><span className={`inline-flex rounded px-2 py-1 text-xs font-semibold ${journalStatus.className}`}>{journalStatus.label}</span></div>
+      <div><span className={`inline-flex rounded-sm px-2 py-1 text-xs font-semibold ${journalStatus.className}`}>{journalStatus.label}</span></div>
 
-      <div className="flex items-center justify-start gap-1 text-sm font-semibold text-[#0066cc] lg:justify-end">
+      <div className="flex items-center justify-start gap-1 text-sm font-semibold text-admin-600 lg:justify-end">
         {future || cancelled ? "Детали" : session.capabilities.canOpenAttendance ? (marked ? "Открыть" : "Заполнить") : "Открыть"}
         <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
       </div>

@@ -12,10 +12,10 @@ interface LeadCardProps {
 export default function LeadCard({lead, onClick, onAction, loadingActionType}: LeadCardProps) {
   const primary = buildLeadUiActions(lead, lead.actions ?? []).find(a => a.primary);
   const trial = lead.currentTrials?.find(t => t.status === "SCHEDULED");
-  return <article data-lead-id={lead.id} data-lead-status={lead.status} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300">
+  return <article data-lead-id={lead.id} data-lead-status={lead.status} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs transition hover:border-slate-300">
     <button onClick={onClick} className="grid w-full gap-3 p-3.5 text-left focus-visible:outline-blue-600">
       <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="min-w-0"><h3 className="break-words text-[13px] font-semibold text-slate-900">{lead.primaryContact.fullName}</h3><p className="mt-1 text-[11px] text-slate-500">{lead.primaryContact.phone}</p></div>
+        <div className="min-w-0"><h3 className="wrap-break-word text-[13px] font-semibold text-slate-900">{lead.primaryContact.fullName}</h3><p className="mt-1 text-[11px] text-slate-500">{lead.primaryContact.phone}</p></div>
         {lead.work?.priority && lead.work.priority !== "NORMAL" && isActiveLead(lead) && <Flag aria-label={PRIORITY_LABELS[lead.work.priority]} className={`h-3.5 w-3.5 shrink-0 ${lead.work.priority === "URGENT" ? "text-rose-700" : "text-amber-700"}`}/>}
       </div>
       <p className="line-clamp-2 text-xs leading-5 text-slate-600">{lead.participants.map(p => p.fullName).join(", ") || "Участник не указан"}</p>

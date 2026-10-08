@@ -10,7 +10,7 @@ const BrandMark: React.FC<BrandMarkProps> = ({ className = "", compact = false }
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center overflow-hidden bg-[#0066cc] ${sizeClass} ${className}`}
+      className={`relative inline-flex items-center justify-center overflow-hidden bg-admin-600 ${sizeClass} ${className}`}
       aria-hidden="true"
     >
       <span className="absolute inset-[18%] rounded-[30%] border border-white/60" />

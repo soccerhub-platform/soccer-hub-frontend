@@ -19,7 +19,7 @@ export const WorkspaceBreadcrumbs: React.FC<{
         <React.Fragment key={`${item.label}-${index}`}>
           {index > 0 ? <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" /> : null}
           {item.to ? (
-            <NavLink to={item.to} className="truncate font-medium text-slate-600 transition hover:text-[#0066cc]">
+            <NavLink to={item.to} className="truncate font-medium text-slate-600 transition hover:text-admin-600">
               {item.label}
             </NavLink>
           ) : (
@@ -42,7 +42,7 @@ export const WorkspaceHeader: React.FC<{
   actionsClassName?: string;
   className?: string;
 }> = ({ id, children, actions, alert, actionsClassName, className }) => (
-  <section id={id} className={classNames("rounded-2xl border border-black/[0.08] bg-white p-5 sm:p-6", className)}>
+  <section id={id} className={classNames("rounded-2xl border border-black/8 bg-white p-5 sm:p-6", className)}>
     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0 flex-1">{children}</div>
       {actions ? (
@@ -68,7 +68,7 @@ export const WorkspaceTabs: React.FC<{
   <nav
     aria-label="Разделы рабочего пространства"
     className={classNames(
-      "sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-black/[0.08] bg-[#f5f5f7]/95 px-1 backdrop-blur",
+      "sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-black/8 bg-[#f5f5f7]/95 px-1 backdrop-blur-sm",
       className,
     )}
   >

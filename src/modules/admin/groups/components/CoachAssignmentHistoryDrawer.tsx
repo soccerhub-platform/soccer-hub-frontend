@@ -55,7 +55,7 @@ const HistoryAvatar: React.FC<{
   }
 
   return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-[#0066cc] ring-1 ring-blue-100">
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-admin-600 ring-1 ring-blue-100">
       {initials(firstName, lastName)}
     </span>
   );
@@ -123,7 +123,7 @@ const CoachAssignmentHistoryDrawer: React.FC<Props> = ({ groupId, onClose }) => 
                       ) : (
                         <span className="font-semibold text-slate-700">Тренер недоступен</span>
                       )}
-                      <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${item.role === "MAIN" ? "border-blue-100 bg-blue-50 text-[#0066cc]" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                      <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${item.role === "MAIN" ? "border-blue-100 bg-blue-50 text-admin-600" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
                         {roleLabel(item.role)}
                       </span>
                       {item.active ? <span className="text-xs font-medium text-emerald-700">Текущее</span> : null}

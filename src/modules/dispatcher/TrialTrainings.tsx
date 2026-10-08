@@ -56,7 +56,7 @@ const TrialTrainingsPage: React.FC = () => {
         <div className="relative mt-1">
           <NativeSelect
             id="statusFilter"
-            className="block w-full appearance-none bg-white px-3 py-2 pr-8 border border-slate-300 rounded-md focus:outline-none focus:ring-blue-100 focus:border-[#0066cc]"
+            className="block w-full appearance-none bg-white px-3 py-2 pr-8 border border-slate-300 rounded-md focus:outline-hidden focus:ring-blue-100 focus:border-admin-600"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as TrialTrainingStatus | "ALL")}
           >

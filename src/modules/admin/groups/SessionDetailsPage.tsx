@@ -194,7 +194,7 @@ const SessionDetailsPage: React.FC = () => {
 
   return (
     <PageShell className="space-y-4">
-      <button type="button" onClick={() => navigate(backTo)} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#0066cc]">
+      <button type="button" onClick={() => navigate(backTo)} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-admin-600">
         <ArrowLeft className="h-4 w-4" />{fromCalendar || !groupId ? "К занятиям" : "Расписание группы"}
       </button>
 
@@ -254,7 +254,7 @@ const SessionDetailsPage: React.FC = () => {
           <div className="space-y-6 border-t border-slate-200 p-4 sm:p-6 lg:border-t-0">
             <section>
               <div className="flex items-start gap-3">
-                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${attendanceComplete ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-[#0066cc]"}`}><ClipboardCheck className="h-5 w-5" /></span>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${attendanceComplete ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-admin-600"}`}><ClipboardCheck className="h-5 w-5" /></span>
                 <div className="min-w-0 flex-1"><h2 className="ui-section-title">Посещаемость</h2><p className="mt-1 text-sm text-slate-500">{attendanceLabel}</p></div>
               </div>
               {effectiveStatus !== "CANCELLED" && session.capabilities.canOpenAttendance ? (
@@ -270,7 +270,7 @@ const SessionDetailsPage: React.FC = () => {
                   <InfoLine label="Слот" value={`${formatScheduleTime(scheduleRule.startTime)} - ${formatScheduleTime(scheduleRule.endTime)}`} />
                 </div>
               ) : <p className="mt-2 text-sm text-slate-500">Связанный период не найден</p>}
-              <button type="button" onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/schedule?view=week&date=${session.sessionDate}`)} className="mt-4 text-sm font-semibold text-[#0066cc] hover:text-[#0066cc]">Открыть расписание →</button>
+              <button type="button" onClick={() => detailsGroupId && navigate(`/admin/groups/${detailsGroupId}/schedule?view=week&date=${session.sessionDate}`)} className="mt-4 text-sm font-semibold text-admin-600 hover:text-admin-600">Открыть расписание →</button>
             </section>
           </div>
         </div>
@@ -321,7 +321,7 @@ const CoachRow: React.FC<{ coach: AdminSessionCoach }> = ({ coach }) => {
   const avatarUrl = rawAvatarUrl ? resolveApiUrl(rawAvatarUrl) : null;
   return (
     <div className="flex items-center gap-3 py-3">
-      {avatarUrl ? <img src={avatarUrl} alt={`Фото ${coach.fullName}`} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-xs font-semibold text-[#0066cc]">{getInitials(coach.fullName)}</div>}
+      {avatarUrl ? <img src={avatarUrl} alt={`Фото ${coach.fullName}`} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-xs font-semibold text-admin-600">{getInitials(coach.fullName)}</div>}
       <div className="min-w-0"><CoachProfileLink coachId={coach.id} className="max-w-full text-sm font-semibold">{coach.fullName}</CoachProfileLink><div className="mt-0.5 text-xs text-slate-500">{roleLabel(coach.role)}</div></div>
     </div>
   );

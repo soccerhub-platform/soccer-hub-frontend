@@ -111,10 +111,10 @@ const GroupRow: React.FC<{
       <TableCell><button
         type="button"
         onClick={onOpenStudents}
-        className="text-left transition hover:text-[#0066cc] lg:block"
+        className="text-left transition hover:text-admin-600 lg:block"
       >
         <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-500">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-admin-600">
             <UsersRound className="h-4 w-4" />
           </span>
           <span className="lg:hidden">Состав</span>
@@ -127,7 +127,7 @@ const GroupRow: React.FC<{
         </div>
         <div className="mt-2 h-1.5 rounded-full bg-slate-100">
           <div
-            className={`h-1.5 rounded-full ${capacityPercent > 100 ? "bg-rose-500" : "bg-[#0066cc]"}`}
+            className={`h-1.5 rounded-full ${capacityPercent > 100 ? "bg-rose-500" : "bg-admin-600"}`}
             style={{ width: `${progressWidth}%` }}
           />
         </div>
@@ -136,7 +136,7 @@ const GroupRow: React.FC<{
       <TableCell><button
         type="button"
         onClick={onOpenCoaches}
-        className="flex items-center justify-between gap-3 text-left transition hover:text-[#0066cc] lg:block"
+        className="flex items-center justify-between gap-3 text-left transition hover:text-admin-600 lg:block"
       >
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
@@ -150,7 +150,7 @@ const GroupRow: React.FC<{
       <TableCell><button
         type="button"
         onClick={onOpenSchedule}
-        className="flex items-start justify-between gap-3 text-left transition hover:text-[#0066cc] lg:block"
+        className="flex items-start justify-between gap-3 text-left transition hover:text-admin-600 lg:block"
       >
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
@@ -164,7 +164,7 @@ const GroupRow: React.FC<{
       <TableCell><HealthBadge health={group.health} /></TableCell>
 
       <TableCell><div className="flex justify-end">
-        <ArrowRight className="h-5 w-5 text-slate-400 transition group-hover:text-[#0066cc]" />
+        <ArrowRight className="h-5 w-5 text-slate-400 transition group-hover:text-admin-600" />
       </div></TableCell>
     </InteractiveTableRow>
   );

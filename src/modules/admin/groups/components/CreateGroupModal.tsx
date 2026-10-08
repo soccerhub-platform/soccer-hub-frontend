@@ -195,7 +195,7 @@ export default CreateGroupModal;
 
 const SectionHeading: React.FC<{ icon: React.ReactElement; title: string; description: string }> = ({ icon, title, description }) => (
   <div className="flex items-start gap-3">
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-admin-600">
       {React.cloneElement(icon, { className: "h-5 w-5" })}
     </span>
     <div><h4 className="ui-section-title">{title}</h4><p className="mt-1 text-xs leading-5 text-slate-500">{description}</p></div>

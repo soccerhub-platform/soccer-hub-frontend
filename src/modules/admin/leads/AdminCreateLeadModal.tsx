@@ -95,7 +95,7 @@ const AdminCreateLeadModal: React.FC<AdminCreateLeadModalProps> = ({ branchId, b
   };
 
   return (
-    <LeadModalShell title="Новый лид" description={`Заявка из филиала ${branchName?.trim() || "по текущему выбору"}.`} eyebrow="Лиды" placement="right" maxWidthClassName="max-w-[520px]" heightClassName="h-[100dvh]" bodyClassName="bg-slate-50 px-4 py-4 sm:px-5" closeDisabled={loading} onClose={onClose} footer={
+    <LeadModalShell title="Новый лид" description={`Заявка из филиала ${branchName?.trim() || "по текущему выбору"}.`} eyebrow="Лиды" placement="right" maxWidthClassName="max-w-[520px]" heightClassName="h-dvh" bodyClassName="bg-slate-50 px-4 py-4 sm:px-5" closeDisabled={loading} onClose={onClose} footer={
       <div className="flex justify-between gap-2">
         <Button type="button" variant="secondary" rounded="rounded-lg" disabled={loading} onClick={() => stepIndex && !saved ? (setStepIndex((value) => value - 1), setAttempted(false), setError(null)) : onClose()}><ArrowLeft className="h-4 w-4" />{stepIndex && !saved ? "Назад" : "Отмена"}</Button>
         {step.id === "review" ? <Button type="button" rounded="rounded-lg" isLoading={loading} onClick={() => void submit()}><Check className="h-4 w-4" />{saved ? "Обновить список" : "Создать лид"}</Button> : <Button type="button" rounded="rounded-lg" onClick={next}>Далее<ArrowRight className="h-4 w-4" /></Button>}
@@ -103,7 +103,7 @@ const AdminCreateLeadModal: React.FC<AdminCreateLeadModalProps> = ({ branchId, b
     }>
       <div className="flex flex-col gap-5">
         <ol aria-label="Шаги создания лида" className="grid grid-cols-3 gap-2">
-          {steps.map((item, index) => <li key={item.id}><div className={`h-1 rounded-full ${index <= stepIndex ? "bg-[#0066cc]" : "bg-slate-200"}`} /><span className={`mt-2 block truncate text-xs ${index === stepIndex ? "font-semibold text-slate-900" : "text-slate-600"}`}>{item.label}</span></li>)}
+          {steps.map((item, index) => <li key={item.id}><div className={`h-1 rounded-full ${index <= stepIndex ? "bg-admin-600" : "bg-slate-200"}`} /><span className={`mt-2 block truncate text-xs ${index === stepIndex ? "font-semibold text-slate-900" : "text-slate-600"}`}>{item.label}</span></li>)}
         </ol>
 
         {step.id === "contact" ? <div className="flex flex-col gap-4">

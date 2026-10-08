@@ -60,7 +60,7 @@ const GroupSummary: React.FC<Props> = ({
     >
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-          <Icon className="h-5 w-5 text-[#0066cc]" />
+          <Icon className="h-5 w-5 text-admin-600" />
         </div>
         <div className="min-w-0">
           <div className="text-xs text-slate-500">{label}</div>

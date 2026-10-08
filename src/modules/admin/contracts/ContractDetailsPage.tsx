@@ -157,7 +157,7 @@ const ContractDetailsPage: React.FC = () => {
         }
       >
         <div className="flex min-w-0 items-start gap-4">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]"><FileText className="h-7 w-7" /></span>
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-admin-600"><FileText className="h-7 w-7" /></span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="ui-detail-title truncate">Договор {contract.contractNumber}</h1>
@@ -199,7 +199,7 @@ const ContractDetailsPage: React.FC = () => {
           <div className="space-y-4">
             <SectionCard title="Зачисление">
               <div>
-                <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]"><Users className="h-5 w-5" /></span><div className="ui-section-title">Группы и история участия</div></div>
+                <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-admin-600"><Users className="h-5 w-5" /></span><div className="ui-section-title">Группы и история участия</div></div>
                 {contract.capabilities.canEnrollStudent ? <Button className="mt-4" variant="secondary" rounded="rounded-lg" onClick={() => navigate(`/admin/students/${contract.participant.id}/groups`)}>Открыть группы ученика</Button> : null}
               </div>
             </SectionCard>
@@ -218,7 +218,7 @@ const ContractDetailsPage: React.FC = () => {
 
       {activeSection === "history" ? (
         <SectionCard title="История изменений">
-          {contract.history.length ? <div className="divide-y divide-slate-100">{contract.history.map((item) => <div key={item.id} className="flex gap-4 py-4"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#0066cc]" /><div><div className="ui-section-title">{item.type}</div><div className="mt-1 text-xs text-slate-500">{item.actorName} · {dateTime(item.createdAt)}</div>{item.comment ? <div className="mt-2 text-sm text-slate-700">{item.comment}</div> : null}</div></div>)}</div> : <EmptyState title="Изменений пока нет" />}
+          {contract.history.length ? <div className="divide-y divide-slate-100">{contract.history.map((item) => <div key={item.id} className="flex gap-4 py-4"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-admin-600" /><div><div className="ui-section-title">{item.type}</div><div className="mt-1 text-xs text-slate-500">{item.actorName} · {dateTime(item.createdAt)}</div>{item.comment ? <div className="mt-2 text-sm text-slate-700">{item.comment}</div> : null}</div></div>)}</div> : <EmptyState title="Изменений пока нет" />}
         </SectionCard>
       ) : null}
 

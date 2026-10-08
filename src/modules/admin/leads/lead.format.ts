@@ -44,7 +44,7 @@ export const trialStatusClassName = (status?: string) => {
     case "SCHEDULED": return "border-amber-200 bg-amber-50 text-amber-800";
     case "COMPLETED": return "border-emerald-200 bg-emerald-50 text-emerald-800";
     case "CANCELED": return "border-rose-200 bg-rose-50 text-rose-800";
-    default: return "border-blue-100 bg-blue-50 text-[#0066cc]";
+    default: return "border-blue-100 bg-blue-50 text-admin-600";
   }
 };
 

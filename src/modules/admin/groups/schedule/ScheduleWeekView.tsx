@@ -33,7 +33,7 @@ const ScheduleWeekView: React.FC<{ schedules: GroupScheduleDto[] }> = ({
                     key={s.scheduleId}
                     className="rounded-md bg-blue-50 px-1.5 py-1"
                   >
-                    <div className="text-xs font-semibold text-[#0066cc]">
+                    <div className="text-xs font-semibold text-admin-600">
                       {toHHmm(s.startTime)} – {toHHmm(s.endTime)}
                     </div>
                   </div>

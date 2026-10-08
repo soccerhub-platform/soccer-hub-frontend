@@ -27,8 +27,8 @@ const DispatcherLayout: React.FC = () => {
   const handleLogout = () => { logout(); navigate("/login"); };
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden app-bg-admin">
-      <a href="#dispatcher-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-background focus:p-3">Перейти к содержимому</a>
+    <div className="flex h-dvh overflow-hidden app-bg-admin">
+      <a href="#dispatcher-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:bg-background focus:p-3">Перейти к содержимому</a>
       <aside className={cn("relative hidden shrink-0 flex-col border-r border-border bg-muted/30 transition-[width] md:flex", collapsed ? "w-[68px]" : "w-[216px]")}>
         <div className={cn("flex items-center py-6", collapsed ? "justify-center px-3" : "gap-3 px-4")}>
           <BrandMark compact />

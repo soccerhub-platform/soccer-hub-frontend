@@ -675,14 +675,14 @@ const CoachesPage: React.FC = () => {
               type="button"
               onClick={() => changeFilter(item.value)}
               aria-pressed={filter === item.value}
-              className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+              className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-600 ${
                 filter === item.value
-                  ? "border-[#0066cc] bg-blue-50 text-[#0066cc]"
+                  ? "border-admin-600 bg-blue-50 text-admin-600"
                   : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
               }`}
             >
               <span>{item.label}</span>
-              <span className={`rounded-full px-1.5 py-0.5 text-[11px] ${filter === item.value ? "bg-blue-100 text-[#0066cc]" : "bg-slate-100 text-slate-500"}`}>
+              <span className={`rounded-full px-1.5 py-0.5 text-[11px] ${filter === item.value ? "bg-blue-100 text-admin-600" : "bg-slate-100 text-slate-500"}`}>
                 {quickFilterCounts[item.value]}
               </span>
             </button>
@@ -695,14 +695,14 @@ const CoachesPage: React.FC = () => {
             <Input
               type="text"
               placeholder="Поиск по имени, email или телефону"
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-11 pr-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-11 pr-10 text-sm text-slate-900 outline-hidden transition placeholder:text-slate-400 focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
                 setPage(0);
               }}
             />
-            {search ? <button type="button" aria-label="Очистить поиск" onClick={() => { setSearch(""); setDebouncedSearch(""); setPage(0); }} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><X className="h-4 w-4" /></button> : null}
+            {search ? <button type="button" aria-label="Очистить поиск" onClick={() => { setSearch(""); setDebouncedSearch(""); setPage(0); }} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-600"><X className="h-4 w-4" /></button> : null}
           </div>
 
           <button
@@ -710,7 +710,7 @@ const CoachesPage: React.FC = () => {
             onClick={openFilters}
             className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-3.5 text-sm font-semibold transition ${
               advancedFilterCount > 0
-                ? "border-[#0066cc] bg-blue-50 text-[#0066cc]"
+                ? "border-admin-600 bg-blue-50 text-admin-600"
                 : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
             }`}
             aria-expanded={showFilters}
@@ -727,7 +727,7 @@ const CoachesPage: React.FC = () => {
               aria-label="Сортировка тренеров"
               value={sortValue}
               onChange={(event) => changeSortOption(event.target.value)}
-              className="w-full appearance-none bg-transparent pr-5 outline-none"
+              className="w-full appearance-none bg-transparent pr-5 outline-hidden"
             >
               {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </NativeSelect>
@@ -801,7 +801,7 @@ const CoachesPage: React.FC = () => {
             <div>
               Показано {pageStart}-{pageEnd} из {totalElements} тренеров
             </div>
-            <div className="flex items-center gap-3"><label className="flex items-center gap-2">На странице:<NativeSelect aria-label="Количество тренеров на странице" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-[#0066cc]" value={pageSize} onChange={(event) => changePageSize(Number(event.target.value))}>{pageSizeOptions.map((value) => <option key={value} value={value}>{value}</option>)}</NativeSelect></label><div className="flex items-center gap-2">
+            <div className="flex items-center gap-3"><label className="flex items-center gap-2">На странице:<NativeSelect aria-label="Количество тренеров на странице" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-hidden focus:border-admin-600" value={pageSize} onChange={(event) => changePageSize(Number(event.target.value))}>{pageSizeOptions.map((value) => <option key={value} value={value}>{value}</option>)}</NativeSelect></label><div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setPage((value) => Math.max(0, value - 1))}
@@ -810,7 +810,7 @@ const CoachesPage: React.FC = () => {
               >
                 ‹
               </button>
-              <div className="flex h-8 min-w-8 items-center justify-center rounded-xl bg-[#0066cc] px-3 text-sm font-semibold text-white">
+              <div className="flex h-8 min-w-8 items-center justify-center rounded-xl bg-admin-600 px-3 text-sm font-semibold text-white">
                 {currentPage + 1}
               </div>
               <span className="text-xs text-slate-700">из {Math.max(1, totalPages)}</span>
@@ -890,7 +890,7 @@ const CoachMetric: React.FC<{
     neutral: "bg-slate-100 text-slate-600",
     success: "bg-emerald-50 text-emerald-700",
     warning: "bg-amber-50 text-amber-700",
-    info: "bg-blue-50 text-[#0066cc]",
+    info: "bg-blue-50 text-admin-600",
   }[tone];
 
   return (
@@ -908,7 +908,7 @@ const CoachMetric: React.FC<{
 };
 
 const FilterChip: React.FC<{ label: string; onClear: () => void }> = ({ label, onClear }) => (
-  <button type="button" onClick={onClear} title={`Снять фильтр: ${label}`} className="inline-flex max-w-xs items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-[#0066cc] transition hover:border-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><span className="truncate">{label}</span><X className="h-3.5 w-3.5 shrink-0" /></button>
+  <button type="button" onClick={onClear} title={`Снять фильтр: ${label}`} className="inline-flex max-w-xs items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-admin-600 transition hover:border-blue-300 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-600"><span className="truncate">{label}</span><X className="h-3.5 w-3.5 shrink-0" /></button>
 );
 
 const CoachFiltersDrawer: React.FC<{
@@ -976,7 +976,7 @@ const FilterSelect: React.FC<{ value: string; options: Array<[string, string]>; 
     <NativeSelect
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm text-slate-700 outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+      className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm text-slate-700 outline-hidden transition focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
     >
       <option value="">{emptyLabel}</option>
       {options.map(([optionValue, label]) => <option key={optionValue} value={optionValue}>{label}</option>)}
@@ -1010,7 +1010,7 @@ const SortableHeader: React.FC<{
       onClick={() => onSort(sortKey)}
       aria-label={`${label}: ${!active ? "сортировать по возрастанию" : currentSort.direction === "asc" ? "по возрастанию, сортировать по убыванию" : "по убыванию, сортировать по возрастанию"}`}
       className={`inline-flex w-fit items-center gap-1.5 rounded-lg px-1.5 py-1 text-left transition ${
-        active ? "text-[#0066cc]" : "text-slate-500 hover:bg-white hover:text-slate-800"
+        active ? "text-admin-600" : "text-slate-500 hover:bg-white hover:text-slate-800"
       }`}
     >
       {label}
@@ -1080,7 +1080,7 @@ const CoachRow: React.FC<{
         <div className="mt-3 flex items-center gap-3">
           <div className="h-1.5 w-28 rounded-full bg-slate-200" title={`Нагрузка за текущую неделю: ${coach.load?.completed ?? 0} проведено, ${coach.load?.planned ?? 0} запланировано, лимит — ${load.limit} занятий.`}>
             <div
-              className={`h-1.5 rounded-full ${isOverloaded(coach) ? "bg-rose-500" : "bg-[#0066cc]"}`}
+              className={`h-1.5 rounded-full ${isOverloaded(coach) ? "bg-rose-500" : "bg-admin-600"}`}
               style={{ width: `${load.percentage}%` }}
             />
           </div>
@@ -1135,7 +1135,7 @@ const CoachAvatar: React.FC<{ coach: CoachOverviewItem }> = ({ coach }) => {
   }, [resolvedSource]);
 
   return (
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#0066cc] text-sm font-semibold text-white">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-admin-600 text-sm font-semibold text-white">
       {resolvedSource && !imageFailed ? (
         <img
           src={resolvedSource}
@@ -1270,7 +1270,7 @@ export const CoachProfileContent: React.FC<{
         </span>
       </div>
       <div className="mt-3 h-2 rounded-full bg-slate-100">
-        <div className="h-2 rounded-full bg-[#0066cc]" style={{ width: `${loadPercent}%` }} />
+        <div className="h-2 rounded-full bg-admin-600" style={{ width: `${loadPercent}%` }} />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <SmallStat icon={<CheckCircle className="h-4 w-4" />} label="Проведено" value={load?.completed ?? 0} />
@@ -1385,7 +1385,7 @@ export const CoachProfileContent: React.FC<{
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-50">
-                <CircleUserRound className="h-8 w-8 text-[#0066cc]" />
+                <CircleUserRound className="h-8 w-8 text-admin-600" />
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1395,7 +1395,7 @@ export const CoachProfileContent: React.FC<{
                   <StatusBadge active={profile.active} />
                 </div>
                 {profile.specialization ? (
-                  <div className="mt-1 text-xs font-medium text-[#0066cc]">
+                  <div className="mt-1 text-xs font-medium text-admin-600">
                     {profile.specialization}
                   </div>
                 ) : null}
@@ -1547,7 +1547,7 @@ export const CoachProfileContent: React.FC<{
                     {group.weeklySlots.slice(0, 4).map((slot) => (
                       <span
                         key={slot.scheduleId}
-                        className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-[#0066cc]"
+                        className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-admin-600"
                       >
                         {weekDays.find((day) => day.key === slot.dayOfWeek)?.label ?? slot.dayOfWeek}{" "}
                         {timeShort(slot.startTime)}
@@ -1646,7 +1646,7 @@ export const CoachProfileContent: React.FC<{
                               </span>
                             ) : null}
                           </div>
-                          <div className="mt-1 truncate text-xs font-medium text-[#0066cc]">{item.groupName}</div>
+                          <div className="mt-1 truncate text-xs font-medium text-admin-600">{item.groupName}</div>
                           {item.coachName ? (
                             <div className="mt-1 truncate text-[11px] text-slate-500">{item.coachName}</div>
                           ) : null}
@@ -1708,7 +1708,7 @@ export const CoachProfileContent: React.FC<{
                     <button
                       type="button"
                       onClick={() => onOpenGroup(session.groupId)}
-                      className="font-medium text-[#0066cc] hover:text-[#0066cc]"
+                      className="font-medium text-admin-600 hover:text-admin-600"
                     >
                       {session.groupName}
                     </button>{" "}
@@ -1760,7 +1760,7 @@ export const CoachProfileContent: React.FC<{
               type="button"
               onClick={() => setReportFilter(value)}
               className={`rounded-lg border px-3 py-1.5 text-sm font-semibold ${
-                reportFilter === value ? "border-[#0066cc] bg-blue-50 text-[#0066cc]" : "border-slate-200 bg-white text-slate-600"
+                reportFilter === value ? "border-admin-600 bg-blue-50 text-admin-600" : "border-slate-200 bg-white text-slate-600"
               }`}
             >
               {label}
@@ -1801,7 +1801,7 @@ export const CoachProfileContent: React.FC<{
                   <button
                     type="button"
                     onClick={() => onOpenGroup(report.groupId)}
-                    className="text-left font-medium text-[#0066cc] hover:text-[#0066cc]"
+                    className="text-left font-medium text-admin-600 hover:text-admin-600"
                   >
                     {report.groupName}
                   </button>
@@ -1845,7 +1845,7 @@ export const CoachProfileContent: React.FC<{
               <div className="space-y-0">
                 {activity.content.map((event) => (
                   <div key={event.id} className="relative border-l border-slate-200 pb-5 pl-4 last:pb-0">
-                    <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-[#0066cc] ring-4 ring-blue-50" />
+                    <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-admin-600 ring-4 ring-blue-50" />
                     <div className="rounded-lg border border-slate-200 px-3 py-2">
                       <div className="font-medium text-slate-900">{event.title}</div>
                       <div className="mt-1 text-xs text-slate-500">{formatDateTime(event.occurredAt)}</div>
@@ -1899,7 +1899,7 @@ export const CoachProfileContent: React.FC<{
               .sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
               .map((item) => (
               <div key={`${item.status}-${item.changedAt}`} className="relative border-l border-slate-200 pb-5 pl-4 last:pb-0">
-                <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-[#0066cc] ring-4 ring-blue-50" />
+                <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-admin-600 ring-4 ring-blue-50" />
                 <div className="rounded-lg border border-slate-200 px-3 py-2">
                   <div className="font-medium text-slate-900">{formatCoachStatusHistory(item.newWorkStatus ?? item.newAccountStatus ?? item.status)}</div>
                   <div className="mt-1 text-xs text-slate-500">{formatDateTime(item.changedAt)}</div>
@@ -2045,7 +2045,7 @@ export const AssignCoachToGroupModal: React.FC<{
                 onClick={() => setRole("MAIN")}
                 className={`rounded-lg border px-3 py-2 text-sm ${
                   role === "MAIN"
-                    ? "border-blue-200 bg-blue-50 text-[#0066cc]"
+                    ? "border-blue-200 bg-blue-50 text-admin-600"
                     : "border-slate-200 bg-white text-slate-600"
                 }`}
               >
@@ -2056,7 +2056,7 @@ export const AssignCoachToGroupModal: React.FC<{
                 onClick={() => setRole("ASSISTANT")}
                 className={`rounded-lg border px-3 py-2 text-sm ${
                   role === "ASSISTANT"
-                    ? "border-blue-200 bg-blue-50 text-[#0066cc]"
+                    ? "border-blue-200 bg-blue-50 text-admin-600"
                     : "border-slate-200 bg-white text-slate-600"
                 }`}
               >

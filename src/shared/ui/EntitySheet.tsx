@@ -58,17 +58,17 @@ const EntitySheet: React.FC<EntitySheetProps> = ({
         }
       }}
       className={cn(
-        "flex w-full max-w-lg flex-col gap-0 border-l border-black/[0.1] bg-white p-0 shadow-none",
+        "flex w-full max-w-lg flex-col gap-0 border-l border-black/10 bg-white p-0 shadow-none",
         contentClassName,
       )}
     >
-      <SheetHeader data-slot="entity-sheet-header" className="shrink-0 border-b border-black/[0.08] px-5 py-4 pr-14 text-left">
+      <SheetHeader data-slot="entity-sheet-header" className="shrink-0 border-b border-black/8 px-5 py-4 pr-14 text-left">
         {eyebrow ? (
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0066cc]">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-admin-600">
             {eyebrow}
           </div>
         ) : null}
-        <SheetTitle className="ui-modal-title !text-[#1d1d1f] dark:!text-[#1d1d1f]">
+        <SheetTitle className="ui-modal-title text-[#1d1d1f]! dark:text-[#1d1d1f]!">
           {title}
         </SheetTitle>
         {description ? (
@@ -79,7 +79,7 @@ const EntitySheet: React.FC<EntitySheetProps> = ({
       </SheetHeader>
       <div data-slot="entity-sheet-body" className={cn("min-h-0 flex-1 overflow-y-auto px-5 py-5", bodyClassName)}>{children}</div>
       {footer ? (
-        <SheetFooter data-slot="entity-sheet-footer" className="shrink-0 border-t border-black/[0.08] px-5 py-4 sm:space-x-0">
+        <SheetFooter data-slot="entity-sheet-footer" className="shrink-0 border-t border-black/8 px-5 py-4 sm:space-x-0">
           {footer}
         </SheetFooter>
       ) : null}

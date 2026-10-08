@@ -10,7 +10,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ children, trailing, className, ..
   <section
     aria-label="Фильтры"
     className={cn(
-      "flex flex-col gap-3 rounded-2xl border border-black/[0.08] bg-white p-3 sm:flex-row sm:items-center sm:justify-between",
+      "flex flex-col gap-3 rounded-2xl border border-black/8 bg-white p-3 sm:flex-row sm:items-center sm:justify-between",
       className,
     )}
     {...props}

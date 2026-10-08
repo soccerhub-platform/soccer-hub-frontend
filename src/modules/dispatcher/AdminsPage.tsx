@@ -519,7 +519,7 @@ const AdminsPage: React.FC = () => {
                   >
                     <TableCell className="px-4 py-3 text-sm">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-xs font-semibold text-[#0066cc]">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-xs font-semibold text-admin-600">
                           {getInitials(admin)}
                         </div>
                         <div className="min-w-0">
@@ -688,7 +688,7 @@ const BranchBadges: React.FC<{ branches: BranchAssignment[] }> = ({ branches }) 
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-xs text-[#0066cc]">
+      <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-xs text-admin-600">
         {firstBranch.branchName}
       </span>
       {branches.length > 1 ? (
@@ -741,7 +741,7 @@ const AdminDetailsModal: React.FC<{
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-[#0066cc]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-admin-600">
             {getInitials(admin)}
           </div>
           <div>

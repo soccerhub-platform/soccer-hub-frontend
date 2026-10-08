@@ -67,7 +67,7 @@ const attendanceTone: Record<AdminAttendanceStatus, string> = {
   ABSENT: "border-rose-200 bg-rose-50 text-rose-700 focus:border-rose-500 focus:ring-rose-100",
   EXCUSED: "border-sky-200 bg-sky-50 text-sky-700 focus:border-sky-500 focus:ring-sky-100",
   LATE: "border-amber-200 bg-amber-50 text-amber-800 focus:border-amber-500 focus:ring-amber-100",
-  UNMARKED: "border-slate-200 bg-white text-slate-600 focus:border-[#0066cc] focus:ring-blue-100",
+  UNMARKED: "border-slate-200 bg-white text-slate-600 focus:border-admin-600 focus:ring-blue-100",
 };
 
 const trialAttendanceTone: Record<AdminSessionTrialParticipant["attendanceStatus"], StatusTone> = {
@@ -258,14 +258,14 @@ const SessionAttendancePage: React.FC = () => {
   return (
     <PageShell className="space-y-4 pb-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <button type="button" onClick={navigateBack} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#0066cc]">
+        <button type="button" onClick={navigateBack} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-admin-600">
           <ArrowLeft className="h-4 w-4" />Назад к занятию
         </button>
 
         {sessionChoices.length > 1 ? (
           <label className="relative block w-full sm:w-auto">
             <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <NativeSelect aria-label="Выбрать занятие" value={sessionId} onChange={(event) => changeSession(event.target.value)} className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm font-semibold text-slate-700 outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-blue-100 sm:min-w-[240px]">
+            <NativeSelect aria-label="Выбрать занятие" value={sessionId} onChange={(event) => changeSession(event.target.value)} className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm font-semibold text-slate-700 outline-hidden focus:border-admin-600 focus:ring-2 focus:ring-blue-100 sm:min-w-[240px]">
               {sessionChoices.map((item) => <option key={item.sessionId} value={item.sessionId}>{formatShortDate(item.startsAt)} · {formatTime(item.startsAt)}</option>)}
             </NativeSelect>
             <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -334,7 +334,7 @@ const SessionAttendancePage: React.FC = () => {
                   Пробные ученики
                 </h2>
 
-                <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-[#0066cc]">
+                <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-admin-600">
                   {trialParticipants.length}
                 </span>
               </div>
@@ -365,7 +365,7 @@ const SessionAttendancePage: React.FC = () => {
         ) : null}
 
         {canEdit ? (
-          <div className="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div className="text-sm">
               {isDirty ? <span className="font-medium text-amber-700">Есть несохранённые изменения</span> : lastSavedAt ? <span className="text-emerald-700">Сохранено в {lastSavedAt.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span> : <span className="text-slate-500">Все изменения сохранены</span>}
               {summary.unmarked > 0 ? <span className="ml-2 text-slate-500">Осталось отметить: {summary.unmarked}</span> : null}
@@ -410,7 +410,7 @@ const TrialParticipantRow: React.FC<{
         <div className="min-w-0">
           <Link
             to={`/admin/trials/${participant.trialBookingId}`}
-            className="block truncate ui-section-title transition hover:text-[#0066cc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066cc]"
+            className="block truncate ui-section-title transition hover:text-admin-600 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-admin-600"
           >
             {fullName}
           </Link>
@@ -464,7 +464,7 @@ const TrialParticipantRow: React.FC<{
 
       <Link
         to={`/admin/trials/${participant.trialBookingId}`}
-        className="inline-flex h-9 items-center justify-center rounded-lg border border-blue-200 bg-white px-3 text-sm font-medium text-[#0066cc] transition hover:bg-blue-50"
+        className="inline-flex h-9 items-center justify-center rounded-lg border border-blue-200 bg-white px-3 text-sm font-medium text-admin-600 transition hover:bg-blue-50"
       >
         Открыть
       </Link>
@@ -484,11 +484,11 @@ const AttendanceRow: React.FC<{
   return (
     <div className="grid grid-cols-1 gap-3 bg-white px-4 py-3.5 lg:grid-cols-[minmax(240px,1fr)_230px_minmax(240px,1fr)] lg:items-center lg:gap-4">
       <div className="flex min-w-0 items-center gap-3">
-        <Link to={`/admin/students/${participant.playerId}`} className="shrink-0 rounded-full outline-none ring-[#0066cc] focus-visible:ring-2 focus-visible:ring-offset-2" aria-label={`Открыть профиль ${participant.fullName}`}>
+        <Link to={`/admin/students/${participant.playerId}`} className="shrink-0 rounded-full outline-hidden ring-admin-600 focus-visible:ring-2 focus-visible:ring-offset-2" aria-label={`Открыть профиль ${participant.fullName}`}>
           <ParticipantAvatar fullName={participant.fullName} src={avatarUrl} />
         </Link>
         <div className="min-w-0">
-          <Link to={`/admin/students/${participant.playerId}`} className="truncate ui-section-title transition hover:text-[#0066cc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066cc]">
+          <Link to={`/admin/students/${participant.playerId}`} className="truncate ui-section-title transition hover:text-admin-600 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-admin-600">
             {participant.fullName}
           </Link>
           <div className="mt-0.5 text-xs text-slate-400">{attendanceLabels[participant.status]}</div>
@@ -501,7 +501,7 @@ const AttendanceRow: React.FC<{
         value={participant.status === "UNMARKED" ? "" : participant.status}
         disabled={!canEdit || saving}
         onChange={(event) => onStatusChange(participant.playerId, event.target.value as AdminPersistedAttendanceStatus)}
-        className={`h-10 w-full appearance-none rounded-lg border px-3 pr-9 text-sm font-semibold outline-none transition focus:ring-2 disabled:cursor-default disabled:opacity-75 ${attendanceTone[participant.status]}`}
+        className={`h-10 w-full appearance-none rounded-lg border px-3 pr-9 text-sm font-semibold outline-hidden transition focus:ring-2 disabled:cursor-default disabled:opacity-75 ${attendanceTone[participant.status]}`}
       >
         <option value="" disabled>Не отмечено</option>
         {attendanceOptions.map((status) => <option key={status} value={status}>{attendanceLabels[status]}</option>)}
@@ -515,7 +515,7 @@ const AttendanceRow: React.FC<{
         disabled={!canEdit || saving}
         onChange={(event) => onCommentChange(participant.playerId, event.target.value)}
         placeholder={participant.status === "ABSENT" || participant.status === "EXCUSED" ? "Укажите причину" : "Комментарий"}
-        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0066cc] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
+        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-hidden transition placeholder:text-slate-400 focus:border-admin-600 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
       />
     </div>
   );
@@ -530,7 +530,7 @@ const ParticipantAvatar: React.FC<{ fullName: string; src: string | null }> = ({
     return <img src={src} alt={`Фото ${fullName}`} className="h-9 w-9 rounded-full border border-white object-cover ring-1 ring-slate-200" onError={() => setFailed(true)} />;
   }
 
-  return <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-emerald-100 text-xs font-bold text-[#0066cc] ring-1 ring-blue-200">{getInitials(fullName)}</span>;
+  return <span className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-blue-100 to-emerald-100 text-xs font-bold text-admin-600 ring-1 ring-blue-200">{getInitials(fullName)}</span>;
 };
 
 export default SessionAttendancePage;

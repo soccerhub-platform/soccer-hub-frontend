@@ -404,8 +404,8 @@ const LeadKanbanPage: React.FC = () => {
   }
 
   return (
-    <PageShell className="min-w-0 max-w-[1540px] !gap-3 sm:!gap-5">
-      <PageHeader title="Лиды" className="!flex-row items-center [&_p]:hidden sm:[&_p]:block" description="От первого обращения до первого занятия."
+    <PageShell className="min-w-0 max-w-[1540px] gap-3! sm:gap-5!">
+      <PageHeader title="Лиды" className="flex-row! items-center [&_p]:hidden sm:[&_p]:block" description="От первого обращения до первого занятия."
         actions={<Button type="button" onClick={() => setShowCreateModal(true)}><Plus className="h-4 w-4" />Новый лид</Button>}
       />
       <section aria-label="Обзор лидов" className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -432,7 +432,7 @@ const LeadKanbanPage: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 pt-2">
           <div className="min-w-0">
             <ToggleGroup type="single" value={queue} onValueChange={value => { if (value) chooseQueue(value); }} aria-label="Очередь лидов" className="h-11 max-w-full justify-start gap-3 overflow-x-auto rounded-none bg-transparent p-0">
-              {[{id:"ACTIVE", label:"Активные", count:metrics.active},{id:"NEW",label:"Новые",count:metrics.newCount},{id:"OVERDUE",label:"Просрочено",count:metrics.overdue},{id:"CLOSED",label:"Завершённые",count:commonLeads.length-metrics.active},{id:"ALL",label:"Все",count:commonLeads.length}].map(item => <ToggleGroupItem key={item.id} value={item.id} className="h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent !bg-transparent px-1 text-xs !shadow-none data-[state=on]:border-blue-600 data-[state=on]:!text-blue-700">{item.label}<span className="rounded px-1.5 py-0.5 text-[10px] tabular-nums text-slate-500">{item.count}</span></ToggleGroupItem>)}
+              {[{id:"ACTIVE", label:"Активные", count:metrics.active},{id:"NEW",label:"Новые",count:metrics.newCount},{id:"OVERDUE",label:"Просрочено",count:metrics.overdue},{id:"CLOSED",label:"Завершённые",count:commonLeads.length-metrics.active},{id:"ALL",label:"Все",count:commonLeads.length}].map(item => <ToggleGroupItem key={item.id} value={item.id} className="h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent bg-transparent! px-1 text-xs shadow-none! data-[state=on]:border-blue-600 data-[state=on]:text-blue-700!">{item.label}<span className="rounded-sm px-1.5 py-0.5 text-[10px] tabular-nums text-slate-500">{item.count}</span></ToggleGroupItem>)}
             </ToggleGroup>
           </div>
           <div className="mb-2">

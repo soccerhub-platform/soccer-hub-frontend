@@ -19,7 +19,7 @@ const variants = {
   soft: "outline",
   softDanger: "outline",
   ghost: "ghost",
-} as const;
+} as const satisfies Record<ButtonVariant, NonNullable<ShadcnButtonProps["variant"]>>;
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   variant = "primary",
@@ -32,7 +32,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   ...props
 }, ref) => {
   const variantClassName = variant === "soft"
-    ? "border-blue-200 bg-blue-50 text-[#0066cc] hover:bg-blue-100 focus-visible:ring-blue-100"
+    ? "border-blue-200 bg-blue-50 text-admin-600 hover:bg-blue-100 focus-visible:ring-blue-100"
     : variant === "softDanger"
       ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 focus-visible:ring-rose-100"
       : undefined;
@@ -42,7 +42,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       ref={ref}
       {...props}
       disabled={disabled || isLoading}
-      variant={variants[variant] as ShadcnButtonProps["variant"]}
+      variant={variants[variant]}
       size={size === "md" ? "default" : "sm"}
       className={cn(rounded, variantClassName, className)}
     >

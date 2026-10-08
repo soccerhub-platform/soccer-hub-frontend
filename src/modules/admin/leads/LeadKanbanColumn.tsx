@@ -47,7 +47,7 @@ const LeadKanbanColumn: React.FC<LeadKanbanColumnProps> = ({
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${theme.badge}`}>
             {leads.length}
           </span>
-          <button className="ml-auto rounded p-1 text-slate-500 hover:bg-slate-200" onClick={() => setCollapsed(true)} aria-expanded aria-label={`Свернуть: ${title}`}><ChevronDown className="h-3.5 w-3.5"/></button>
+          <button className="ml-auto rounded-sm p-1 text-slate-500 hover:bg-slate-200" onClick={() => setCollapsed(true)} aria-expanded aria-label={`Свернуть: ${title}`}><ChevronDown className="h-3.5 w-3.5"/></button>
         </div>
       </header>
 

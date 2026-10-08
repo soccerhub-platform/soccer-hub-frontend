@@ -56,7 +56,7 @@ const DataTable = <TData, TValue>({
   const rows = table.getRowModel().rows;
 
   return (
-    <section className={cn("overflow-hidden rounded-2xl border border-black/[0.08] bg-white", className)}>
+    <section className={cn("overflow-hidden rounded-2xl border border-black/8 bg-white", className)}>
       <Table className={tableClassName}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -93,7 +93,7 @@ const DataTable = <TData, TValue>({
       </Table>
 
       {pagination ? (
-        <div className="flex flex-col gap-3 border-t border-black/[0.08] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-black/8 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-xs text-slate-500">
             Страница {pagination.pageIndex + 1} из {Math.max(pagination.totalPages, 1)}
             {typeof pagination.totalElements === "number" ? ` · ${pagination.totalElements} записей` : ""}

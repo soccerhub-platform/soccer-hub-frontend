@@ -182,7 +182,7 @@ const AssignCoachModal: React.FC<Props> = ({
                   } disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-blue-100 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-slate-100 to-blue-100 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
                       {initials(coach)}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -193,7 +193,7 @@ const AssignCoachModal: React.FC<Props> = ({
                         {!coach.active ? <span className="font-medium text-rose-600">Аккаунт неактивен</span> : null}
                       </div>
                     </div>
-                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-[#0066cc] bg-[#0066cc] text-white" : "border-slate-300 bg-white"}`}>
+                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-admin-600 bg-admin-600 text-white" : "border-slate-300 bg-white"}`}>
                       {selected ? <CheckCircle className="h-4 w-4" /> : null}
                     </span>
                   </div>
@@ -207,7 +207,7 @@ const AssignCoachModal: React.FC<Props> = ({
           <div className="space-y-4 border-t border-slate-200 pt-5">
             <div>
               <div className="flex items-center gap-2 ui-section-title">
-                <Briefcase className="h-4 w-4 text-[#0066cc]" />
+                <Briefcase className="h-4 w-4 text-admin-600" />
                 Параметры назначения
               </div>
               <p className="mt-1 text-xs text-slate-500">Настройки применятся только к выбранному тренеру.</p>
@@ -225,7 +225,7 @@ const AssignCoachModal: React.FC<Props> = ({
                     className={`rounded-lg border px-3 py-3 text-left transition ${role === value ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-200"} disabled:cursor-not-allowed`}
                   >
                     <div className="flex items-center gap-2 ui-section-title">
-                      <User className="h-4 w-4 text-[#0066cc]" />
+                      <User className="h-4 w-4 text-admin-600" />
                       {value === "MAIN" ? "Главный" : "Ассистент"}
                     </div>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -245,7 +245,7 @@ const AssignCoachModal: React.FC<Props> = ({
               </FormField>
             </div>
 
-            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-xs leading-5 text-[#0066cc]">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-xs leading-5 text-admin-600">
               Назначение закрепляет тренера за группой. Пересечения с другими занятиями будут проверены при создании или изменении периода расписания.
             </div>
 

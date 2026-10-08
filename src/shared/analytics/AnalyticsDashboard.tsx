@@ -190,7 +190,7 @@ const AnalyticsDashboard: React.FC<Props> = ({ scope, branchId, title = "Опе�
             aria-label="Группировка аналитики"
             value={groupBy}
             onChange={(event) => setGroupBy(event.target.value as AnalyticsGroupBy)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
           >
             <option value="DAY">День</option>
             <option value="WEEK">Неделя</option>
@@ -292,7 +292,7 @@ const FunnelTotals = ({ totals }: { totals: Record<string, number> }) => {
             <span className="font-medium text-slate-900">{formatNumber(value)}</span>
           </div>
           <div className="h-2 rounded-full bg-slate-100">
-            <div className="h-2 rounded-full bg-[#0066cc]" style={{ width: `${Math.max(4, (Number(value) / max) * 100)}%` }} />
+            <div className="h-2 rounded-full bg-admin-600" style={{ width: `${Math.max(4, (Number(value) / max) * 100)}%` }} />
           </div>
         </div>
       ))}
