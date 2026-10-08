@@ -7,6 +7,18 @@ import react from '@vitejs/plugin-react';
 // and ensures the appropriate JSX transform is used.
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Cache the stable runtime together; let Rollup share the remaining route dependencies.
+          // One chunk per npm package produced dozens of tiny startup requests and empty files.
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react-core';
+          return undefined;
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname,
@@ -14,11 +26,13 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    watch: { ignored: ['**/test-results/**', '**/playwright-report/**'] },
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        // Media controller owns /api/media; other controllers are mounted without /api.
+        rewrite: (path) => path.startsWith('/api/media/') ? path : path.replace(/^\/api/, ''),
       }
     }
   },

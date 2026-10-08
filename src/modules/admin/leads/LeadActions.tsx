@@ -7,6 +7,7 @@ interface LeadActionsProps {
   onAction: (action: LeadAction) => void;
   loadingActionType?: string | null;
   className?: string;
+  layout?: "stack" | "toolbar";
 }
 
 const LeadActions: React.FC<LeadActionsProps> = ({
@@ -14,6 +15,7 @@ const LeadActions: React.FC<LeadActionsProps> = ({
   onAction,
   loadingActionType = null,
   className = "",
+  layout = "stack",
 }) => {
   if (!actions.length) {
     return null;
@@ -22,11 +24,11 @@ const LeadActions: React.FC<LeadActionsProps> = ({
   const primaryAction = actions.find((action) => action.primary) ?? null;
   const secondaryActions = actions.filter((action) => action !== primaryAction);
   const secondaryGridClassName =
-    secondaryActions.length === 1 ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2";
+    layout === "toolbar" ? "flex flex-wrap gap-2" : "grid grid-cols-1 gap-2";
 
   const getVariant = (action: LeadAction) => {
     if (action.danger) {
-      return action.primary ? "softDanger" : "danger";
+      return "softDanger";
     }
 
     return action.primary ? "primary" : "secondary";
@@ -36,10 +38,10 @@ const LeadActions: React.FC<LeadActionsProps> = ({
     loadingActionType === action.type ? "Сохранение..." : action.label;
 
   const getTooltip = (action: LeadAction) =>
-    action.enabled ? undefined : "Лид закреплён за другим администратором";
+    action.enabled ? undefined : "Сначала заполните необходимые данные лида";
 
   return (
-    <div className={`space-y-2 ${className}`.trim()}>
+    <div className={`${layout === "toolbar" ? "flex flex-wrap items-center gap-2" : "flex flex-col gap-2"} ${className}`.trim()}>
       {primaryAction ? (
         <button
           type="button"
@@ -49,7 +51,7 @@ const LeadActions: React.FC<LeadActionsProps> = ({
           className={buttonStyles(
             getVariant(primaryAction),
             "sm",
-            "h-9 w-full rounded-xl justify-center px-3 text-center whitespace-nowrap disabled:opacity-50"
+            `min-h-9 h-auto ${layout === "toolbar" ? "w-auto" : "w-full"} rounded-lg justify-center px-3 py-2 text-center whitespace-normal disabled:opacity-50`
           )}
         >
           {renderLabel(primaryAction)}
@@ -68,7 +70,7 @@ const LeadActions: React.FC<LeadActionsProps> = ({
               className={buttonStyles(
                 getVariant(action),
                 "sm",
-                "h-9 w-full rounded-xl justify-center px-3 text-center whitespace-nowrap disabled:opacity-50"
+                `min-h-9 h-auto ${layout === "toolbar" ? "w-auto" : "w-full"} rounded-lg justify-center px-3 py-2 text-center whitespace-normal disabled:opacity-50`
               )}
             >
               {renderLabel(action)}

@@ -44,19 +44,22 @@ import {
 } from "./session.api";
 import { ScheduleApi } from "./schedule/schedule.api";
 import { GroupScheduleDto } from "./schedule/schedule.types";
+import { sessionTimeLabel, validCalendarDate } from "../sessions.workspace";
+import { businessDate, sessionTimestamp } from "../../../shared/business-time";
+import { calendarReturnTo } from "../calendar/navigation";
 
 const statusLabels: Record<AdminSessionEffectiveStatus, string> = {
   PLANNED: "Запланировано",
   IN_PROGRESS: "Идет",
   COMPLETED: "Завершено",
   CANCELLED: "Отменено",
-  OVERDUE: "Просрочено",
+  OVERDUE: "Не закрыто",
 };
 
 const statusTones: Record<AdminSessionEffectiveStatus, StatusTone> = {
   PLANNED: "info",
   IN_PROGRESS: "success",
-  COMPLETED: "neutral",
+  COMPLETED: "success",
   CANCELLED: "danger",
   OVERDUE: "warning",
 };
@@ -76,14 +79,12 @@ const formatDate = (value: string) => {
   }).format(date);
 };
 
-const formatTime = (value: string) => {
-  return value.split("T")[1]?.slice(0, 5) ?? value.slice(11, 16);
-};
+const formatTime = sessionTimeLabel;
 const formatScheduleTime = (value: string) => value.slice(0, 5);
 
 const toDateTimeLocal = (value: string) => {
   if (!value) return "";
-  return value.slice(0, 16);
+  return `${businessDate(new Date(sessionTimestamp(value)))}T${sessionTimeLabel(value)}`;
 };
 
 const fromDateTimeLocal = (value: string) => value.length === 16 ? `${value}:00` : value;
@@ -147,7 +148,9 @@ const SessionDetailsPage: React.FC = () => {
 
   const branchId = groupDetails?.branchId ?? groupDetails?.branch?.id ?? groupDetails?.branch?.branchId ?? selectedBranchId ?? null;
   const detailsGroupId = groupId ?? session?.group.id;
-  const backTo = groupId ? `/admin/groups/${groupId}/schedule` : "/admin/groups";
+  const returnTo = searchParams.get("returnTo");
+  const fromCalendar = returnTo === "/admin/schedule" || returnTo?.startsWith("/admin/schedule?");
+  const backTo = calendarReturnTo(returnTo, groupId) || (groupId ? `/admin/groups/${groupId}/schedule` : "/admin/schedule");
 
   if (!token) return <ErrorState message="Нет авторизации" />;
 
@@ -192,7 +195,7 @@ const SessionDetailsPage: React.FC = () => {
   return (
     <PageShell className="space-y-4">
       <button type="button" onClick={() => navigate(backTo)} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#0066cc]">
-        <ArrowLeft className="h-4 w-4" />Расписание группы
+        <ArrowLeft className="h-4 w-4" />{fromCalendar || !groupId ? "К занятиям" : "Расписание группы"}
       </button>
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -326,7 +329,7 @@ const CoachRow: React.FC<{ coach: AdminSessionCoach }> = ({ coach }) => {
 
 const InfoLine: React.FC<{ label: string; value: string }> = ({ label, value }) => <div className="grid grid-cols-[72px_1fr] gap-3"><span className="text-slate-500">{label}</span><span className="font-medium text-slate-800">{value}</span></div>;
 
-const CancelSessionModal: React.FC<{
+export const CancelSessionModal: React.FC<{
   sessionId: string;
   token: string;
   onClose: () => void;
@@ -339,6 +342,7 @@ const CancelSessionModal: React.FC<{
   const [saving, setSaving] = useState(false);
 
   const submit = async () => {
+    if (saving) return;
     setSaving(true);
     try {
       const next = await AdminSessionApi.cancel(sessionId, {
@@ -398,7 +402,7 @@ const CancelSessionModal: React.FC<{
   );
 };
 
-const RescheduleSessionModal: React.FC<{
+export const RescheduleSessionModal: React.FC<{
   session: AdminSessionDetailsOutput;
   token: string;
   onClose: () => void;
@@ -413,8 +417,17 @@ const RescheduleSessionModal: React.FC<{
   const [saving, setSaving] = useState(false);
 
   const submit = async () => {
+    if (saving) return;
     if (!form.startsAt || !form.endsAt) {
       toast.error("Укажите время начала и окончания");
+      return;
+    }
+    if (!validCalendarDate(form.startsAt.slice(0,10)) || !validCalendarDate(form.endsAt.slice(0,10)) || sessionTimestamp(form.endsAt) <= sessionTimestamp(form.startsAt)) {
+      toast.error("Окончание должно быть позже начала");
+      return;
+    }
+    if (form.startsAt.slice(0,10) !== form.endsAt.slice(0,10)) {
+      toast.error("Начало и окончание должны быть в один день");
       return;
     }
     if (!form.reason.trim()) {
@@ -457,12 +470,14 @@ const RescheduleSessionModal: React.FC<{
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Начало">
           <DateTimePicker
+            aria-label="Начало"
             value={form.startsAt}
             onValueChange={(value) => setForm((prev) => ({ ...prev, startsAt: value }))}
           />
         </FormField>
         <FormField label="Окончание">
           <DateTimePicker
+            aria-label="Окончание"
             value={form.endsAt}
             onValueChange={(value) => setForm((prev) => ({ ...prev, endsAt: value }))}
           />
@@ -490,7 +505,7 @@ const RescheduleSessionModal: React.FC<{
   );
 };
 
-const SubstituteCoachModal: React.FC<{
+export const SubstituteCoachModal: React.FC<{
   session: AdminSessionDetailsOutput;
   branchId: string | null;
   token: string;

@@ -10,8 +10,9 @@ import {
   TimePreference,
 } from "./types";
 import { LeadApi } from "./lead.api";
-import { buttonStyles } from "../../../shared/ui/buttonStyles";
-import { Input, Textarea, NativeSelect, DatePicker    } from "../../../shared/ui";
+import LeadModalShell from "./LeadModalShell";
+import { addBusinessDays, birthDateError, businessDate } from "./lead.workspace";
+import { Input, Textarea, NativeSelect, DatePicker, FormField, Button, ToggleGroup, ToggleGroupItem} from "../../../shared/ui";
 
 interface QualifyLeadModalProps {
   leadId: string;
@@ -53,12 +54,6 @@ const EMPTY_PARTICIPANT = (): QualificationParticipantForm => ({
 
 const MAX_NAME_LENGTH = 120;
 const MAX_NOTES_LENGTH = 1000;
-
-const fieldClassName =
-  "w-full rounded-2xl border border-black/[0.08] bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100";
-
-const cardClassName =
-  "rounded-2xl border border-black/[0.08] bg-white p-5";
 
 const parsePreferredDays = (value?: string | null) => {
   if (!value) {
@@ -138,6 +133,8 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
       initialLead?.comment ??
       ""
   );
+  const [attempted, setAttempted] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -149,7 +146,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
   const validation = useMemo(() => {
     const participantErrors = participants.map((participant) => ({
       fullName: participant.fullName.trim() ? "" : `Укажите имя ${participantNameLabel}`,
-      birthDate: participant.birthDate ? "" : "Укажите дату рождения",
+      birthDate: birthDateError(participant.birthDate),
     }));
 
     const hasValidParticipants =
@@ -174,13 +171,9 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
     );
   };
 
-  const toggleDay = (day: string) => {
-    setSelectedDays((prev) =>
-      prev.includes(day) ? prev.filter((value) => value !== day) : [...prev, day]
-    );
-  };
-
   const handleSubmit = async () => {
+    if (loading) return;
+    setAttempted(true);
     if (!validation.isValid || !timePreference) return;
 
     const payload: QualifyLeadPayload = {
@@ -200,7 +193,7 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
     setError(null);
 
     try {
-      await LeadApi.qualify(leadId, payload, token);
+      if (!saved) { await LeadApi.qualify(leadId, payload, token); setSaved(true); }
       await onSuccess();
       onClose();
     } catch (err) {
@@ -211,348 +204,37 @@ const QualifyLeadModal: React.FC<QualifyLeadModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-sm sm:p-4">
-      <div className="flex h-[min(92vh,900px)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 bg-white px-6 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0066cc]">
-                Квалификация
-              </div>
-              <h3 className="ui-modal-title">
-                Квалифицировать лид
-              </h3>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
-                Заполните состав участников, предпочтения и уровень подготовки.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className={buttonStyles("ghost", "sm", "rounded-full p-2 text-slate-400")}
-            >
-              ✕
-            </button>
+  return <LeadModalShell title="Уточнить заявку" description={initialLead?.primaryContact.fullName || "Участники и пожелания к занятиям"} eyebrow="Лид · Данные заявки" onClose={onClose} closeDisabled={loading}
+    footer={<div className="flex w-full items-center justify-end gap-2"><Button variant="secondary" disabled={loading} onClick={onClose}>Отмена</Button><Button isLoading={loading} onClick={() => void handleSubmit()}>{saved ? "Обновить карточку" : "Сохранить изменения"}</Button></div>}>
+    <form className="flex flex-col gap-6" onSubmit={e => {e.preventDefault(); void handleSubmit();}}>
+      <fieldset disabled={loading || saved} className="flex min-w-0 flex-col gap-4">
+        <legend className="mb-3 text-sm font-semibold text-slate-900">{participantsTitle}</legend>
+        {participants.map((participant,index)=><div key={participant.id || index} className="rounded-xl border border-slate-200 p-4">
+          <div className="mb-4 flex items-center justify-between gap-2"><h3 className="text-sm font-medium">{participantLabel} {index+1}</h3><Button type="button" variant="ghost" size="sm" disabled={participants.length===1} aria-label={`Удалить участника ${index+1}`} onClick={()=>setParticipants(prev=>prev.filter((_,i)=>i!==index))}><Trash2 data-icon="inline-start"/>Удалить</Button></div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Имя участника *" error={attempted ? validation.participantErrors[index]?.fullName : undefined}><Input aria-label={`Имя участника ${index+1}`} maxLength={MAX_NAME_LENGTH} value={participant.fullName} onChange={e=>updateParticipant(index,{...participant,fullName:e.target.value})} aria-invalid={attempted && Boolean(validation.participantErrors[index]?.fullName)}/></FormField>
+            <FormField label="Дата рождения *" error={attempted ? validation.participantErrors[index]?.birthDate : undefined}><DatePicker placeholder={`Дата рождения участника ${index+1}`} max={addBusinessDays(businessDate(), -1)} value={participant.birthDate} onValueChange={birthDate=>updateParticipant(index,{...participant,birthDate})}/></FormField>
+            <FormField label="Пол"><NativeSelect aria-label={`Пол участника ${index+1}`} value={participant.gender} onChange={e=>updateParticipant(index,{...participant,gender:e.target.value as Gender})}><option value="MALE">{leadType==="ADULT" ? "Мужчина" : "Мальчик"}</option><option value="FEMALE">{leadType==="ADULT" ? "Женщина" : "Девочка"}</option></NativeSelect></FormField>
+            <FormField label="Подготовка"><NativeSelect aria-label={`Подготовка участника ${index+1}`} value={participant.experience} onChange={e=>updateParticipant(index,{...participant,experience:e.target.value as ExperienceLevel})}><option value="BEGINNER">Начинающий</option><option value="INTERMEDIATE">Средний уровень</option><option value="ADVANCED">Продвинутый</option></NativeSelect></FormField>
           </div>
+        </div>)}
+        <Button type="button" variant="secondary" onClick={()=>setParticipants(prev=>[...prev,EMPTY_PARTICIPANT()])}><Plus data-icon="inline-start"/>Добавить участника</Button>
+      </fieldset>
+      <fieldset disabled={loading || saved} className="flex min-w-0 flex-col gap-5 border-t border-slate-200 pt-5">
+        <legend className="text-sm font-semibold text-slate-900">Пожелания к занятиям</legend>
+        <div className="flex flex-col gap-2"><span id="lead-days-label" className="text-xs font-medium text-slate-600">Дни недели *</span>
+          <ToggleGroup type="multiple" aria-labelledby="lead-days-label" value={selectedDays} onValueChange={setSelectedDays} variant="outline" className="flex flex-wrap justify-start gap-1">{DAY_OPTIONS.map(day=><ToggleGroupItem key={day.value} value={day.value}>{day.label}</ToggleGroupItem>)}</ToggleGroup>
+          {attempted && !selectedDays.length && <p className="text-xs text-rose-700">Выберите хотя бы один день.</p>}
         </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-4 sm:px-6 sm:py-6">
-          <div className="space-y-5">
-            <section className={cardClassName}>
-              <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0066cc]">
-                Контакт
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-black/[0.08] bg-slate-50 px-4 py-3">
-                  <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Имя
-                  </div>
-                  <div className="mt-1 ui-section-title">
-                    {initialLead?.primaryContact?.fullName || "Не указано"}
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-black/[0.08] bg-slate-50 px-4 py-3">
-                  <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Телефон
-                  </div>
-                  <div className="mt-1 ui-section-title">
-                    {initialLead?.primaryContact?.phone || "Не указано"}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section className={cardClassName}>
-              <div className="mb-4 flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0066cc]">
-                    {participantsTitle}
-                  </div>
-                  <h4 className="mt-1 text-base font-semibold text-slate-900">
-                    Добавьте участников для квалификации
-                  </h4>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setParticipants((prev) => [...prev, EMPTY_PARTICIPANT()])}
-                  className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-[#0066cc] transition hover:bg-blue-100"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Добавить {participantNameLabel}
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {participants.map((participant, index) => (
-                  <div
-                    key={`participant-${index}`}
-                    className="rounded-2xl border border-black/[0.08] bg-[linear-gradient(180deg,#fafaf9_0%,#f8fafc_100%)] p-4"
-                  >
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div className="ui-section-title">
-                        {participantLabel} {index + 1}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setParticipants((prev) =>
-                            prev.filter((_, participantIndex) => participantIndex !== index)
-                          )
-                        }
-                        className={buttonStyles("softDanger", "sm", "rounded-full")}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Удалить
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <label className="space-y-1.5 text-sm text-slate-600">
-                        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Имя {participantNameLabel}
-                        </span>
-                        <Input
-                          type="text"
-                          value={participant.fullName}
-                          onChange={(event) =>
-                            updateParticipant(index, {
-                              ...participant,
-                              fullName: event.target.value,
-                            })
-                          }
-                          maxLength={MAX_NAME_LENGTH}
-                          autoComplete="off"
-                          className={`${fieldClassName} ${
-                            validation.participantErrors[index]?.fullName
-                              ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                              : ""
-                          }`}
-                        />
-                        {validation.participantErrors[index]?.fullName ? (
-                          <p className="text-xs text-rose-600">
-                            {validation.participantErrors[index].fullName}
-                          </p>
-                        ) : null}
-                      </label>
-
-                      <label className="space-y-1.5 text-sm text-slate-600">
-                        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Дата рождения
-                        </span>
-                        <DatePicker
-                          value={participant.birthDate}
-                          onValueChange={(birthDate) =>
-                            updateParticipant(index, {
-                              ...participant,
-                              birthDate,
-                            })
-                          }
-                          aria-invalid={Boolean(validation.participantErrors[index]?.birthDate)}
-                        />
-                        {validation.participantErrors[index]?.birthDate ? (
-                          <p className="text-xs text-rose-600">
-                            {validation.participantErrors[index].birthDate}
-                          </p>
-                        ) : null}
-                      </label>
-
-                      <label className="space-y-1.5 text-sm text-slate-600">
-                        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Пол
-                        </span>
-                        <NativeSelect
-                          value={participant.gender}
-                          onChange={(event) =>
-                            updateParticipant(index, {
-                              ...participant,
-                              gender: event.target.value as Gender,
-                            })
-                          }
-                          className={fieldClassName}
-                        >
-                          <option value="MALE">{leadType === "ADULT" ? "Мужчина" : "Мальчик"}</option>
-                          <option value="FEMALE">{leadType === "ADULT" ? "Женщина" : "Девочка"}</option>
-                        </NativeSelect>
-                      </label>
-
-                      <label className="space-y-1.5 text-sm text-slate-600">
-                        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Уровень
-                        </span>
-                        <NativeSelect
-                          value={participant.experience}
-                          onChange={(event) =>
-                            updateParticipant(index, {
-                              ...participant,
-                              experience: event.target.value as ExperienceLevel,
-                            })
-                          }
-                          className={fieldClassName}
-                        >
-                          <option value="BEGINNER">Начинающий</option>
-                          <option value="INTERMEDIATE">Средний уровень</option>
-                          <option value="ADVANCED">Продвинутый</option>
-                        </NativeSelect>
-                      </label>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {!validation.hasParticipants ? (
-                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  Добавьте хотя бы одного участника.
-                </div>
-              ) : null}
-            </section>
-
-            <section className={cardClassName}>
-              <div className="mb-4">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0066cc]">
-                  Предпочтения
-                </div>
-                <h4 className="mt-1 text-base font-semibold text-slate-900">
-                  Когда удобно посещать занятия
-                </h4>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Дни недели
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {DAY_OPTIONS.map((day) => {
-                      const isSelected = selectedDays.includes(day.value);
-                      return (
-                        <button
-                          key={day.value}
-                          type="button"
-                          onClick={() => toggleDay(day.value)}
-                          className={`rounded-full border px-3 py-2 text-sm font-medium transition ${
-                            isSelected
-                              ? "border-blue-700 bg-[#0066cc] text-white"
-                              : "border-black/[0.08] bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50"
-                          }`}
-                        >
-                          {day.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {selectedDays.length === 0 ? (
-                    <p className="mt-2 text-xs text-rose-600">
-                      Выберите хотя бы один день.
-                    </p>
-                  ) : null}
-                </div>
-
-                <div>
-                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Предпочтительное время
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {TIME_OPTIONS.map((option) => {
-                      const isSelected = timePreference === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setTimePreference(option.value)}
-                          className={`rounded-full border px-3 py-2 text-sm font-medium transition ${
-                            isSelected
-                              ? "border-blue-700 bg-[#0066cc] text-white"
-                              : "border-black/[0.08] bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50"
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {!timePreference ? (
-                    <p className="mt-2 text-xs text-rose-600">
-                      Выберите предпочтительное время.
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            </section>
-
-            <section className={cardClassName}>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label className="space-y-1.5 text-sm text-slate-600">
-                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Общий уровень
-                  </span>
-                  <NativeSelect
-                    value={experience}
-                    onChange={(event) => setExperience(event.target.value as ExperienceLevel)}
-                    className={fieldClassName}
-                  >
-                    <option value="BEGINNER">Начинающий</option>
-                    <option value="INTERMEDIATE">Средний уровень</option>
-                    <option value="ADVANCED">Продвинутый</option>
-                  </NativeSelect>
-                </label>
-
-                <label className="space-y-1.5 text-sm text-slate-600 md:col-span-1">
-                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Заметки
-                  </span>
-                  <Textarea
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    rows={5}
-                    maxLength={MAX_NOTES_LENGTH}
-                    className={`${fieldClassName} min-h-[132px] resize-none md:min-h-[120px]`}
-                    placeholder="Например: хочет попробовать до начала сезона, важна адаптация в группе."
-                  />
-                  <div className="text-right text-xs text-slate-400">
-                    {notes.length}/{MAX_NOTES_LENGTH}
-                  </div>
-                </label>
-              </div>
-            </section>
-
-            {error ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {error}
-              </div>
-            ) : null}
-          </div>
+        <div className="flex flex-col gap-2"><span id="lead-time-label" className="text-xs font-medium text-slate-600">Предпочтительное время *</span>
+          <ToggleGroup type="single" aria-labelledby="lead-time-label" value={timePreference || ""} onValueChange={v=>{if(v)setTimePreference(v as TimePreference);}} variant="outline" className="grid grid-cols-3 gap-2">{TIME_OPTIONS.map(t=><ToggleGroupItem key={t.value} value={t.value}>{t.label}</ToggleGroupItem>)}</ToggleGroup>
+          {attempted && !timePreference && <p className="text-xs text-rose-700">Выберите время занятий.</p>}
         </div>
-
-        <div className="border-t border-slate-200 bg-white px-6 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-slate-500">
-              {validation.isValid
-                ? "Форма заполнена корректно"
-                : "Заполните участников и выберите дни и время"}
-            </div>
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className={buttonStyles("secondary", "md", "rounded-2xl")}
-              >
-                Отмена
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={!validation.isValid || loading}
-                className={buttonStyles("primary", "md", "rounded-2xl px-5")}
-              >
-                {loading ? "Сохранение..." : "Квалифицировать лид"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+        <FormField label="Общий уровень"><NativeSelect aria-label="Общий уровень" value={experience} onChange={e=>setExperience(e.target.value as ExperienceLevel)}><option value="BEGINNER">Начинающий</option><option value="INTERMEDIATE">Средний уровень</option><option value="ADVANCED">Продвинутый</option></NativeSelect></FormField>
+        <FormField label="Заметки" hint="Что важно учесть при подборе группы и пробного занятия."><Textarea aria-label="Заметки" value={notes} onChange={e=>setNotes(e.target.value)} maxLength={MAX_NOTES_LENGTH} rows={4}/></FormField>
+      </fieldset>
+      {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
+    </form>
+  </LeadModalShell>;
 };
-
 export default QualifyLeadModal;

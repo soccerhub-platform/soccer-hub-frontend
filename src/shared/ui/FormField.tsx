@@ -14,11 +14,11 @@ export const formControlClassName =
 
 const FormField: React.FC<FormFieldProps> = ({ label, error, hint, children, className }) => {
   return (
-    <label className={classNames("block space-y-1 text-xs font-medium text-slate-500", className)}>
+    <label className={classNames("flex flex-col gap-1 text-xs font-medium text-slate-600", className)}>
       <span>{label}</span>
       {children}
       {error ? <span className="block text-xs font-medium text-rose-600">{error}</span> : null}
-      {!error && hint ? <span className="block text-xs font-normal text-slate-400">{hint}</span> : null}
+      {!error && hint ? <span className="block text-xs font-normal text-slate-600">{hint}</span> : null}
     </label>
   );
 };

@@ -25,6 +25,9 @@ export interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+export const buildLoginPayload = (email: string, password: string, role?: string) =>
+  role ? { email, password, role } : { email, password };
+
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => readStoredUser());
 
@@ -34,11 +37,13 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     });
   }, []);
 
-  const login = async (email: string, password: string, role = 'ADMIN') => {
+  const login = async (email: string, password: string, role?: string) => {
     const response = await fetch(getApiUrl('/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, role }),
+      // Role is optional: the default login must preserve every role returned by the server.
+      // Supplying ADMIN here locked dispatchers and coaches out before routing could run.
+      body: JSON.stringify(buildLoginPayload(email, password, role)),
     });
 
     if (!response.ok) {
@@ -49,7 +54,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
     const newUser: User = {
       email,
-      roles: Array.isArray(data.roles) && data.roles.length > 0 ? data.roles : [role],
+      roles: Array.isArray(data.roles) && data.roles.length > 0 ? data.roles : role ? [role] : [],
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
       passwordChangeRequired: data.passwordChangeRequired,

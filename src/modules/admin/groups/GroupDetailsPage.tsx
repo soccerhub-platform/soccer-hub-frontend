@@ -475,7 +475,7 @@ const GroupDetailsPage: React.FC = () => {
 
       {activeSection === "schedule" ? (
         <SectionCard className="p-0" bodyClassName="p-4">
-          <GroupScheduleTab groupId={detailsGroupId} />
+          <GroupScheduleTab groupId={detailsGroupId} groupName={group.name} />
         </SectionCard>
       ) : null}
 

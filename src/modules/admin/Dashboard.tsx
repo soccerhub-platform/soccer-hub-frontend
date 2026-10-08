@@ -1,756 +1,172 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  CalendarDays,
-  ChevronRight,
-  CreditCard,
-  MoreVertical,
-  CircleAlert,
-  Users,
-  User,
-  UserPlus,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
-import { Button, EmptyState, LoadingState, MetricCard as SharedMetricCard, PageHeader, PageShell } from "../../shared/ui";
+import React, { useEffect, useState } from "react";
+import { ArrowUpRight, Check, ChevronRight, CircleAlert, Clock3, Plus, RefreshCw, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button, ErrorState, LoadingState, ModalShell, PageHeader, PageShell } from "../../shared/ui";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../shared/ui/shadcn/Card";
+import { ShadcnButton } from "../../shared/ui/shadcn/Button";
+import { ToggleGroup, ToggleGroupItem } from "../../shared/ui/shadcn/toggle-group";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../shared/ui/shadcn/Table";
+import { businessDate, addBusinessDays, sessionTimestamp } from "../../shared/business-time";
 import { useAdminBranch } from "./BranchContext";
 import { DashboardSummaryApi } from "./dashboard-summary.api";
-import type {
-  AdminDashboardSummaryResponse,
-  DashboardAttentionItem,
-  DashboardFunnelRow,
-  DashboardKpiItem,
-  DashboardRiskItem,
-  DashboardSession,
-  DashboardTone,
-  DashboardTopCard,
-  DashboardWeeklyDynamics,
-} from "./dashboard-summary.types";
+import type { AdminDashboardSummaryResponse, DashboardSession, DashboardWeeklyDynamics } from "./dashboard-summary.types";
+import { dashboardDate, dashboardMoney, dashboardNumber, dashboardSessionState, dashboardSignals, dashboardTime, type DashboardSignal } from "./dashboard.workspace";
+import { trialInterval, trialNextStep } from "./trials/trial.workspace";
+import TrialPreview from "./trials/TrialPreview";
+import "./dashboard.workspace.css";
 
-type DashboardIcon = "leads" | "coach" | "payment" | "groups" | "schedule";
+function Panel({ title, description, action, footer, children, className = "" }: {
+  title: string; description: string; action?: React.ReactNode; footer?: React.ReactNode; children: React.ReactNode; className?: string;
+}) {
+  return <Card className={`dashboard-panel ${className}`}>
+    <CardHeader><div className="dashboard-panel-heading"><CardTitle>{title}</CardTitle>{action}</div><CardDescription>{description}</CardDescription></CardHeader>
+    <CardContent>{children}</CardContent>{footer && <CardFooter>{footer}</CardFooter>}
+  </Card>;
+}
+const TextLink = ({ to, children }: { to: string; children: React.ReactNode }) => <Link className="dashboard-link" to={to}>{children}<ArrowUpRight aria-hidden="true" className="size-3.5"/></Link>;
+const QuietEmpty = ({ title, text }: { title: string; text: string }) => <div className="dashboard-empty"><Check aria-hidden="true" className="size-5"/><strong>{title}</strong><p>{text}</p></div>;
 
-type InsightCard = {
-  id: string;
-  icon: DashboardIcon;
-  tone: "danger" | "warning" | "success" | "info";
-  title: string;
-  description: string;
-  buttonLabel: string;
-  target: string;
-  detailTitle: string;
-  detailRows: { label: string; value: string }[];
-};
+export default function Dashboard() {
+  const { branchId, branchName } = useAdminBranch();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const tick = window.setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(tick); }, []);
+  const date = businessDate(new Date(now));
+  return <DashboardWorkspace key={`${branchId}:${date}`} branchId={branchId} branchName={branchName} date={date} now={now}/>;
+}
 
-const formatNumber = (value?: number) => Number(value ?? 0).toLocaleString("ru-RU");
-const formatCurrency = (value?: number) => `${formatNumber(value)} ₸`;
-const toDateInput = (date: Date) => date.toISOString().slice(0, 10);
-const localTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Almaty";
-const formatNullable = (value: number | null | undefined, fallback = "—") =>
-  value == null ? fallback : formatNumber(value);
-const formatDelta = (value: number | null | undefined) => {
-  if (value == null) return undefined;
-  if (value === 0) return undefined;
-  return value > 0 ? `+ ${formatNumber(value)}` : formatNumber(value);
-};
-
-const scheduleMinutes = (value: string) => {
-  const match = value.match(/T(\d{2}):(\d{2})/);
-  if (match) return Number(match[1]) * 60 + Number(match[2]);
-
-  const date = new Date(value);
-  return date.getHours() * 60 + date.getMinutes();
-};
-
-const formatScheduleTime = (value: string) => {
-  const minutes = scheduleMinutes(value);
-  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
-};
-
-const formatScheduleRange = (startAt: string, endAt: string) => `${formatScheduleTime(startAt)}-${formatScheduleTime(endAt)}`;
-
-const scheduleStatusLabel = (status: string) => {
-  if (status === "PLANNED") return "Запланирована";
-  if (status === "COMPLETED") return "Проведена";
-  if (status === "CANCELLED") return "Отменена";
-  return status;
-};
-
-const normalizeTone = (tone: string | undefined): DashboardTone => {
-  if (tone === "danger" || tone === "warning" || tone === "success" || tone === "info") return tone;
-  return "info";
-};
-
-const normalizeIcon = (icon: string | undefined, fallback: DashboardIcon = "leads"): DashboardIcon => {
-  if (icon === "leads" || icon === "coach" || icon === "payment" || icon === "groups" || icon === "schedule") return icon;
-  if (icon === "trainer" || icon === "user") return "coach";
-  if (icon === "wallet" || icon === "card") return "payment";
-  if (icon === "calendar") return "schedule";
-  return fallback;
-};
-
-const kpiByCode = (items: DashboardKpiItem[], code: string) => items.find((item) => item.code === code);
-
-const topCardToInsight = (card: DashboardTopCard, fallbackIcon: DashboardIcon): InsightCard => ({
-  id: card.id,
-  icon: normalizeIcon(card.icon, fallbackIcon),
-  tone: normalizeTone(card.tone),
-  title: card.title,
-  description: card.description,
-  buttonLabel: card.action.label,
-  target: card.action.target,
-  detailTitle: card.title,
-  detailRows: card.details.length > 0 ? card.details : [{ label: "Следующий шаг", value: card.action.label }],
-});
-
-const iconMap: Record<DashboardIcon, React.ReactNode> = {
-  leads: <UserPlus className="h-8 w-8" />,
-  coach: <User className="h-8 w-8" />,
-  payment: <CreditCard className="h-8 w-8" />,
-  groups: <Users className="h-8 w-8" />,
-  schedule: <CalendarDays className="h-8 w-8" />,
-};
-
-const toneClasses = {
-  danger: "border-rose-100 bg-rose-50/55 text-rose-700",
-  warning: "border-amber-100 bg-amber-50/65 text-amber-700",
-  success: "border-emerald-100 bg-emerald-50/65 text-emerald-700",
-  info: "border-blue-100 bg-blue-50/65 text-[#0066cc]",
-};
-
-const dotClasses = {
-  danger: "bg-rose-500",
-  warning: "bg-amber-500",
-  success: "bg-emerald-500",
-  info: "bg-[#0066cc]",
-};
-
-const getRiskTone = (tone: DashboardRiskItem["tone"]) => {
-  if (tone === "danger" || tone === "warning" || tone === "success") return tone;
-  return "info";
-};
-
-const weeklySummaryLabel = (code: string, fallback: string) => {
-  if (code === "leads") return "Лиды";
-  if (code === "trainings") return "Тренировки";
-  if (code === "payments") return "Оплаты";
-  return fallback;
-};
-
-const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const { branchId } = useAdminBranch();
-
-  const [summary, setSummary] = useState<AdminDashboardSummaryResponse | null>(null);
-  const [loadingSummary, setLoadingSummary] = useState(true);
-  const [activeInsight, setActiveInsight] = useState<InsightCard | null>(null);
-
-  const today = useMemo(() => new Date(), []);
-  const todayIso = useMemo(() => toDateInput(today), [today]);
-  const timezone = useMemo(() => localTimezone(), []);
+function DashboardWorkspace({ branchId, branchName, date, now }: { branchId: string | null; branchName: string | null; date: string; now: number }) {
+  const [data, setData] = useState<AdminDashboardSummaryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const [sessionFilter, setSessionFilter] = useState("all");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [signalId, setSignalId] = useState<string | null>(null);
+  const [trialId, setTrialId] = useState<string | null>(null);
+  const refresh = () => setRevision(v => v + 1);
   useEffect(() => {
-    if (!branchId) {
-      setSummary(null);
-      setLoadingSummary(false);
-      return;
-    }
-
+    const interval = window.setInterval(() => { if (!document.hidden) refresh(); }, 60_000);
+    const focus = () => refresh();
+    window.addEventListener("focus", focus);
+    return () => { clearInterval(interval); window.removeEventListener("focus", focus); };
+  }, []);
+  useEffect(() => {
+    if (!branchId) { setLoading(false); return; }
     let active = true;
-    setLoadingSummary(true);
+    setLoading(true); setError(false);
+    void DashboardSummaryApi.get(branchId, date, "Asia/Almaty").then(result => {
+      if (!active) return;
+      if (result.meta.branchId !== branchId || result.meta.date !== date) throw new Error("Wrong dashboard scope");
+      setData(result);
+    }).catch(() => { if (active) setError(true); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [branchId, date, revision]);
+  const scheduleHref = `/admin/schedule?date=${date}&day=${date}`;
+  const sessions = [...(data?.todaySchedule.items ?? [])].sort((a, b) => sessionTimestamp(a.startAt) - sessionTimestamp(b.startAt));
+  const unclosed = sessions.filter(s => dashboardSessionState(s, now).code === "OVERDUE");
+  const upcoming = sessions.filter(s => ["PLANNED", "IN_PROGRESS"].includes(dashboardSessionState(s, now).code));
+  const filtered = sessionFilter === "unclosed" ? unclosed : sessionFilter === "upcoming" ? upcoming : sessions;
+  const session = sessions.find(s => s.sessionId === sessionId);
+  const signals = data ? dashboardSignals(data) : [];
+  const signal = signals.find(s => s.id === signalId);
+  const trials = [...(data?.todayTrials ?? [])].sort((a, b) => sessionTimestamp(a.sessionStartsAt || "") - sessionTimestamp(b.sessionStartsAt || ""));
+  const trialPosition = trials.findIndex(t => t.id === trialId);
+  const kpi = (code: string) => data?.kpis.items.find(i => i.code === code);
+  const branch = data?.branchSummary;
+  const timezone = data?.meta.timezone || "Asia/Almaty";
 
-    DashboardSummaryApi.get(branchId, todayIso, timezone)
-      .then((data) => {
-        if (!active) return;
-        setSummary(data);
-      })
-      .catch((error) => {
-        console.error(error);
-        if (!active) return;
-        toast.error("Не удалось загрузить summary панели");
-        setSummary(null);
-      })
-      .finally(() => {
-        if (active) setLoadingSummary(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [branchId, todayIso, timezone]);
-
-  const kpiItems = summary?.kpis?.items ?? [];
-  const branchSummary = summary?.branchSummary ?? null;
-  const risks = summary?.risks?.items ?? [];
-  const attention = summary?.alerts?.attention ?? [];
-  const topCards = summary?.alerts?.topCards ?? [];
-  const funnelRows = summary?.funnel?.rows ?? [];
-  const todaySchedule = summary?.todaySchedule ?? null;
-  const weeklyDynamics = summary?.weeklyDynamics ?? null;
-
-  const newLeadsKpi = kpiByCode(kpiItems, "newLeads");
-  const activeGroupsKpi = kpiByCode(kpiItems, "activeGroups");
-  const trainingsTodayKpi = kpiByCode(kpiItems, "trainingsToday");
-  const paymentsTodayKpi = kpiByCode(kpiItems, "paymentsToday");
-
-  const trainingsTodayCount = Number(trainingsTodayKpi?.count ?? trainingsTodayKpi?.value ?? todaySchedule?.summary.total ?? 0);
-  const paymentsTodayAmount = Number(paymentsTodayKpi?.amount ?? paymentsTodayKpi?.value ?? 0);
-
-  const insightCards: InsightCard[] = topCards
-    .slice(0, 3)
-    .map((card, index) => topCardToInsight(card, index === 1 ? "coach" : index === 2 ? "payment" : "leads"));
-
-  const kpiCards = [
-    {
-      title: newLeadsKpi?.label ?? "Новые лиды",
-      value: newLeadsKpi?.displayValue ?? formatNumber(Number(newLeadsKpi?.count ?? newLeadsKpi?.value ?? 0)),
-      delta: newLeadsKpi?.delta.label,
-      hint: newLeadsKpi?.hint ?? "Нет сравнения",
-      icon: "leads" as DashboardIcon,
-      target: newLeadsKpi?.target ?? "/admin/leads",
-    },
-    {
-      title: activeGroupsKpi?.label ?? "Активные группы",
-      value: activeGroupsKpi?.displayValue ?? formatNumber(Number(activeGroupsKpi?.count ?? activeGroupsKpi?.value ?? 0)),
-      delta: activeGroupsKpi?.delta.label,
-      hint: activeGroupsKpi?.hint ?? "Нет сравнения",
-      icon: "groups" as DashboardIcon,
-      target: activeGroupsKpi?.target ?? "/admin/groups",
-    },
-    {
-      title: trainingsTodayKpi?.label ?? "Сегодняшние тренировки",
-      value: trainingsTodayKpi?.displayValue ?? formatNumber(trainingsTodayCount),
-      delta: trainingsTodayKpi?.delta.label,
-      hint: trainingsTodayKpi?.hint ?? "Нет сравнения",
-      icon: "schedule" as DashboardIcon,
-      target: trainingsTodayKpi?.target ?? "/admin/schedule",
-    },
-    {
-      title: paymentsTodayKpi?.label ?? "Оплаты за день",
-      value: paymentsTodayKpi?.displayValue ?? formatCurrency(paymentsTodayAmount),
-      delta: paymentsTodayKpi?.delta.label,
-      hint: paymentsTodayKpi?.hint ?? "Нет сравнения",
-      icon: "payment" as DashboardIcon,
-      target: paymentsTodayKpi?.target ?? "/admin/payments",
-    },
-  ];
-
-  const attentionRows = attention.slice(0, 4);
-  const scheduleItems = todaySchedule?.items ?? [];
-
-  return (
-    <PageShell>
-      <PageHeader title="Панель администратора" description="Главная картина клуба на сегодня" />
-
-      {insightCards.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-          {insightCards.map((card) => (
-            <InsightSummaryCard key={card.id} card={card} onOpen={() => setActiveInsight(card)} />
-          ))}
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {kpiCards.map((card) => (
-          <DashboardMetricCard key={card.title} {...card} loading={loadingSummary} onClick={() => navigate(card.target)} />
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-        <DashboardPanel className="xl:col-span-4" title="Что требует внимания">
-          {attentionRows.length > 0 ? (
-            <>
-              <div className="divide-y divide-slate-100">
-                {attentionRows.map((item) => (
-                  <AttentionRow key={item.id} item={item} onClick={() => navigate(item.action.target)} />
-                ))}
-              </div>
-              <button
-                className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-[#0066cc]"
-                onClick={() => navigate("/admin/leads")}
-              >
-                Показать все ({attentionRows.length})
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </>
-          ) : (
-            <EmptyState title="Нет срочных задач" description="Backend не вернул элементы внимания для текущего филиала." />
-          )}
-        </DashboardPanel>
-
-        <DashboardPanel className="xl:col-span-4" title="Воронка лидов">
-          {loadingSummary ? (
-            <LoadingState label="Собираем аналитику..." />
-          ) : (
-            <FunnelRows rows={funnelRows} conversion={summary?.funnel?.conversionToClientPercent ?? 0} />
-          )}
-        </DashboardPanel>
-
-        <div className="grid grid-cols-1 gap-3 xl:col-span-4">
-          <DashboardPanel title="Быстрые действия">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <QuickTile icon="leads" label="Добавить лид" onClick={() => navigate("/admin/leads?action=create")} />
-              <QuickTile icon="groups" label="Создать группу" onClick={() => navigate("/admin/groups?action=create")} />
-              <QuickTile icon="coach" label="Назначить тренера" onClick={() => navigate("/admin/coaches?task=assign")} />
-              <QuickTile icon="payment" label="Открыть платежи" onClick={() => navigate("/admin/payments")} />
-            </div>
-          </DashboardPanel>
-
-          <DashboardPanel title="Филиал сегодня">
-            <div className="grid grid-cols-2 gap-3">
-              <BranchMiniStat label="Всего учеников" value={formatNullable(branchSummary?.studentsTotal)} delta={formatDelta(branchSummary?.studentsDelta)} />
-              <BranchMiniStat
-                label="Посещено тренировок"
-                value={`${formatNullable(branchSummary?.trainingsVisited)} из ${formatNullable(branchSummary?.trainingsTotal)}`}
-                title={branchSummary?.unavailableReasons.trainingsVisited}
-              />
-              <BranchMiniStat
-                label="Присутствие на тренировках"
-                value={branchSummary?.attendancePercent == null ? "—" : `${formatNumber(branchSummary.attendancePercent)}%`}
-                title={branchSummary?.unavailableReasons.attendancePercent}
-              />
-              <BranchMiniStat label="Новые ученики" value={formatNullable(branchSummary?.newStudents)} delta={formatDelta(branchSummary?.newStudentsDelta)} />
-            </div>
-          </DashboardPanel>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-        <DashboardPanel className="xl:col-span-7" title="Расписание на сегодня" actionLabel="Полное расписание" onAction={() => navigate("/admin/schedule")}>
-          <SchedulePreview schedules={scheduleItems} totalCount={todaySchedule?.summary.total ?? 0} onOpenSchedule={() => navigate("/admin/schedule")} />
-        </DashboardPanel>
-
-        <div className="grid grid-cols-1 gap-3 xl:col-span-5">
-          <DashboardPanel title="Риски">
-            {risks.length > 0 ? (
-              <div className="space-y-2">
-                {risks.slice(0, 3).map((risk, index) => (
-                  <RiskRow key={`${risk.code}-${index}`} risk={risk} onClick={() => navigate(risk.target)} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="Рисков нет" description="Backend не вернул риски по текущему филиалу." />
-            )}
-          </DashboardPanel>
-
-          <DashboardPanel title="Динамика за неделю" actionLabel="Неделя">
-            <WeeklySparkline dynamics={weeklyDynamics} />
-          </DashboardPanel>
-        </div>
-      </div>
-
-      {activeInsight ? (
-        <InsightModal
-          card={activeInsight}
-          onClose={() => setActiveInsight(null)}
-          onPrimary={() => {
-            const target = activeInsight.target;
-            setActiveInsight(null);
-            navigate(target);
-          }}
-        />
-      ) : null}
-    </PageShell>
-  );
-};
-
-const InsightSummaryCard = ({ card, onOpen }: { card: InsightCard; onOpen: () => void }) => (
-  <button
-    type="button"
-    onClick={onOpen}
-    className="group flex min-h-[118px] items-center gap-4 rounded-2xl border border-black/[0.08] bg-white p-4 text-left transition hover:border-blue-200 hover:bg-blue-50/40"
-  >
-    <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full border ${toneClasses[card.tone]}`}>
-      {iconMap[card.icon]}
-    </div>
-    <div className="min-w-0 flex-1">
-      <div className="ui-card-title">{card.title}</div>
-      <div className="mt-1 text-sm text-slate-500">{card.description}</div>
-      <span className="mt-3 inline-flex rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-sm font-medium text-slate-700">
-        {card.buttonLabel}
-      </span>
-    </div>
-    <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
-  </button>
-);
-
-const DashboardMetricCard = ({
-  title,
-  value,
-  delta,
-  hint,
-  icon,
-  loading,
-  onClick,
-}: {
-  title: string;
-  value: string;
-  delta?: string;
-  hint: string;
-  icon: DashboardIcon;
-  loading: boolean;
-  onClick: () => void;
-}) => (
-  <SharedMetricCard
-    title={title}
-    value={value}
-    delta={delta ? `▲ ${delta}` : undefined}
-    note={loading ? "Собираем данные" : hint}
-    icon={iconMap[icon]}
-    loading={loading}
-    tone="info"
-    onClick={onClick}
-  />
-);
-
-const DashboardPanel = ({
-  title,
-  children,
-  className = "",
-  actionLabel,
-  onAction,
-}: {
-  title: string;
-  children: React.ReactNode;
-  className?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-}) => (
-  <section className={`rounded-2xl border border-black/[0.08] bg-white p-4 ${className}`}>
-    <div className="mb-4 flex items-center justify-between gap-3">
-      <h2 className="ui-card-title">{title}</h2>
-      {actionLabel ? (
-        <button
-          type="button"
-          onClick={onAction}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-        >
-          {actionLabel}
-        </button>
-      ) : null}
-    </div>
-    {children}
-  </section>
-);
-
-const AttentionRow = ({ item, onClick }: { item: DashboardAttentionItem; onClick: () => void }) => {
-  const tone = item.tone === "danger" || item.tone === "warning" || item.tone === "success" ? item.tone : "info";
-  return (
-    <div className="flex items-center gap-3 py-3">
-      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotClasses[tone]}`} />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-slate-800">{item.title}</div>
-        <div className="mt-0.5 truncate text-xs text-slate-500">{item.description}</div>
-      </div>
-      <button
-        type="button"
-        onClick={onClick}
-        className="shrink-0 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-      >
-        {item.action.label}
-      </button>
-      <MoreVertical className="h-5 w-5 shrink-0 text-slate-400" />
-    </div>
-  );
-};
-
-const QuickTile = ({ icon, label, onClick }: { icon: DashboardIcon; label: string; onClick: () => void }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="flex min-h-[56px] items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-medium text-slate-700 hover:border-blue-200 hover:bg-blue-50/30"
-  >
-    <span className="text-[#0066cc] [&>svg]:h-5 [&>svg]:w-5">{iconMap[icon]}</span>
-    {label}
-  </button>
-);
-
-const BranchMiniStat = ({ label, value, delta, title }: { label: string; value: string; delta?: string; title?: string }) => (
-  <div className="border-l border-slate-100 pl-3 first:border-l-0 first:pl-0" title={title}>
-    <div className="text-xs text-slate-500">{label}</div>
-    <div className="mt-1 flex items-center gap-2 ui-card-title">
-      {value}
-      {delta ? <span className="text-xs font-semibold text-emerald-700">▲ {delta}</span> : null}
-    </div>
-  </div>
-);
-
-const FunnelRows = ({ rows, conversion }: { rows: DashboardFunnelRow[]; conversion: number }) => {
-  if (rows.length === 0 || rows.every((row) => Number(row.count) === 0)) {
-    return (
-      <EmptyState
-        title="Воронка пустая"
-        description="Backend вернул нулевые значения по воронке лидов за выбранный период."
-      />
-    );
-  }
-
-  const max = Math.max(...rows.map((row) => Number(row.count ?? 0)), 1);
-
-  return (
-    <div className="space-y-3">
-      {rows.map((row) => (
-        <div key={row.status} className="grid grid-cols-[132px_1fr_48px_42px] items-center gap-3">
-          <div className="truncate text-sm font-medium text-slate-700">{row.label}</div>
-          <div className="h-7 rounded-lg bg-slate-100">
-            <div
-              className={`flex h-7 items-center justify-end rounded-lg px-2 text-xs font-semibold text-white ${
-                row.status === "CONVERTED" ? "bg-emerald-600" : "bg-[#0066cc]"
-              }`}
-              style={{ width: `${Math.max(row.count > 0 ? 16 : 0, (row.count / max) * 100)}%` }}
-            >
-              {row.count > 0 ? row.count : ""}
-            </div>
-          </div>
-          <div className="text-right ui-section-title">{formatNumber(row.count)}</div>
-          <div className="text-right text-xs text-slate-500">{formatNumber(row.percent)}%</div>
-        </div>
-      ))}
-      <div className="border-t border-slate-100 pt-3 text-xs text-slate-500">
-        Конверсия в клиенты: <span className="font-semibold text-slate-800">{formatNumber(conversion)}%</span>
-      </div>
-    </div>
-  );
-};
-
-const SchedulePreview = ({
-  schedules,
-  totalCount,
-  onOpenSchedule,
-}: {
-  schedules: DashboardSession[];
-  totalCount: number;
-  onOpenSchedule: () => void;
-}) => {
-  const visible = schedules.slice(0, 4);
-
-  if (visible.length === 0) {
-    return (
-      <EmptyState
-        title="На сегодня тренировок нет"
-        description="Backend не вернул занятия на выбранную дату."
-        action={
-          <Button variant="secondary" onClick={onOpenSchedule}>
-            Открыть недельное расписание
-          </Button>
-        }
-      />
-    );
-  }
-
-  const timelineStart = Math.min(9 * 60, ...visible.map((session) => Math.floor(scheduleMinutes(session.startAt) / 60) * 60));
-  const timelineEnd = Math.max(17 * 60, ...visible.map((session) => Math.ceil(scheduleMinutes(session.endAt) / 60) * 60));
-  const minutesPerPixel = 60 / 44;
-  const timelineHeight = (timelineEnd - timelineStart) / minutesPerPixel;
-  const labels = Array.from(
-    { length: Math.floor((timelineEnd - timelineStart) / 120) + 1 },
-    (_, index) => timelineStart + index * 120,
-  );
-
-  return (
-    <div>
-      <div className="grid grid-cols-[44px_1fr] gap-3">
-        <div className="relative text-xs text-slate-500" style={{ height: timelineHeight }}>
-          {labels.map((minutes) => (
-            <div
-              key={minutes}
-              className="absolute -translate-y-1/2"
-              style={{ top: (minutes - timelineStart) / minutesPerPixel }}
-            >
-              {String(Math.floor(minutes / 60)).padStart(2, "0")}:00
-            </div>
-          ))}
-        </div>
-        <div className="overflow-x-auto">
-          <div
-            className="relative grid gap-2 border-y border-slate-100"
-            style={{
-              height: timelineHeight,
-              gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))`,
-              minWidth: visible.length > 1 ? visible.length * 160 : undefined,
-            }}
-          >
-            {labels.map((minutes) => (
-              <div
-                key={minutes}
-                className="pointer-events-none absolute inset-x-0 border-t border-dashed border-slate-100"
-                style={{ top: (minutes - timelineStart) / minutesPerPixel }}
-              />
-            ))}
-            {visible.map((session) => {
-              const start = scheduleMinutes(session.startAt);
-              const end = scheduleMinutes(session.endAt);
-              const top = Math.max(0, (start - timelineStart) / minutesPerPixel);
-              const height = Math.max(76, (Math.max(end, start + 30) - start) / minutesPerPixel);
-
-              return (
-                <div key={session.sessionId} className="relative min-w-0">
-                  <div
-                    className="absolute inset-x-0 overflow-hidden rounded-lg border border-blue-100 bg-blue-50/90 p-3 before:absolute before:inset-y-3 before:left-0 before:w-1 before:rounded-r-full before:bg-[#0066cc]"
-                    style={{ top, height }}
-                  >
-                    <div className="relative min-w-0 pl-2">
-                      <div className="text-xs font-semibold text-[#0066cc]">{formatScheduleRange(session.startAt, session.endAt)}</div>
-                      <div className="mt-1 truncate text-[15px] font-semibold leading-5 text-[#0066cc]">{session.groupName}</div>
-                      <div className="mt-1 truncate text-xs text-slate-600">
-                        {session.coachName} · {session.scheduleType === "TEMPORARY" ? "Временная тренировка" : "Регулярная тренировка"}
-                      </div>
-                      <div className="mt-2 inline-flex rounded-full border border-blue-100 bg-white/70 px-2 py-0.5 text-[11px] font-medium text-[#0066cc]">
-                        {scheduleStatusLabel(session.status)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+  return <PageShell className="dashboard-workspace">
+    <PageHeader title="Сегодня в клубе" description={`${branchName || "Филиал"} · ${dashboardDate(date, true)} · время Алматы`} actions={<>
+      <Button variant="secondary" size="sm" onClick={refresh} disabled={loading} aria-label="Обновить главную"><RefreshCw aria-hidden="true" className={loading ? "size-4 animate-spin" : "size-4"}/>Обновить</Button>
+      <ShadcnButton asChild size="sm"><Link to="/admin/leads?action=create"><Plus aria-hidden="true" className="size-4"/>Новый лид</Link></ShadcnButton>
+    </>}/>
+    {!branchId ? <ErrorState message="Выберите филиал, чтобы открыть рабочий день."/> : !data ? loading ? <LoadingState label="Собираем рабочий день…"/> : <ErrorState message="Не удалось загрузить главную. Показатели не получены." onRetry={refresh}/> : <>
+      {error && <div className="dashboard-load-error" role="alert"><CircleAlert aria-hidden="true" className="size-4"/><span>Не удалось обновить данные. Ниже — последний успешный снимок, цифры могут устареть.</span><Button variant="secondary" size="sm" onClick={refresh}>Повторить</Button></div>}
+      <div className="dashboard-meta"><span><span className={error ? "dashboard-dot dashboard-dot--stale" : "dashboard-dot"}/>{loading ? "Обновляем…" : error ? "Снимок устарел" : "Данные обновлены"} · {dashboardTime(data.meta.generatedAt, timezone)}</span><span>Автообновление каждую минуту</span></div>
+      <section className="dashboard-metrics" aria-label="Сводка за сегодня">
+        <Metric title="Новые лиды" value={dashboardNumber(kpi("newLeads")?.value)} note="поступили сегодня" to="/admin/leads?period=TODAY&scope=ALL" delta={kpi("newLeads")?.delta.value}/>
+        <Metric title="Занятия" value={dashboardNumber(data.todaySchedule.summary.active)} note={`${dashboardNumber(data.todaySchedule.summary.cancelled)} отменено · ${unclosed.length} не закрыто`} to={scheduleHref}/>
+        <Metric title="Пробные" value={data.todayTrials == null ? "—" : dashboardNumber(trials.filter(t => t.status !== "CANCELED").length)} note={data.todayTrials == null ? "данные недоступны" : `${trials.filter(t => t.attendanceStatus === "ATTENDED").length} посетили сегодня`} to="#dashboard-trials"/>
+        <Metric title="Поступления" value={dashboardMoney(kpi("paymentsToday")?.amount)} note={`${dashboardNumber(kpi("paymentsToday")?.count)} оплаченных платежей сегодня`} to="/admin/payments"/>
+      </section>
+      <div className="dashboard-work-grid">
+        <div className="dashboard-day-column">
+          <Panel title="Занятия сегодня" description={upcoming[0] ? `Ближайшее: ${dashboardTime(upcoming[0].startAt, timezone)} · ${upcoming[0].groupName}` : "Все занятия дня, включая завершённые и отменённые"}
+            action={<TextLink to={scheduleHref}>Календарь</TextLink>}
+            footer={<span>Показано {filtered.length} из {sessions.length} · нажмите на группу для быстрого просмотра</span>}>
+            <ToggleGroup type="single" value={sessionFilter} onValueChange={value => value && setSessionFilter(value)} aria-label="Показать занятия" className="dashboard-tabs">
+              <ToggleGroupItem value="all">Все <span>{sessions.length}</span></ToggleGroupItem>
+              <ToggleGroupItem value="upcoming">Впереди <span>{upcoming.length}</span></ToggleGroupItem>
+              <ToggleGroupItem value="unclosed">Не закрыты <span>{unclosed.length}</span></ToggleGroupItem>
+            </ToggleGroup>
+            {filtered.length ? <div className="dashboard-session-list">{filtered.map(item => {
+              const state = dashboardSessionState(item, now);
+              return <button type="button" key={item.sessionId} className="dashboard-session-row" data-selected={sessionId === item.sessionId} onClick={() => setSessionId(item.sessionId)} aria-label={`Просмотр занятия: ${item.groupName}, ${dashboardTime(item.startAt, timezone)}`}>
+                <span className="dashboard-session-time"><strong>{dashboardTime(item.startAt, timezone)}</strong><small>{dashboardTime(item.endAt, timezone)}</small></span>
+                <span className="dashboard-record"><strong>{item.groupName}</strong><small>{item.coachName}</small></span>
+                <span className="dashboard-status" data-tone={state.tone}>{state.label}</span><ChevronRight aria-hidden="true" className="size-4"/>
+              </button>;
+            })}</div> : <QuietEmpty title={sessions.length ? "В этой категории занятий нет" : "Сегодня занятий нет"} text={sessions.length ? "Выберите другую вкладку, чтобы увидеть остальные записи." : "Проверьте ближайшие дни в календаре занятий."}/>}
+          </Panel>
+          <div id="dashboard-trials">
+            <Panel title="Пробные сегодня" description="Кто придёт познакомиться с клубом и кому нужно записать итог" action={<TextLink to="/admin/trials">Все пробные</TextLink>}>
+              {data.todayTrials == null ? <p className="dashboard-note">Сервер не передал пробные. Откройте реестр для проверки.</p> : trials.length ? <div className="dashboard-trial-list">{trials.map(item => {
+                const step = trialNextStep(item, now);
+                return <button type="button" key={item.id} className="dashboard-trial-row" onClick={() => setTrialId(item.id)} aria-label={`Просмотр пробного: ${item.studentName || item.leadName || "Участник"}`}>
+                  <span className="dashboard-avatar" aria-hidden="true"><Users className="size-4"/></span><span className="dashboard-record"><strong>{item.studentName || item.leadName || "Участник пробного"}</strong><small>{trialInterval(item.sessionStartsAt, item.sessionEndsAt)} · {item.groupName || "Группа не указана"}</small><span className="dashboard-trial-step" data-attention={step.attention}>{step.title}{item.nextActionAt && item.result === "FOLLOW_UP" ? ` · срок ${dashboardDate(businessDate(new Date(sessionTimestamp(item.nextActionAt))))} ${dashboardTime(item.nextActionAt)}` : ""}</span></span><ChevronRight aria-hidden="true" className="size-4"/>
+                </button>;
+              })}</div> : <QuietEmpty title="На сегодня пробных нет" text="Запланируйте пробное из карточки лида. Запись появится здесь в день занятия."/>}
+            </Panel>
           </div>
         </div>
+        <aside className="dashboard-side-column" aria-label="Контроль филиала">
+          <Panel title="Требует внимания" description={signals.length ? `${signals.length} сигналов по филиалу · сначала срочные` : "Операционные сигналы по текущим данным"}>
+            {signals.length ? <div className="dashboard-signal-list">{signals.map(item => <button type="button" key={item.id} className="dashboard-signal" onClick={() => setSignalId(item.id)}><span className="dashboard-signal-dot" data-tone={item.tone}/><span><strong>{item.title}</strong><small>{item.deadline}</small></span><ChevronRight aria-hidden="true" className="size-4"/></button>)}</div> : <QuietEmpty title="Сигналов по филиалу нет" text="Дополнительно проверьте результаты пробных и незакрытые занятия в списках слева."/>}
+          </Panel>
+          <Panel title="Состояние филиала" description="Ученики, тренеры и отмеченная посещаемость">
+            <dl className="dashboard-facts"><dt>Всего учеников</dt><dd><Link to="/admin/students">{dashboardNumber(branch?.studentsTotal)}</Link></dd><dt>Новые сегодня</dt><dd>{dashboardNumber(branch?.newStudents)}</dd><dt>Активные группы</dt><dd><Link to="/admin/groups">{dashboardNumber(kpi("activeGroups")?.value)}</Link></dd><dt>Тренеры сегодня</dt><dd><Link to="/admin/coaches">{dashboardNumber(branch?.trainersOnDuty)}</Link></dd><dt>Посещаемость</dt><dd>{branch?.attendancePercent == null ? "—" : `${branch.attendancePercent}%`}</dd></dl>
+            <p className="dashboard-note">{branch?.attendancePercent == null ? branch?.trainingsTotal === 0 ? "Сегодня нет занятий для учёта посещаемости." : "Посещаемость ещё не отмечена." : "Доля присутствовавших среди отмеченных учеников. Неотмеченные в расчёт не входят."}</p>
+          </Panel>
+        </aside>
       </div>
-      <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
-        <CalendarDays className="h-4 w-4" />
-        Сегодня запланировано {formatNumber(totalCount)} тренировок
+      <div className="dashboard-analysis-grid">
+        <Panel title="Лиды по стадиям" description={`Созданы ${dashboardDate(addBusinessDays(date, -27))} — ${dashboardDate(date)} · текущие статусы, не переходы`} action={<TextLink to="/admin/leads?scope=ALL&period=LAST_28_DAYS">Реестр</TextLink>}
+          footer={<span>Стали клиентами: {dashboardNumber(data.funnel.conversionToClientPercent)}% от всех лидов этого периода, включая отказы</span>}>
+          <div className="dashboard-stages">{data.funnel.rows.map(row => <Link key={row.status} to={`/admin/leads?scope=ALL&period=LAST_28_DAYS&status=${row.status}`} className="dashboard-stage"><span>{row.label}</span><strong>{dashboardNumber(row.count)}</strong><small>{row.percent}%</small></Link>)}</div>
+          {!data.funnel.rows.length && <p className="dashboard-note">Распределение не получено.</p>}
+        </Panel>
+        <Panel title="Последние 7 дней" description={`${dashboardDate(data.weeklyDynamics.period.from)} — ${dashboardDate(data.weeklyDynamics.period.to)} · суммы и количество отдельно`}>
+          <WeeklyTable dynamics={data.weeklyDynamics}/>
+        </Panel>
       </div>
+    </>}
+    {session && <SessionQuickView session={session} now={now} timezone={timezone} close={() => setSessionId(null)}/>}
+    {signal && <SignalQuickView signal={signal} close={() => setSignalId(null)}/>}
+    {trialId && trialPosition >= 0 && <TrialPreview id={trialId} detailHref={`/admin/trials/${trialId}`} position={trialPosition} total={trials.length} onPrevious={() => setTrialId(trials[trialPosition - 1]?.id || trialId)} onNext={() => setTrialId(trials[trialPosition + 1]?.id || trialId)} onClose={() => setTrialId(null)} onSaved={refresh}/>}
+  </PageShell>;
+}
+
+function Metric({ title, value, note, to, delta }: { title: string; value: string; note: string; to: string; delta?: number }) {
+  const content = <><span>{title}</span><strong>{value}</strong><small>{note}{delta != null && delta !== 0 ? ` · ${delta > 0 ? "+" : ""}${dashboardNumber(delta)} к вчера` : ""}</small></>;
+  return to.startsWith("#") ? <a className="dashboard-metric" href={to}>{content}</a> : <Link className="dashboard-metric" to={to}>{content}</Link>;
+}
+function SessionQuickView({ session, now, timezone, close }: { session: DashboardSession; now: number; timezone: string; close: () => void }) {
+  const state = dashboardSessionState(session, now);
+  const action = state.code === "OVERDUE" ? "Закрыть занятие и проверить журнал" : state.code === "CANCELLED" ? "Занятие отменено" : state.code === "COMPLETED" ? "Проверить итоговый журнал" : "Проверить состав и подготовиться к занятию";
+  return <ModalShell title="Быстрый просмотр" description="Занятие · данные и следующий шаг" placement="right" maxWidthClassName="max-w-[460px]" bodyClassName="dashboard-preview" onClose={close} footer={<ShadcnButton asChild className="w-full"><Link to={`/admin/sessions/${session.sessionId}`}>Открыть занятие<ArrowUpRight className="size-4"/></Link></ShadcnButton>}>
+    <div className="dashboard-preview-body"><h2>{session.groupName}</h2><span className="dashboard-status" data-tone={state.tone}>{state.label}</span><div className="dashboard-next"><Clock3 aria-hidden="true" className="size-4"/><span><small>Следующее действие</small><strong>{action}</strong></span></div>
+      <dl className="dashboard-facts"><dt>Время</dt><dd>{dashboardTime(session.startAt, timezone)}–{dashboardTime(session.endAt, timezone)}<small>Алматы</small></dd><dt>Тренер</dt><dd>{session.coachName}</dd><dt>Группа</dt><dd><Link to={`/admin/groups/${session.groupId}`}>{session.groupName}</Link></dd><dt>Расписание</dt><dd>{session.scheduleType === "REGULAR" ? "Регулярное" : "Разовое / временное"}</dd></dl>
+      {state.code !== "CANCELLED" && <TextLink to={`/admin/sessions/${session.sessionId}/attendance`}>Открыть журнал посещений</TextLink>}
     </div>
-  );
-};
-
-const RiskRow = ({ risk, onClick }: { risk: DashboardRiskItem; onClick: () => void }) => {
-  const tone = getRiskTone(risk.tone);
-  return (
-    <button type="button" onClick={onClick} className="group flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-slate-50">
-      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${dotClasses[tone]}`}>
-        <CircleAlert className="h-3.5 w-3.5 text-white" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-slate-800">{risk.label}</div>
-        <div className="mt-0.5 truncate text-xs text-slate-500">{risk.description || `Значение: ${formatNumber(risk.value)} ${risk.unit}`}</div>
-      </div>
-      <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
-    </button>
-  );
-};
-
-const seriesColor = (code: string) => {
-  if (code === "leads") return "#0891b2";
-  if (code === "trainings") return "#0f766e";
-  return "#86d981";
-};
-
-const WeeklySparkline = ({ dynamics }: { dynamics: DashboardWeeklyDynamics | null }) => {
-  if (!dynamics) {
-    return <EmptyState title="Нет динамики" description="Backend не вернул недельную динамику." />;
-  }
-
-  if (dynamics.isEmpty) {
-    return (
-      <div>
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
-          {dynamics.emptyReason ?? "Пока нет данных для недельной динамики."}
-        </div>
-      </div>
-    );
-  }
-
-  const effective = dynamics;
-  const series = effective.series.slice(0, 3);
-  const allValues = series.flatMap((item) => item.points.map((point) => Number(point.value ?? 0)));
-  const max = Math.max(...allValues, 1);
-  const labels = series[0]?.points.map((point) => point.date.slice(5).replace("-", ".")) ?? [];
-  const summaryItems = series.map((item) => {
-    const total = item.points.reduce((sum, point) => sum + Number(point.value ?? 0), 0);
-    return {
-      code: item.code,
-      label: weeklySummaryLabel(item.code, item.label),
-      value: item.unit === "amount" ? formatCurrency(total) : formatNumber(total),
-    };
-  });
-
-  return (
-    <div>
-      <div className="mb-3 grid grid-cols-3 gap-2">
-        {summaryItems.map((item) => (
-          <div key={item.code} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: seriesColor(item.code) }} />
-              {item.label}
-            </div>
-            <div className="mt-1 truncate ui-section-title">{item.value}</div>
-          </div>
-        ))}
-      </div>
-      <div className="mb-3 flex flex-wrap gap-5 text-xs text-slate-500">
-        {series.map((item) => (
-          <span key={item.code} className="inline-flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: seriesColor(item.code) }} />
-            {item.label}
-          </span>
-        ))}
-      </div>
-      <svg viewBox="0 0 520 112" className="h-[112px] w-full overflow-visible">
-        <line x1="0" y1="96" x2="520" y2="96" stroke="#e5e7eb" />
-        <line x1="0" y1="66" x2="520" y2="66" stroke="#eef2f7" />
-        <line x1="0" y1="36" x2="520" y2="36" stroke="#eef2f7" />
-        {series.map((item) => {
-          const points = item.points
-            .map((point, index) => {
-              const x = 18 + index * (468 / Math.max(item.points.length - 1, 1));
-              const y = 96 - (Number(point.value ?? 0) / max) * 68;
-              return `${x},${y}`;
-            })
-            .join(" ");
-          return (
-            <polyline
-              key={item.code}
-              points={points}
-              fill="none"
-              stroke={seriesColor(item.code)}
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          );
-        })}
-      </svg>
-      <div className="grid text-center text-xs text-slate-400" style={{ gridTemplateColumns: `repeat(${Math.max(labels.length, 1)}, minmax(0, 1fr))` }}>
-        {labels.map((label) => (
-          <span key={label}>{label}</span>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const InsightModal = ({
-  card,
-  onClose,
-  onPrimary,
-}: {
-  card: InsightCard;
-  onClose: () => void;
-  onPrimary: () => void;
-}) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
-    <div className="w-full max-w-lg rounded-2xl bg-white p-5">
-      <div className="flex items-start gap-4">
-        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full border ${toneClasses[card.tone]}`}>
-          {iconMap[card.icon]}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="ui-card-title">{card.detailTitle}</div>
-          <div className="mt-1 text-sm text-slate-500">{card.description}</div>
-        </div>
-      </div>
-      <div className="mt-5 space-y-2">
-        {card.detailRows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2">
-            <span className="text-sm text-slate-500">{row.label}</span>
-            <span className="text-right ui-section-title">{row.value}</span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-5 flex justify-end gap-2">
-        <Button variant="secondary" onClick={onClose}>Закрыть</Button>
-        <Button onClick={onPrimary}>{card.buttonLabel}</Button>
-      </div>
-    </div>
-  </div>
-);
-
-export default Dashboard;
+  </ModalShell>;
+}
+function SignalQuickView({ signal, close }: { signal: DashboardSignal; close: () => void }) {
+  return <ModalShell title="Требует внимания" description="Сигнал по выбранному филиалу" placement="right" maxWidthClassName="max-w-[460px]" bodyClassName="dashboard-preview" onClose={close} footer={<ShadcnButton asChild className="w-full"><Link to={signal.target}>{signal.action}<ArrowUpRight className="size-4"/></Link></ShadcnButton>}>
+    <div className="dashboard-preview-body"><span className="dashboard-status" data-tone={signal.tone}>{signal.deadline}</span><h2>{signal.title}</h2><p>{signal.description}</p><p className="dashboard-note">Сигнал обновится после изменения записей. Переход откроет соответствующий раздел.</p></div>
+  </ModalShell>;
+}
+function WeeklyTable({ dynamics }: { dynamics: DashboardWeeklyDynamics }) {
+  const dates = [...new Set(dynamics.series.flatMap(s => s.points.map(p => p.date)))].sort();
+  const value = (code: string, date: string) => dynamics.series.find(s => s.code === code)?.points.find(p => p.date === date)?.value;
+  return dates.length ? <Table className="dashboard-week-table"><TableHeader><TableRow><TableHead>День</TableHead><TableHead>Лиды</TableHead><TableHead>Занятия</TableHead><TableHead>Оплаты, ₸</TableHead></TableRow></TableHeader><TableBody>{dates.map(day => <TableRow key={day}><TableCell>{dashboardDate(day)}</TableCell><TableCell>{dashboardNumber(value("leads", day))}</TableCell><TableCell>{dashboardNumber(value("trainings", day))}</TableCell><TableCell>{dashboardNumber(value("payments", day))}</TableCell></TableRow>)}</TableBody></Table> : <p className="dashboard-note">Динамика за период не получена.</p>;
+}

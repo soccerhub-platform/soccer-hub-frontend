@@ -12,19 +12,26 @@ import {
   LeadKanbanColumns,
   QualifyLeadPayload,
   ScheduleTrialPayload,
+  LeadWorkCommand,
+  TimePreference,
+  ExperienceLevel,
 } from "./types";
 
 export const LeadApi = {
+  updatePreferences(leadId: string, payload: {version: number; preferredDays: string[]; timePreference: TimePreference | null; experience: ExperienceLevel | ""; notes: string}): Promise<LeadDetails> {
+    return apiClient.patch(`/admin/leads/${leadId}/preferences`, payload);
+  },
   async create(payload: CreateAdminLeadPayload): Promise<void> {
     await apiClient.post("/admin/leads/create", payload);
   },
 
   async getKanban(branchId: string, _token: string): Promise<LeadKanbanColumns> {
-    return (await apiClient.get<LeadKanbanColumns>(`/leads/kanban?branchId=${branchId}`)) ?? {};
+    const data = await apiClient.get<{ columns: LeadKanbanColumns }>(`/admin/leads/workspace?branchId=${encodeURIComponent(branchId)}`);
+    return data.columns;
   },
 
   async getById(leadId: string, _token: string): Promise<LeadDetails> {
-    const payload = await apiClient.get<LeadDetails | null>(`/leads/${leadId}`);
+    const payload = await apiClient.get<LeadDetails | null>(`/admin/leads/${leadId}/workspace`);
     if (!payload) {
       throw new Error("Не удалось загрузить лид");
     }
@@ -33,6 +40,10 @@ export const LeadApi = {
 
   async getActivities(leadId: string, _token: string): Promise<LeadActivity[]> {
     return (await apiClient.get<LeadActivity[]>(`/admin/leads/${leadId}/activities`)) ?? [];
+  },
+
+  async updateWork(leadId: string, command: LeadWorkCommand): Promise<LeadDetails> {
+    return apiClient.patch(`/admin/leads/${leadId}/work`, command);
   },
 
   async getLeadLossReasons(

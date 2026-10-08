@@ -25,6 +25,11 @@ interface ApiErrorPayload {
   message?: string;
   code?: string;
   fields?: Record<string, string>;
+  errors?: Array<{
+    code?: string;
+    field?: string;
+    message?: string;
+  }>;
   metadata?: unknown;
 }
 
@@ -58,6 +63,15 @@ export class ApiError extends Error {
 }
 
 export const getApiErrorMessage = (error: unknown, fallback = "Не удалось выполнить действие") => {
+  if (error instanceof ApiError) {
+    const fieldMessage = error.fields
+      ? Object.values(error.fields).find((value) => value && value.trim())
+      : null;
+    if (fieldMessage) {
+      return fieldMessage;
+    }
+  }
+
   if (error instanceof ApiError || error instanceof Error) {
     switch (error.message) {
       case "Current password is incorrect":
@@ -149,8 +163,18 @@ export async function apiRequest<T = unknown>(
 
     if (!res.ok) {
       const payload = await parseResponseBody<ApiErrorPayload>(res).catch(() => null);
-      const message = payload?.message || "Произошла ошибка";
-      const code = payload?.code ?? "N/A";
+      const validationFields = payload?.errors?.reduce<Record<string, string>>((acc, item) => {
+        if (item.field && item.message) {
+          acc[item.field] = item.message;
+        }
+        return acc;
+      }, {});
+      const fields = Object.keys(validationFields ?? {}).length
+        ? validationFields
+        : payload?.fields;
+      const firstValidationError = payload?.errors?.find((item) => item.message);
+      const message = firstValidationError?.message || payload?.message || "Произошла ошибка";
+      const code = firstValidationError?.code ?? payload?.code ?? "N/A";
 
       if (res.status === 401) {
         const canRefresh =
@@ -168,7 +192,7 @@ export async function apiRequest<T = unknown>(
       }
 
       if (showErrorToast && !suppressErrorToast) {
-        toast.error(getApiErrorMessage(new ApiError(message, res.status, code, payload?.fields, payload?.metadata)), {
+        toast.error(getApiErrorMessage(new ApiError(message, res.status, code, fields, payload?.metadata)), {
           style: {
             whiteSpace: "pre-line",
             background: "#fee2e2",
@@ -176,7 +200,7 @@ export async function apiRequest<T = unknown>(
           },
         });
       }
-      throw new ApiError(message, res.status, code, payload?.fields, payload?.metadata);
+      throw new ApiError(message, res.status, code, fields, payload?.metadata);
     }
 
     if (success) {

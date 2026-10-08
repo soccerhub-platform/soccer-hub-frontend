@@ -1,3 +1,4 @@
+import LeadModalShell from "./LeadModalShell";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -5,7 +6,6 @@ import {
   AlertTitle,
   Button,
   DatePicker,
-  ModalShell,
   SearchableSelect,
   Select,
   SelectContent,
@@ -24,6 +24,7 @@ import type {
   LeadStatus,
 } from "./types";
 import { formatBirthDate } from "./lead.format";
+import { addBusinessDays, birthDateError, businessDate } from "./lead.workspace";
 
 interface ConvertLeadModalProps {
   isOpen: boolean;
@@ -91,6 +92,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
   const [clientsLoading, setClientsLoading] = useState(false);
   const [clientsError, setClientsError] = useState<string | null>(null);
   const [attempted, setAttempted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -109,6 +111,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
     setClients([]);
     setClientsError(null);
     setAttempted(false);
+    setSubmitError(null);
   }, [
     eligibleParticipants,
     isAdult,
@@ -195,12 +198,12 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
     !conversionMode ||
     eligibleParticipants.length === 0 ||
     !participantId ||
-    !birthDate ||
+    Boolean(birthDateError(birthDate)) ||
     (clientMode === "EXISTING" && !existingClientId);
 
   return (
-    <ModalShell
-      title="Оформить ребёнка"
+    <LeadModalShell
+      title={isAdult ? "Оформить ученика" : "Оформить участника"}
       description={`Создайте ученика для ${leadName} и перейдите к оформлению договора.`}
       eyebrow={
         conversionMode === "AFTER_TRIAL"
@@ -226,13 +229,12 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
           <Button
             type="button"
-            disabled={submitting || invalid}
-            onClick={() => {
+            disabled={submitting || !conversionMode || eligibleParticipants.length === 0}
+            onClick={async () => {
               setAttempted(true);
-
-              if (invalid || !conversionMode) return;
-
-              void onSubmit({
+              setSubmitError(null);
+              if (submitting || invalid || !conversionMode) return;
+              try { await onSubmit({
                 participantId,
                 participantBirthDate: birthDate,
                 relationshipType,
@@ -243,17 +245,20 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
                 conversionMode,
                 replacePrimaryContact: false,
                 replacePrimaryPayer: false,
-              });
+              }); } catch (reason) {
+                setSubmitError(reason instanceof Error ? reason.message : "Не удалось оформить участника. Проверьте данные и повторите.");
+              }
             }}
           >
             {submitting
               ? "Оформляем..."
-              : "Перейти к договору"}
+              : "Оформить участника"}
           </Button>
         </div>
       }
     >
       <div className="flex flex-col gap-5">
+        {submitError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{submitError}</p>}
         <Alert>
           <AlertTitle>
             Что произойдёт после подтверждения
@@ -267,12 +272,13 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
         {!isAdult ? (
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
               Родитель ребёнка
             </span>
 
             <ToggleGroup
               type="single"
+              aria-label="Способ оформления клиента"
               value={clientMode}
               onValueChange={(value) => {
                 if (!value) return;
@@ -297,7 +303,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
               </ToggleGroupItem>
             </ToggleGroup>
 
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-600">
               Для второго ребёнка выберите уже созданного
               родителя, чтобы не создавать дубликат.
             </span>
@@ -306,7 +312,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
         {!isAdult && clientMode === "EXISTING" ? (
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
               Существующий клиент
             </span>
 
@@ -335,7 +341,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
               Ученик <span className="text-rose-500">*</span>
             </span>
 
@@ -351,7 +357,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
               }}
               disabled={submitting}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Ученик">
                 <SelectValue placeholder="Выберите ученика" />
               </SelectTrigger>
 
@@ -388,27 +394,30 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
           </label>
 
           <label className="flex flex-col gap-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
               Дата рождения{" "}
               <span className="text-rose-500">*</span>
             </span>
 
             <DatePicker
+              placeholder="Дата рождения"
               value={birthDate}
+              max={addBusinessDays(businessDate(), -1)}
+              aria-invalid={attempted && Boolean(birthDateError(birthDate))}
               onValueChange={setBirthDate}
               disabled={submitting}
             />
 
-            {attempted && !birthDate ? (
+            {attempted && birthDateError(birthDate) ? (
               <p className="text-xs text-rose-600">
-                Укажите дату рождения
+                {birthDateError(birthDate)}
               </p>
             ) : null}
           </label>
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
             Кем клиент приходится ученику
           </span>
 
@@ -423,7 +432,8 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
               }
             }}
             variant="outline"
-            className="grid gap-2 sm:grid-cols-4"
+            aria-label="Кем клиент приходится ученику"
+            className="grid grid-cols-2 gap-2 sm:grid-cols-4"
             disabled={submitting}
           >
             {(isAdult
@@ -445,7 +455,7 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
           </ToggleGroup>
         </div>
       </div>
-    </ModalShell>
+    </LeadModalShell>
   );
 };
 

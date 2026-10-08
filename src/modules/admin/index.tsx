@@ -1,32 +1,33 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Dashboard from './Dashboard';
-import ContractsPage from './Contracts';
-import PaymentsPage from './Payments';
-import UsersPage from './Users';
-import AdminLayout from './AdminLayout';
 import ProtectedRoute from '../../shared/ProtectedRoute';
-import CoachesPage from './сoaches/CoachesPage';
-import StudentsPage from './students/StudentsPage';
-import StudentDetailsPage from './students/StudentDetailsPage';
-import ChangePasswordPage from '../../shared/components/ChangePassword';
-import GroupsPage from './groups/GroupsPage';
-import GroupDetailsPage from './groups/GroupDetailsPage';
-import SessionDetailsPage from './groups/SessionDetailsPage';
-import SessionAttendancePage from './groups/SessionAttendancePage';
 import { AdminBranchProvider } from './BranchContext';
-import BranchSelectPage from './branches/BranchSelectPage';
-import BranchGuard from './branches/BranchGuard';
-import LeadKanbanPage from './leads/LeadKanbanPage';
-import LeadDetailsPage from './leads/LeadDetailsPage';
-import AdminProfilePage from './ProfilePage';
-import SchedulePage from './SchedulePage';
-import CoachDetailsPage from './сoaches/CoachDetailsPage';
-import ClientsPage from './clients/ClientsPage';
-import ClientDetailsPage from './clients/ClientDetailsPage';
-import ContractDetailsPage from './contracts/ContractDetailsPage';
-import TrialsPage from './trials/TrialsPage';
-import TrialDetailsPage from './trials/TrialDetailsPage';
+
+const Dashboard = React.lazy(() => import('./Dashboard'));
+const ContractsPage = React.lazy(() => import('./Contracts'));
+const PaymentsPage = React.lazy(() => import('./Payments'));
+const UsersPage = React.lazy(() => import('./Users'));
+const AdminLayout = React.lazy(() => import('./AdminLayout'));
+const CoachesPage = React.lazy(() => import('./сoaches/CoachesPage'));
+const StudentsPage = React.lazy(() => import('./students/StudentsPage'));
+const StudentDetailsPage = React.lazy(() => import('./students/StudentDetailsPage'));
+const ChangePasswordPage = React.lazy(() => import('../../shared/components/ChangePassword'));
+const GroupsPage = React.lazy(() => import('./groups/GroupsPage'));
+const GroupDetailsPage = React.lazy(() => import('./groups/GroupDetailsPage'));
+const SessionDetailsPage = React.lazy(() => import('./groups/SessionDetailsPage'));
+const SessionAttendancePage = React.lazy(() => import('./groups/SessionAttendancePage'));
+const BranchSelectPage = React.lazy(() => import('./branches/BranchSelectPage'));
+const BranchGuard = React.lazy(() => import('./branches/BranchGuard'));
+const LeadKanbanPage = React.lazy(() => import('./leads/LeadKanbanPage'));
+const LeadDetailsPage = React.lazy(() => import('./leads/LeadDetailsPage'));
+const AdminProfilePage = React.lazy(() => import('./ProfilePage'));
+const SchedulePage = React.lazy(() => import('./SchedulePage'));
+const CoachDetailsPage = React.lazy(() => import('./сoaches/CoachDetailsPage'));
+const ClientsPage = React.lazy(() => import('./clients/ClientsPage'));
+const ClientDetailsPage = React.lazy(() => import('./clients/ClientDetailsPage'));
+const ContractDetailsPage = React.lazy(() => import('./contracts/ContractDetailsPage'));
+const TrialsPage = React.lazy(() => import('./trials/TrialsPage'));
+const TrialDetailsPage = React.lazy(() => import('./trials/TrialDetailsPage'));
 
 /**
  * Defines routes for the admin module.  Admins have access to

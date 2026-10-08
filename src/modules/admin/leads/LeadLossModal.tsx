@@ -1,5 +1,6 @@
+import LeadModalShell from "./LeadModalShell";
 import React, { useEffect, useMemo, useState } from "react";
-import { Button, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "../../../shared/ui";
+import { Button, Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue, Textarea } from "../../../shared/ui";
 import { Lead, LeadLossReason } from "./types";
 
 interface LeadLossModalProps {
@@ -55,13 +56,12 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isRejectFlow = event === "REJECT" || event === "POST_TRIAL_REJECT";
-  const title = isRejectFlow ? "Причина отказа лида" : "Причина потери лида";
+  const title = "Закрыть лид";
   const confirmLabel =
-    isRejectFlow ? "Отклонить лид" : "Подтвердить потерю";
+    "Закрыть с отказом";
 
   return (
-    <ModalShell
+    <LeadModalShell
       title={title}
       description={`Укажите, почему лид не дошел до оплаты.${lead ? ` ${lead.primaryContact?.fullName || "Лид"}${lead.primaryContact?.phone ? ` · ${lead.primaryContact.phone}` : ""}` : ""}`}
       eyebrow="Причина потери"
@@ -84,7 +84,7 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
                 lostComment: lostComment.trim() || undefined,
               });
             }}
-            disabled={!canSubmit}
+            disabled={loadingReasons || Boolean(reasonsError) || submitting}
             isLoading={submitting}
           >
             {confirmLabel}
@@ -92,14 +92,14 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
         </div>
       }
     >
-        <div className="space-y-4">
-          <label className="block space-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        <div className="flex flex-col gap-4">
+          <label className="block flex flex-col gap-1 text-sm text-slate-600">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
               Причина <span className="text-rose-500">*</span>
             </span>
             <Select value={lostReasonCode} onValueChange={setLostReasonCode} disabled={loadingReasons || submitting}>
-              <SelectTrigger className={fieldErrors.reasonError && submitAttempted ? "border-rose-300 focus:ring-rose-100" : ""}><SelectValue placeholder="Выберите причину" /></SelectTrigger>
-              <SelectContent>{reasons.map((reason) => <SelectItem key={reason.code} value={reason.code}>{reason.name || reason.code}</SelectItem>)}</SelectContent>
+              <SelectTrigger aria-label="Причина" aria-invalid={submitAttempted && Boolean(fieldErrors.reasonError)} className={fieldErrors.reasonError && submitAttempted ? "border-rose-300 focus:ring-rose-100" : ""}><SelectValue placeholder="Выберите причину" /></SelectTrigger>
+              <SelectContent><SelectGroup>{reasons.map((reason) => <SelectItem key={reason.code} value={reason.code}>{reason.name || reason.code}</SelectItem>)}</SelectGroup></SelectContent>
             </Select>
             {submitAttempted && fieldErrors.reasonError ? (
               <p className="text-xs text-rose-600">{fieldErrors.reasonError}</p>
@@ -109,12 +109,14 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
             ) : null}
           </label>
 
-          <label className="block space-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label className="block flex flex-col gap-1 text-sm text-slate-600">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
               Комментарий
               {isOther ? <span className="ml-1 text-rose-500">*</span> : null}
             </span>
             <Textarea
+              aria-label="Комментарий"
+              maxLength={1000}
               value={lostComment}
               onChange={(event) => setLostComment(event.target.value)}
               placeholder={
@@ -128,7 +130,7 @@ const LeadLossModal: React.FC<LeadLossModalProps> = ({
             ) : null}
           </label>
         </div>
-    </ModalShell>
+    </LeadModalShell>
   );
 };
 

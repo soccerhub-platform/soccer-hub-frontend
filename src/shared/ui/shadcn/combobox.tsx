@@ -27,6 +27,7 @@ function ComboboxTrigger({
   return (
     <ComboboxPrimitive.Trigger
       data-slot="combobox-trigger"
+      aria-label="Открыть варианты"
       className={cn(
         "[&_svg:not([class*='h-'])]:h-4 [&_svg:not([class*='w-'])]:w-4",
         className
@@ -46,6 +47,7 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
   return (
     <ComboboxPrimitive.Clear
       data-slot="combobox-clear"
+      aria-label="Очистить выбор"
       render={<InputGroupButton variant="ghost" size="icon-xs" />}
       className={cn(className)}
       {...props}

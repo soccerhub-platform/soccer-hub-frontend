@@ -1,261 +1,100 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import type { ColumnDef } from "@tanstack/react-table";
-import { CalendarDays, CheckCircle2, ChevronRight, ClipboardCheck, Clock3, MapPin, Phone } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight, RefreshCw, Search, UserRoundPlus, X } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../shared/api";
-import {
-  DataTable,
-  EmptyState,
-  ErrorState,
-  FilterBar,
-  LoadingState,
-  MetricCard,
-  PageHeader,
-  PageShell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  StatusBadge,
-} from "../../../shared/ui";
+import { Button, EmptyState, ErrorState, LoadingState, PageHeader, PageShell, StatusBadge } from "../../../shared/ui";
+import { ShadcnButton } from "../../../shared/ui/shadcn/Button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "../../../shared/ui/shadcn/input-group";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../shared/ui/shadcn/Table";
+import { ToggleGroup, ToggleGroupItem } from "../../../shared/ui/shadcn/toggle-group";
 import { TrialsApi, attendanceLabels, resultLabels, trialStatusLabels, trialStatusTone } from "./trials.api";
-import type { TrialBookingListItem, TrialBookingStatus, TrialNextActionType, TrialsPageResponse } from "./trials.types";
+import type { TrialBookingListItem, TrialBookingStatus, TrialsPageResponse } from "./trials.types";
+import { formatTrialDate, nextActionLabels, trialInterval, trialMatches, trialNextStep } from "./trial.workspace";
 
-const nextActionLabels: Record<TrialNextActionType, string> = {
-  CALL: "Позвонить",
-  MESSAGE: "Написать",
-  SEND_OFFER: "Отправить предложение",
-  WAIT_FOR_DECISION: "Ждать решения",
-  OTHER: "Другое",
-};
+import TrialPreview from "./TrialPreview";
 
-const formatDateTime = (value?: string | null) => {
-  if (!value) return "Дата не указана";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Дата не указана";
-
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
-
-const isOverdue = (value?: string | null) => {
-  if (!value) return false;
-  const timestamp = new Date(value).getTime();
-  return !Number.isNaN(timestamp) && timestamp < Date.now();
-};
-
-const formatSessionTime = (item: TrialBookingListItem) => {
-  if (!item.sessionDate) return "Занятие не указано";
-
-  const start = item.sessionStartsAt ? new Date(item.sessionStartsAt) : null;
-  const end = item.sessionEndsAt ? new Date(item.sessionEndsAt) : null;
-  const formatTime = (value: Date | null) => value && !Number.isNaN(value.getTime())
-    ? new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(value)
-    : null;
-  const date = new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "short" })
-    .format(new Date(`${item.sessionDate}T00:00:00`));
-  const interval = [formatTime(start), formatTime(end)].filter(Boolean).join("–");
-
-  return interval ? `${date} · ${interval}` : date;
-};
-
-const columns: ColumnDef<TrialBookingListItem>[] = [
-  {
-    id: "participant",
-    header: "Участник",
-    size: 210,
-    cell: ({ row }) => {
-      const item = row.original;
-      return (
-        <div className="min-w-0">
-          <div className="truncate ui-section-title">{item.studentName || item.leadName || "Участник пробного"}</div>
-          <div className="mt-1 flex items-center gap-1.5 truncate text-xs text-slate-500">
-            {item.leadPhone ? <Phone className="h-3.5 w-3.5 shrink-0" /> : null}
-            {item.leadPhone || item.leadEmail || "Контакт не указан"}
-          </div>
-        </div>
-      );
-    },
-  },
-  {
-    id: "session",
-    header: "Когда",
-    size: 170,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-slate-800">
-        <Clock3 className="h-4 w-4 shrink-0 text-[#0066cc]" />
-        {formatSessionTime(row.original)}
-      </div>
-    ),
-  },
-  {
-    id: "group",
-    header: "Группа и тренер",
-    size: 220,
-    cell: ({ row }) => {
-      const item = row.original;
-      return (
-        <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-slate-800">{item.groupName || "Группа не указана"}</div>
-          <div className="mt-1 truncate text-xs text-slate-500">{item.coachName || "Тренер не указан"}</div>
-          <div className="mt-1 flex items-center gap-1 truncate text-xs text-slate-400">
-            <MapPin className="h-3.5 w-3.5 shrink-0" />{item.locationName || "Локация не указана"}
-          </div>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "status",
-    header: "Состояние",
-    size: 135,
-    cell: ({ row }) => (
-      <StatusBadge tone={trialStatusTone[row.original.status]}>
-        {trialStatusLabels[row.original.status]}
-      </StatusBadge>
-    ),
-  },
-  {
-    accessorKey: "attendanceStatus",
-    header: "Посещение",
-    size: 140,
-    cell: ({ row }) => <span className="text-sm text-slate-700">{attendanceLabels[row.original.attendanceStatus]}</span>,
-  },
-  {
-    id: "result",
-    header: "Итог",
-    size: 190,
-    cell: ({ row }) => {
-      const item = row.original;
-      const nextAction = item.nextActionType && item.nextActionAt
-        ? { type: item.nextActionType, dueAt: item.nextActionAt }
-        : null;
-      const followUpOverdue = item.result === "FOLLOW_UP" && isOverdue(nextAction?.dueAt);
-
-      return (
-        <div className="min-w-0">
-          <div className="truncate text-sm text-slate-700">{resultLabels[item.result]}</div>
-          {item.result === "FOLLOW_UP" && nextAction ? (
-            <span className={`mt-1 block truncate text-xs ${followUpOverdue ? "font-semibold text-rose-600" : "text-slate-500"}`}>
-              {nextActionLabels[nextAction.type]} · {formatDateTime(nextAction.dueAt)}
-              {followUpOverdue ? " · просрочено" : ""}
-            </span>
-          ) : null}
-        </div>
-      );
-    },
-  },
-  {
-    id: "open",
-    header: "",
-    size: 36,
-    cell: () => <ChevronRight className="ml-auto h-4 w-4 text-slate-300" />,
-  },
-];
+const statusOptions = { all: "Все пробные", SCHEDULED: "Запланированы", COMPLETED: "Завершены", CANCELED: "Отменены" };
 
 const TrialsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [data, setData] = useState<TrialsPageResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const requestedStatus = searchParams.get("status");
-  const status = requestedStatus && requestedStatus in trialStatusLabels
-    ? requestedStatus as TrialBookingStatus
-    : "all";
-  const parsedPage = Number(searchParams.get("page"));
-  const page = Number.isInteger(parsedPage) && parsedPage >= 0 ? parsedPage : 0;
+  const [revision, setRevision] = useState(0);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const requested = params.get("status");
+  const status = requested && Object.prototype.hasOwnProperty.call(trialStatusLabels, requested) ? requested as TrialBookingStatus : "all";
+  const rawPage = Number(params.get("page"));
+  const page = Number.isSafeInteger(rawPage) && rawPage >= 0 ? rawPage : 0;
+  const query = params.get("q") || "";
+  const attentionOnly = params.get("attention") === "true";
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setData(await TrialsApi.list({ status, page, size: 20 }));
-    } catch (reason) {
-      setError(getApiErrorMessage(reason, "Не удалось загрузить пробные занятия"));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, status]);
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setError(null);
+    void TrialsApi.list({ status, page, size: 20 }).then(result => {
+      if (!active) return;
+      const lastPage = Math.max(0, result.totalPages - 1);
+      if (page > lastPage) {
+        setParams(current => { const next = new URLSearchParams(current); if (lastPage) next.set("page", String(lastPage)); else next.delete("page"); return next; }, { replace: true });
+      } else setData(result);
+    }).catch(reason => { if (active) setError(getApiErrorMessage(reason, "Не удалось загрузить пробные занятия")); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [page, status, revision]);
 
-  useEffect(() => { void load(); }, [load]);
-
-  const updateQuery = (key: string, value?: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (value && value !== "all") next.set(key, value); else next.delete(key);
-    if (key !== "page") next.delete("page");
-    setSearchParams(next);
+  const change = (key: string, value: string) => {
+    const next = new URLSearchParams(params);
+    if (value && value !== "all" && value !== "false") next.set(key, value); else next.delete(key);
+    if (key === "status" || key === "page") setPreviewId(null);
+    if (key === "status") { next.delete("page"); next.delete("q"); next.delete("attention"); }
+    if (key === "page") { next.delete("q"); next.delete("attention"); }
+    setParams(next, { replace: key === "q" });
   };
+  const resetLocal = () => { const next = new URLSearchParams(params); next.delete("q"); next.delete("attention"); setParams(next); };
+  const items = data?.content ?? [];
+  const visible = useMemo(() => items.filter(item => trialMatches(item, query) && (!attentionOnly || trialNextStep(item).attention)), [items, query, attentionOnly]);
+  const attention = items.filter(item => trialNextStep(item).attention).length;
+  const previewIndex = visible.findIndex(item => item.id === previewId);
+  const preview = previewIndex >= 0 ? visible[previewIndex] : null;
+  const returnTo = "/admin/trials" + (params.toString() ? "?" + params.toString() : "");
+  const href = (item: TrialBookingListItem) => "/admin/trials/" + item.id + "?returnTo=" + encodeURIComponent(returnTo);
 
-  const metrics = useMemo(() => {
-    const items = data?.content ?? [];
-    return {
-      scheduled: items.filter((item) => item.status === "SCHEDULED").length,
-      completed: items.filter((item) => item.status === "COMPLETED").length,
-      unmarked: items.filter((item) => item.attendanceStatus === "UNMARKED").length,
-    };
-  }, [data]);
-
-  return (
-    <PageShell>
-      <PageHeader
-        title="Пробные занятия"
-        description="Следите за расписанием, посещением и следующим шагом после пробного занятия."
-      />
-
-      <FilterBar>
-        <span className="px-1 text-sm font-medium text-slate-600">Статус</span>
-        <Select value={status} onValueChange={(value) => updateQuery("status", value)}>
-          <SelectTrigger className="w-full sm:w-56" aria-label="Статус пробного занятия">
-            <SelectValue placeholder="Все статусы" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все статусы</SelectItem>
-            {Object.entries(trialStatusLabels).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FilterBar>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <MetricCard icon={<CalendarDays />} title="Запланированы" value={metrics.scheduled} note="Ожидают занятия" />
-        <MetricCard icon={<CheckCircle2 />} title="Завершены" value={metrics.completed} note="Посещение отмечено" />
-        <MetricCard icon={<ClipboardCheck />} title="Без отметки" value={metrics.unmarked} note="Требуют внимания" />
+  return <PageShell className="trial-workspace">
+    <PageHeader title="Пробные занятия" description="От первой записи до решения клиента · Время Алматы" actions={<>
+      <ShadcnButton asChild variant="secondary"><Link to="/admin/schedule"><CalendarDays data-icon="inline-start"/>Расписание</Link></ShadcnButton>
+      <ShadcnButton asChild><Link to="/admin/leads"><UserRoundPlus data-icon="inline-start"/>Записать из лида</Link></ShadcnButton>
+    </>}/>
+    <section className="trial-register" aria-label="Реестр пробных">
+      <div className="trial-register-toolbar">
+        <ToggleGroup type="single" value={status} onValueChange={value => value && change("status", value)} className="flex-wrap justify-start" aria-label="Статус пробного занятия">
+          {Object.entries(statusOptions).map(([value, label]) => <ToggleGroupItem key={value} value={value}>{label}</ToggleGroupItem>)}
+        </ToggleGroup>
+        <Button variant="ghost" size="sm" disabled={loading} onClick={() => setRevision(v => v + 1)} aria-label="Обновить пробные"><RefreshCw data-icon="inline-start"/></Button>
       </div>
-
-      {loading ? (
-        <section className="rounded-2xl border border-black/[0.08] bg-white p-6">
-          <LoadingState label="Загрузка пробных занятий..." />
-        </section>
-      ) : error ? (
-        <section className="rounded-2xl border border-black/[0.08] bg-white p-6">
-          <ErrorState title="Пробные недоступны" message={error} onRetry={() => void load()} />
-        </section>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={data?.content ?? []}
-          getRowId={(item) => item.id}
-          onRowOpen={(item) => navigate(`/admin/trials/${item.id}`)}
-          tableClassName="min-w-[1080px]"
-          emptyState={<EmptyState title="Пробных занятий пока нет" description="Назначенные пробные появятся в этом реестре." />}
-          pagination={data ? {
-            pageIndex: data.number,
-            totalPages: data.totalPages,
-            totalElements: data.totalElements,
-            onPageChange: (nextPage) => updateQuery("page", String(nextPage)),
-          } : undefined}
-        />
-      )}
-    </PageShell>
-  );
+      <div className="trial-register-search">
+        <InputGroup><InputGroupAddon><Search aria-hidden="true"/></InputGroupAddon><InputGroupInput aria-label="Поиск на текущей странице" placeholder="Имя, контакт, группа или тренер на этой странице…" value={query} onChange={e => change("q", e.target.value)}/>{query && <InputGroupAddon align="inline-end"><Button size="sm" variant="ghost" aria-label="Очистить поиск" onClick={() => change("q", "")}><X data-icon="inline-start"/></Button></InputGroupAddon>}</InputGroup>
+        <Button variant={attentionOnly ? "soft" : "secondary"} aria-pressed={attentionOnly} onClick={() => change("attention", String(!attentionOnly))} disabled={loading}>Требуют внимания{!loading && !error ? " · " + attention : ""}</Button>
+      </div>
+      <div className="trial-register-summary" aria-live="polite"><span>{loading ? "Обновляем реестр…" : error ? "Не удалось обновить данные" : <>Всего по статусу: <strong>{data?.totalElements ?? 0}</strong> · На странице: {visible.length} из {items.length}</>}</span><span>Поиск и «Требуют внимания» — на текущей странице</span></div>
+      {loading ? <div className="p-4"><LoadingState label="Загрузка пробных занятий…"/></div> : error ? <div className="p-4"><ErrorState title="Пробные недоступны" message={error} onRetry={() => setRevision(v => v + 1)}/></div> : !visible.length ? <div className="p-5"><EmptyState title={query || attentionOnly ? "На этой странице нет совпадений" : "Пробных с таким статусом пока нет"} description={query || attentionOnly ? "Измените запрос, сбросьте локальные фильтры или перейдите на другую страницу." : "Запись на пробное создаётся в карточке лида для конкретного ученика и занятия."} action={query || attentionOnly ? <Button variant="secondary" onClick={resetLocal}>Сбросить поиск и фильтр</Button> : <ShadcnButton asChild variant="secondary"><Link to="/admin/leads">Перейти к лидам</Link></ShadcnButton>}/></div> : <>
+        <div className="trial-desktop-list"><Table><TableHeader><TableRow><TableHead>Ученик / контакт</TableHead><TableHead>Занятие</TableHead><TableHead>Состояние</TableHead><TableHead>Следующий шаг</TableHead><TableHead><span className="sr-only">Открыть</span></TableHead></TableRow></TableHeader><TableBody>
+          {visible.map(item => <TableRow key={item.id} data-selected={item.id === previewId}><TableCell><button type="button" className="trial-person-link" aria-label={"Просмотр пробного: " + (item.studentName || item.leadName || "участник")} onClick={() => setPreviewId(item.id)}>{item.studentName || item.leadName || "Участник пробного"}</button><p className="trial-secondary">{item.leadPhone || item.leadEmail || "Не указан"}</p></TableCell>
+            <TableCell><strong className="trial-cell-title">{formatTrialDate(item.sessionDate)} · {trialInterval(item.sessionStartsAt, item.sessionEndsAt)}</strong><p className="trial-secondary">{item.groupName || "Без группы"} · {item.coachName || "Без тренера"}</p>{item.locationName && <p className="trial-secondary">{item.locationName}</p>}</TableCell>
+            <TableCell><StatusBadge tone={trialStatusTone[item.status]}>{trialStatusLabels[item.status]}</StatusBadge>{item.status !== "CANCELED" && <p className="trial-secondary">{attendanceLabels[item.attendanceStatus]}</p>}{item.result !== "PENDING" && <p className="trial-secondary">{resultLabels[item.result]}</p>}</TableCell>
+            <TableCell><NextStep item={item}/></TableCell><TableCell><Link className="trial-open-link" to={href(item)} aria-label={"Открыть пробное: " + (item.studentName || item.leadName || "участник")}><ChevronRight aria-hidden="true"/></Link></TableCell></TableRow>)}
+        </TableBody></Table></div>
+        <div className="trial-mobile-list">{visible.map(item => <article key={item.id} className="trial-mobile-card"><div className="flex items-start justify-between gap-3"><button type="button" className="trial-person-link" aria-label={"Просмотр пробного: " + (item.studentName || item.leadName || "участник")} onClick={() => setPreviewId(item.id)}>{item.studentName || item.leadName || "Участник пробного"}</button><StatusBadge tone={trialStatusTone[item.status]}>{trialStatusLabels[item.status]}</StatusBadge></div><p className="trial-secondary">{item.leadPhone || item.leadEmail || "Контакт не указан"}</p><div className="trial-mobile-session"><strong>{formatTrialDate(item.sessionDate)} · {trialInterval(item.sessionStartsAt, item.sessionEndsAt)}</strong><p>{item.groupName || "Без группы"} · {item.coachName || "Без тренера"}</p></div><NextStep item={item}/><Link className="trial-text-link" to={href(item)}>Открыть пробное <ChevronRight aria-hidden="true"/></Link></article>)}</div>
+      </>}
+      {!loading && !error && data && <nav className="trial-pagination" aria-label="Страницы пробных"><span>Страница {data.number + 1} из {Math.max(data.totalPages, 1)}</span><div className="flex gap-2"><Button variant="secondary" size="sm" disabled={page <= 0} onClick={() => change("page", String(page - 1))}><ChevronLeft data-icon="inline-start"/>Назад</Button><Button variant="secondary" size="sm" disabled={page + 1 >= data.totalPages} onClick={() => change("page", String(page + 1))}>Далее<ChevronRight data-icon="inline-end"/></Button></div></nav>}
+    </section>
+    {preview && <TrialPreview key={preview.id} id={preview.id} detailHref={href(preview)} position={previewIndex} total={visible.length} onPrevious={() => setPreviewId(visible[previewIndex - 1]?.id || preview.id)} onNext={() => setPreviewId(visible[previewIndex + 1]?.id || preview.id)} onClose={() => setPreviewId(null)} onSaved={() => setRevision(v => v + 1)}/>}
+  </PageShell>;
 };
 
+function NextStep({ item }: { item: TrialBookingListItem }) {
+  const next = trialNextStep(item);
+  if (item.status === "CANCELED") return <span className="trial-secondary">Действий нет</span>;
+  return <div className="trial-next-cell" data-attention={next.attention}><strong>{next.title}</strong><span>{item.result === "FOLLOW_UP" && item.nextActionAt ? (item.nextActionType ? nextActionLabels[item.nextActionType] : "Контакт") + " · " + formatTrialDate(item.nextActionAt, true) : next.description}</span></div>;
+}
 export default TrialsPage;
