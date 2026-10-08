@@ -691,7 +691,7 @@ const CoachesPage: React.FC = () => {
 
         <div className="mt-3 flex flex-col gap-2 xl:flex-row xl:items-center">
           <div className="relative min-w-0 xl:flex-1">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Поиск по имени, email или телефону"
@@ -702,7 +702,7 @@ const CoachesPage: React.FC = () => {
                 setPage(0);
               }}
             />
-            {search ? <button type="button" aria-label="Очистить поиск" onClick={() => { setSearch(""); setDebouncedSearch(""); setPage(0); }} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><X className="h-4 w-4" /></button> : null}
+            {search ? <button type="button" aria-label="Очистить поиск" onClick={() => { setSearch(""); setDebouncedSearch(""); setPage(0); }} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><X className="h-4 w-4" /></button> : null}
           </div>
 
           <button
@@ -722,7 +722,7 @@ const CoachesPage: React.FC = () => {
 
           <label className="relative inline-flex h-10 w-full items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-slate-300 xl:w-[320px]">
             <ChevronsUpDown className="mr-2 h-4 w-4" />
-            <span className="mr-1 text-slate-400">Сортировка:</span>
+            <span className="mr-1 text-muted-foreground">Сортировка:</span>
             <NativeSelect
               aria-label="Сортировка тренеров"
               value={sortValue}
@@ -797,7 +797,7 @@ const CoachesPage: React.FC = () => {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-2 text-sm text-slate-500">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-2 text-sm text-slate-700">
             <div>
               Показано {pageStart}-{pageEnd} из {totalElements} тренеров
             </div>
@@ -813,7 +813,7 @@ const CoachesPage: React.FC = () => {
               <div className="flex h-8 min-w-8 items-center justify-center rounded-xl bg-[#0066cc] px-3 text-sm font-semibold text-white">
                 {currentPage + 1}
               </div>
-              <span className="text-xs text-slate-400">из {Math.max(1, totalPages)}</span>
+              <span className="text-xs text-slate-700">из {Math.max(1, totalPages)}</span>
               <button
                 type="button"
                 onClick={() => setPage((value) => value + 1)}
@@ -900,7 +900,7 @@ const CoachMetric: React.FC<{
         <div className="text-sm font-medium text-slate-600">{label}</div>
         <div className="mt-1 flex items-end gap-2">
           <span className="text-[26px] font-semibold leading-none text-slate-950">{value}</span>
-          <span className="pb-0.5 text-xs text-slate-400">{hint}</span>
+          <span className="pb-0.5 text-xs text-muted-foreground">{hint}</span>
         </div>
       </div>
     </div>
@@ -1008,7 +1008,7 @@ const SortableHeader: React.FC<{
     <button
       type="button"
       onClick={() => onSort(sortKey)}
-      aria-sort={!active ? "none" : currentSort.direction === "asc" ? "ascending" : "descending"}
+      aria-label={`${label}: ${!active ? "сортировать по возрастанию" : currentSort.direction === "asc" ? "по возрастанию, сортировать по убыванию" : "по убыванию, сортировать по возрастанию"}`}
       className={`inline-flex w-fit items-center gap-1.5 rounded-lg px-1.5 py-1 text-left transition ${
         active ? "text-[#0066cc]" : "text-slate-500 hover:bg-white hover:text-slate-800"
       }`}
@@ -1052,11 +1052,11 @@ const CoachRow: React.FC<{
               {coach.specialization || "Специализация не указана"}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-              <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <span className="truncate">{coach.email}</span>
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-              <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <span className="truncate">{coach.phone}</span>
             </div>
           </div>
@@ -1505,7 +1505,7 @@ export const CoachProfileContent: React.FC<{
                     <div className="mt-1 ui-section-title">
                       {group.activeStudentsCount ?? "?"}
                       {group.studentsCount !== null ? (
-                        <span className="ml-1 text-xs font-medium text-slate-400">из {group.studentsCount}</span>
+                        <span className="ml-1 text-xs font-medium text-muted-foreground">из {group.studentsCount}</span>
                       ) : null}
                     </div>
                   </div>
@@ -1612,7 +1612,7 @@ export const CoachProfileContent: React.FC<{
                   </div>
 
                   {day.items.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-slate-200 px-2 py-5 text-center text-xs text-slate-400">
+                    <div className="rounded-lg border border-dashed border-slate-200 px-2 py-5 text-center text-xs text-muted-foreground">
                       Свободно
                     </div>
                   ) : (
@@ -1650,7 +1650,7 @@ export const CoachProfileContent: React.FC<{
                           {item.coachName ? (
                             <div className="mt-1 truncate text-[11px] text-slate-500">{item.coachName}</div>
                           ) : null}
-                          <div className="mt-1 truncate text-[11px] text-slate-400">
+                          <div className="mt-1 truncate text-[11px] text-muted-foreground">
                             до {item.endDate ? formatDate(item.endDate) : "без даты окончания"}
                           </div>
                           {item.conflicts?.length ? (

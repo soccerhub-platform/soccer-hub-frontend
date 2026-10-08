@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { riskLabel } from './student.risk';
 import toast from "react-hot-toast";
 import { NavLink, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -227,7 +228,7 @@ const MembershipRow: React.FC<{
       {onTransfer ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" onClick={onTransfer}><ArrowLeftRight className="h-4 w-4" /> Перевести</Button> : null}
       {onRemove ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" onClick={onRemove}><Trash2 className="h-4 w-4" /> Исключить</Button> : null}
       {onCancelContract ? <Button type="button" size="sm" variant="ghost" rounded="rounded-lg" className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" onClick={onCancelContract}><FileText className="h-4 w-4" /> Отменить договор</Button> : null}
-      <button type="button" onClick={onOpen} aria-label={`Открыть группу ${membership.group.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-blue-50 hover:text-[#0066cc]">
+      <button type="button" onClick={onOpen} aria-label={`Открыть группу ${membership.group.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-blue-50 hover:text-[#0066cc]">
         <ChevronRight className="h-4 w-4" />
       </button>
     </div>
@@ -247,8 +248,8 @@ const ActivityTimeline: React.FC<{
             <span className="block ui-section-title">{item.title}</span>
             <span className="mt-0.5 block text-xs text-slate-500">{item.description}</span>
           </span>
-          <span className="shrink-0 text-xs text-slate-400">{formatDate(item.date)}</span>
-          {item.to ? <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" /> : null}
+          <span className="shrink-0 text-xs text-muted-foreground">{formatDate(item.date)}</span>
+          {item.to ? <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /> : null}
         </>
       );
       return item.to ? (
@@ -563,7 +564,7 @@ const StudentDetailsPage: React.FC = () => {
                 <span>{currentMemberships.length} активных групп</span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <button type="button" disabled={!primaryClientRelation} onClick={() => primaryClientRelation && navigate(`/admin/clients/${primaryClientRelation.clientId}/overview`)} className="inline-flex items-center gap-2 font-medium text-slate-700 transition hover:text-[#0066cc] disabled:cursor-default disabled:hover:text-slate-700"><User className="h-4 w-4 text-slate-400" />{primaryClientRelation?.clientName ?? student.client.fullName}</button>
+                <button type="button" disabled={!primaryClientRelation} onClick={() => primaryClientRelation && navigate(`/admin/clients/${primaryClientRelation.clientId}/overview`)} className="inline-flex items-center gap-2 font-medium text-slate-700 transition hover:text-[#0066cc] disabled:cursor-default disabled:hover:text-slate-700"><User className="h-4 w-4 text-muted-foreground" />{primaryClientRelation?.clientName ?? student.client.fullName}</button>
                 {activeClientRelations.length > 1 ? <NavLink to={sectionPath("clients")} className="text-xs font-semibold text-[#0066cc]">Ещё {activeClientRelations.length - 1}</NavLink> : null}
                 {phoneHref ? <a href={phoneHref} className="inline-flex items-center gap-2 font-medium text-[#0066cc] hover:text-[#0066cc]"><Phone className="h-4 w-4" />{student.client.phone}</a> : null}
               </div>
@@ -625,7 +626,7 @@ const StudentDetailsPage: React.FC = () => {
             <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-2">
               <h2 className="ui-section-title">Требует внимания</h2>
               <div className="mt-3 space-y-2">
-                {student.risks.slice(0, 4).map((risk) => <button key={risk.code} type="button" onClick={() => openRisk(risk)} className="flex w-full items-start gap-2 rounded-md border border-slate-200 p-2.5 text-left transition hover:border-amber-200 hover:bg-amber-50"><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${riskIconClassName(risk)}`}><TriangleAlert className="h-4 w-4" /></span><span className="text-xs font-medium leading-5 text-slate-700">{risk.label}</span></button>)}
+                {student.risks.slice(0, 4).map((risk) => <button key={risk.code} type="button" onClick={() => openRisk(risk)} className="flex w-full items-start gap-2 rounded-md border border-slate-200 p-2.5 text-left transition hover:border-amber-200 hover:bg-amber-50"><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${riskIconClassName(risk)}`}><TriangleAlert className="h-4 w-4" /></span><span className="text-xs font-medium leading-5 text-slate-700">{riskLabel(risk)}</span></button>)}
                 {student.risks.length === 0 ? <div className="flex items-center gap-2 py-3 text-xs text-emerald-700"><CheckCircle className="h-5 w-5" /> Всё в порядке</div> : null}
               </div>
             </section>
@@ -646,7 +647,7 @@ const StudentDetailsPage: React.FC = () => {
               </div>
               <div className="mt-4 flex h-20 items-end gap-1.5 overflow-hidden">
                 {attendanceItems.slice(-24).map((item) => <div key={item.sessionId} title={`${formatDate(item.sessionDate)} · ${item.attendanceStatus}`} className="flex h-full min-w-1 flex-1 items-end"><span className={`block w-full rounded-sm ${attendanceBarClassName(item.attendanceStatus)}`} /></div>)}
-                {attendanceItems.length === 0 ? <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">Нет занятий за период</div> : null}
+                {attendanceItems.length === 0 ? <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Нет занятий за период</div> : null}
               </div>
               <NavLink to={sectionPath("attendance")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#0066cc]">Открыть полную посещаемость <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
@@ -693,7 +694,7 @@ const StudentDetailsPage: React.FC = () => {
                   <button key={relation.id} type="button" onClick={() => navigate(`/admin/clients/${relation.clientId}/overview`)} className="flex w-full flex-col gap-3 py-4 text-left first:pt-0 last:pb-0 sm:flex-row sm:items-center">
                     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-blue-50 text-sm font-semibold text-[#0066cc]">{getInitials(relation.clientName)}</span>
                     <span className="min-w-0 flex-1"><span className="block truncate ui-section-title">{relation.clientName}</span><span className="mt-1 block text-xs text-slate-500">{clientRelationshipLabel(relation.relationshipType)} · с {formatDate(relation.startedAt)}</span></span>
-                    <span className="flex flex-wrap items-center gap-2">{relation.primaryContact ? <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#0066cc]">Основной контакт</span> : null}{relation.primaryPayer ? <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Плательщик</span> : null}{relation.legalRepresentative ? <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">Представитель</span> : null}<ChevronRight className="h-4 w-4 text-slate-400" /></span>
+                    <span className="flex flex-wrap items-center gap-2">{relation.primaryContact ? <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#0066cc]">Основной контакт</span> : null}{relation.primaryPayer ? <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Плательщик</span> : null}{relation.legalRepresentative ? <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">Представитель</span> : null}<ChevronRight className="h-4 w-4 text-muted-foreground" /></span>
                   </button>
                 ))}
               </div>

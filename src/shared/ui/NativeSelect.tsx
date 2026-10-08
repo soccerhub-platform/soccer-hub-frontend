@@ -65,6 +65,7 @@ const NativeSelect = React.forwardRef<HTMLButtonElement, NativeSelectProps>(({
   const options = useMemo(() => collectOptions(children), [children]);
   const value = controlledValue === undefined ? uncontrolledValue : String(controlledValue);
   const placeholder = options.find((option) => option.value === "")?.label ?? "Выберите значение";
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? placeholder;
 
   const changeValue = (nextValue: string) => {
     const resolvedValue = nextValue === EMPTY_VALUE ? "" : nextValue;
@@ -92,7 +93,7 @@ const NativeSelect = React.forwardRef<HTMLButtonElement, NativeSelectProps>(({
         onBlur={onBlur as React.FocusEventHandler<HTMLButtonElement> | undefined}
         {...(props as unknown as React.ButtonHTMLAttributes<HTMLButtonElement>)}
       >
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder}>{selectedLabel}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>

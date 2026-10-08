@@ -526,18 +526,18 @@ const AdminsPage: React.FC = () => {
                           <div className="font-medium text-slate-900">
                             {admin.firstName} {admin.lastName}
                           </div>
-                          <div className="text-xs text-slate-400">ID: {admin.adminId.slice(0, 8)}...</div>
+                          <div className="text-xs text-muted-foreground">ID: {admin.adminId.slice(0, 8)}...</div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-sm text-slate-600">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1.5">
-                          <Mail className="h-4 w-4 text-slate-400" />
+                          <Mail className="h-4 w-4 text-muted-foreground" />
                           {admin.email || "Email не указан"}
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <Phone className="h-4 w-4 text-slate-400" />
+                          <Phone className="h-4 w-4 text-muted-foreground" />
                           {admin.phone || "Телефон не указан"}
                         </div>
                       </div>
@@ -681,7 +681,7 @@ const AdminsPage: React.FC = () => {
 
 const BranchBadges: React.FC<{ branches: BranchAssignment[] }> = ({ branches }) => {
   if (branches.length === 0) {
-    return <span className="text-xs text-slate-400">Не привязан к филиалам</span>;
+    return <span className="text-xs text-muted-foreground">Не привязан к филиалам</span>;
   }
 
   const firstBranch = branches[0];
@@ -784,7 +784,7 @@ const AdminDetailsModal: React.FC<{
                 className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3"
               >
                 <div className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-slate-400" />
+                  <Building2 className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <div className="text-sm font-medium text-slate-900">{branch.branchName}</div>
                     <div className="text-xs text-slate-500">{branch.clubName || "Клуб не указан"}</div>

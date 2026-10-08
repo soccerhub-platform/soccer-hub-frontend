@@ -176,15 +176,18 @@ const AnalyticsDashboard: React.FC<Props> = ({ scope, branchId, title = "Опе�
 
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           <DatePicker
+            placeholder="Начало периода аналитики"
             value={dateFrom}
             onValueChange={setDateFrom}
           />
           <DatePicker
+            placeholder="Конец периода аналитики"
             value={dateTo}
             min={dateFrom}
             onValueChange={setDateTo}
           />
           <NativeSelect
+            aria-label="Группировка аналитики"
             value={groupBy}
             onChange={(event) => setGroupBy(event.target.value as AnalyticsGroupBy)}
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"

@@ -5,6 +5,7 @@ import DispatcherRoutes from './modules/dispatcher';
 import AdminRoutes from './modules/admin';
 import CoachRoutes from './modules/coach';
 import LoginPage from './modules/auth/Login';
+import AccessDeniedPage from './shared/AccessDeniedPage';
 import { Toaster } from 'react-hot-toast';
 
 /**
@@ -50,6 +51,7 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/403" element={<AccessDeniedPage />} />
         {/* Dispatcher module */}
         <Route path="/dispatcher/*" element={<DispatcherRoutes />} />
         {/* Admin module */}

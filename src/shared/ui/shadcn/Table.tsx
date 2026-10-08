@@ -15,11 +15,10 @@ const InteractiveTableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttr
   <TableRow
     ref={ref}
     tabIndex={0}
-    role="button"
     onClick={onOpen}
     onKeyDown={(event) => {
       onKeyDown?.(event);
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented || event.target !== event.currentTarget) return;
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         onOpen();

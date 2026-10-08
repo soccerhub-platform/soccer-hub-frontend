@@ -200,7 +200,7 @@ const ClientsPage: React.FC = () => {
               <span className="truncate font-semibold text-slate-950">{row.original.fullName}</span>
               <StatusBadge tone={statusTone[row.original.status]}>{statusLabel[row.original.status]}</StatusBadge>
             </span>
-            <span className="mt-1 block truncate text-xs text-slate-400">ID: {row.original.id.slice(0, 8)}</span>
+            <span className="mt-1 block truncate text-xs text-muted-foreground">ID: {row.original.id.slice(0, 8)}</span>
           </span>
         </div>
       ),
@@ -236,10 +236,10 @@ const ClientsPage: React.FC = () => {
       cell: ({ row }) => (
         <div>
           <span className="flex items-center gap-1.5 text-xs text-slate-600">
-            <CreditCard className="h-3.5 w-3.5 text-slate-400" />
+            <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
             {row.original.lastPaidAt ? `Оплата: ${formatDate(row.original.lastPaidAt)}` : "Оплат пока нет"}
           </span>
-          <span className="mt-1 block text-xs text-slate-400">
+          <span className="mt-1 block text-xs text-muted-foreground">
             {row.original.updatedAt ? `Изменён: ${formatDate(row.original.updatedAt)}` : `Создан: ${formatDate(row.original.createdAt)}`}
           </span>
         </div>
@@ -249,7 +249,7 @@ const ClientsPage: React.FC = () => {
       id: "open",
       header: "",
       size: 40,
-      cell: () => <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />,
+      cell: () => <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />,
     },
   ], [sort, toggleSort]);
 
@@ -299,7 +299,7 @@ const ClientsPage: React.FC = () => {
       <FilterBar
         trailing={(
           <Select value={sort} onValueChange={(value) => updateQuery("sort", value)}>
-            <SelectTrigger className="w-full sm:w-52"><SelectValue aria-label="Сортировка" /></SelectTrigger>
+            <SelectTrigger aria-label="Сортировка клиентов" className="w-full sm:w-52"><SelectValue placeholder="Недавние клиенты" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="createdAt,desc">Недавние клиенты</SelectItem>
               <SelectItem value="createdAt,asc">Старые клиенты</SelectItem>
@@ -314,7 +314,7 @@ const ClientsPage: React.FC = () => {
         )}
       >
         <div className="relative min-w-[16rem] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => updateQuery("search", event.target.value)}
@@ -373,7 +373,7 @@ const ClientsPage: React.FC = () => {
         <div className="flex items-center justify-end gap-2 text-xs text-slate-500">
           <span>На странице:</span>
           <Select value={String(size)} onValueChange={(value) => updateQuery("size", value)}>
-            <SelectTrigger className="h-9 w-20"><SelectValue placeholder="20" /></SelectTrigger>
+            <SelectTrigger aria-label="Количество клиентов на странице" className="h-9 w-20"><SelectValue placeholder="20" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="10">10</SelectItem>
               <SelectItem value="20">20</SelectItem>
@@ -403,7 +403,7 @@ const FilterSelect: React.FC<{
   <label className="space-y-1.5">
     <span className="block text-xs font-medium text-slate-500">{label}</span>
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger><SelectValue placeholder={label} /></SelectTrigger>
+      <SelectTrigger aria-label={label}><SelectValue placeholder={label} /></SelectTrigger>
       <SelectContent>
         {options.map(([optionValue, optionLabel]) => <SelectItem key={optionValue} value={optionValue}>{optionLabel}</SelectItem>)}
       </SelectContent>

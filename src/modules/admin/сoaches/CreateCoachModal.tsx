@@ -173,7 +173,7 @@ const CreateCoachModal: React.FC<Props> = ({ onClose, onCreated }) => {
             className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold text-slate-700"
           >
             Дополнительная информация
-            <span className="text-xs text-slate-400">{showExtra ? 'Свернуть' : 'Раскрыть'}</span>
+            <span className="text-xs text-muted-foreground">{showExtra ? 'Свернуть' : 'Раскрыть'}</span>
           </button>
           {showExtra ? (
             <div className="grid gap-3 border-t border-slate-100 px-3 py-3">

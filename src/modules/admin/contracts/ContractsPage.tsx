@@ -192,7 +192,7 @@ const ContractsPage: React.FC = () => {
           />
         </div>
         <Select value={status} onValueChange={(value) => updateQuery("status", value)}>
-          <SelectTrigger className="w-full sm:w-52"><SelectValue placeholder="Все статусы" /></SelectTrigger>
+          <SelectTrigger aria-label="Статус договора" className="w-full sm:w-52"><SelectValue placeholder="Все статусы" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Все статусы</SelectItem>
             {Object.entries(statusLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}

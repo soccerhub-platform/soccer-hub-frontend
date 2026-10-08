@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { riskLabel } from './student.risk';
 import toast from "react-hot-toast";
 import {
   useNavigate, useSearchParams } from "react-router-dom";
@@ -233,22 +234,6 @@ const clientStatusLabel = (status?: string | null) => {
   }
 };
 
-const riskLabel = (risk: StudentRisk) => {
-  switch (risk.code) {
-    case "DEBT":
-      return "Есть долг";
-    case "ENDING_SOON":
-      return "Договор истекает";
-    case "EXPIRED_CONTRACT":
-      return "Договор истек";
-    case "LOW_ATTENDANCE":
-      return "Низкая посещаемость";
-    case "NO_GROUP":
-      return "Без группы";
-    default:
-      return risk.label;
-  }
-};
 
 const riskTone = (severity: StudentRiskSeverity): StatusTone => {
   switch (severity) {
@@ -548,7 +533,7 @@ const StudentsPage: React.FC = () => {
       <div className="relative rounded-2xl border border-slate-200 bg-white p-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
               value={search}
@@ -599,7 +584,7 @@ const StudentsPage: React.FC = () => {
                 }}
               >
                 {item.label}
-                <span className="text-slate-400">×</span>
+                <span className="text-muted-foreground">×</span>
               </Button>
             ))}
             <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>
@@ -627,12 +612,10 @@ const StudentsPage: React.FC = () => {
                 student={student}
                 onOpen={() => void openStudent(student.playerId)}
                 onAvatarExpired={() => void refreshStudentAvatar(student.playerId)}
-                onOpenContract={() =>
-                  student.contractId
-                    ? navigate(`/admin/contracts/${encodeURIComponent(student.contractId)}/overview`)
-                    : undefined
-                }
-                onOpenGroup={() => (student.groupId ? navigate(`/admin/groups/${student.groupId}/overview`) : undefined)}
+                onOpenContract={() => {
+                  if (student.contractId) void navigate(`/admin/contracts/${encodeURIComponent(student.contractId)}/overview`);
+                }}
+                onOpenGroup={() => { if (student.groupId) void navigate(`/admin/groups/${student.groupId}/overview`); }}
               />
             ))}
             </TableBody>
@@ -640,7 +623,7 @@ const StudentsPage: React.FC = () => {
         )}
       </div>
 
-      <div className="flex flex-col gap-3 px-1 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 px-1 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
         <div>
           Показано {totalElements === 0 ? 0 : page * pageSize + 1}-{Math.min(totalElements, page * pageSize + students.length)} из {totalElements} учеников
         </div>
@@ -648,6 +631,7 @@ const StudentsPage: React.FC = () => {
           <button
             type="button"
             disabled={page <= 0}
+            aria-label="Предыдущая страница учеников"
             onClick={() => setPage((value) => Math.max(0, value - 1))}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 disabled:text-slate-300"
           >
@@ -668,6 +652,7 @@ const StudentsPage: React.FC = () => {
           <button
             type="button"
             disabled={page + 1 >= totalPages}
+            aria-label="Следующая страница учеников"
             onClick={() => setPage((value) => value + 1)}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 disabled:text-slate-300"
           >
@@ -747,7 +732,7 @@ const StudentRow: React.FC<{
     <TableCell className="text-sm">
       <div className="font-semibold text-slate-900">{formatDate(student.contractEndDate)}</div>
       {student.contractStatus ? (
-        <div className={`mt-1 text-xs ${student.contractStatus === "EXPIRED" ? "text-rose-600" : "text-amber-600"}`}>
+        <div className={`mt-1 text-xs ${student.contractStatus === "EXPIRED" ? "text-rose-600" : "text-amber-800"}`}>
           {contractStatusLabel(student.contractStatus)}
         </div>
       ) : null}
@@ -810,7 +795,7 @@ const QuickRiskFilters: React.FC<{
           }`}
         >
           {item.label}
-          {typeof count === "number" ? <span className="ml-1 text-slate-400">{count}</span> : null}
+          {typeof count === "number" ? <span className="ml-1 text-muted-foreground">{count}</span> : null}
         </button>
       );
     })}
@@ -1263,7 +1248,7 @@ const SummaryTile: React.FC<{ label: string; value: string; icon?: React.ReactNo
 
 const MiniStat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-    <div className="text-[11px] font-medium uppercase text-slate-400">{label}</div>
+    <div className="text-[11px] font-medium uppercase text-muted-foreground">{label}</div>
     <div className="mt-1 break-words ui-section-title">{value}</div>
   </div>
 );

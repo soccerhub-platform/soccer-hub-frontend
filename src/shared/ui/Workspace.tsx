@@ -19,7 +19,7 @@ export const WorkspaceBreadcrumbs: React.FC<{
         <React.Fragment key={`${item.label}-${index}`}>
           {index > 0 ? <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" /> : null}
           {item.to ? (
-            <NavLink to={item.to} className="truncate font-medium text-slate-500 transition hover:text-[#0066cc]">
+            <NavLink to={item.to} className="truncate font-medium text-slate-600 transition hover:text-[#0066cc]">
               {item.label}
             </NavLink>
           ) : (
@@ -81,7 +81,7 @@ export const WorkspaceTabs: React.FC<{
             "shrink-0 border-b-2 px-3 py-3 text-sm font-medium transition",
             isActive
               ? "border-blue-700 text-slate-950"
-              : "border-transparent text-slate-500 hover:text-slate-800",
+              : "border-transparent text-slate-600 hover:text-slate-800",
           )
         }
       >

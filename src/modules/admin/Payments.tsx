@@ -250,6 +250,7 @@ const PaymentsPage: React.FC = () => {
           />
           <NativeSelect
             value={statusFilter}
+            aria-label="Статус платежа"
             onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
           >
@@ -259,6 +260,7 @@ const PaymentsPage: React.FC = () => {
           </NativeSelect>
           <NativeSelect
             value={methodFilter}
+            aria-label="Способ оплаты"
             onChange={(event) => setMethodFilter(event.target.value as MethodFilter)}
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
           >
