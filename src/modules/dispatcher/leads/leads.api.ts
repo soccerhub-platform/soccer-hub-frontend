@@ -44,9 +44,17 @@ export const normalizeDispatcherLead = (lead: DispatcherLeadResponse): Dispatche
   assignedAdminId: lead.assignedAdminId ?? null,
   comment: lead.comment ?? "",
   createdAt: lead.createdAt ?? "",
+  leadType: lead.leadType,
 });
 
 export const DispatcherLeadsApi = {
+  async listPage(branchId: string, options: { page: number; search?: string; status?: string }) {
+    const params = new URLSearchParams({branchId, page: String(options.page), size: "20", sort: "createdAt,desc"});
+    if (options.search?.trim()) params.set("search", options.search.trim());
+    if (options.status) params.set("statuses", options.status);
+    const payload = await apiClient.get<{ content: DispatcherLeadResponse[]; totalElements: number; totalPages: number }>(`/leads?${params}`);
+    return { items: payload.content.map(normalizeDispatcherLead), totalElements: payload.totalElements, totalPages: payload.totalPages };
+  },
   async list(branchId: string): Promise<DispatcherLead[]> {
     const payload = await apiClient.get<DispatcherLeadResponse[] | { content?: DispatcherLeadResponse[] }>(`/leads?branchId=${branchId}`);
     const items = Array.isArray(payload) ? payload : payload?.content ?? [];

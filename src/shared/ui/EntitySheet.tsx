@@ -33,7 +33,12 @@ const EntitySheet: React.FC<EntitySheetProps> = ({
   closeDisabled = false,
   contentClassName,
   bodyClassName,
-}) => (
+}) => {
+  // These controlled sheets have no Radix trigger. Preserve the actual opener.
+  const opener = React.useRef<HTMLElement | null>(
+    typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  );
+  return (
   <Sheet
     open={open}
     onOpenChange={(nextOpen) => {
@@ -46,6 +51,12 @@ const EntitySheet: React.FC<EntitySheetProps> = ({
       closeDisabled={closeDisabled}
       onEscapeKeyDown={(event) => closeDisabled && event.preventDefault()}
       onPointerDownOutside={(event) => closeDisabled && event.preventDefault()}
+      onCloseAutoFocus={(event) => {
+        if (opener.current?.isConnected && opener.current !== document.body) {
+          event.preventDefault();
+          opener.current.focus({ preventScroll: true });
+        }
+      }}
       className={cn(
         "flex w-full max-w-lg flex-col gap-0 border-l border-black/[0.1] bg-white p-0 shadow-none",
         contentClassName,
@@ -74,6 +85,7 @@ const EntitySheet: React.FC<EntitySheetProps> = ({
       ) : null}
     </SheetContent>
   </Sheet>
-);
+  );
+};
 
 export default EntitySheet;

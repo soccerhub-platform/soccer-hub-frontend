@@ -1,394 +1,91 @@
-import { Input, Textarea, NativeSelect  } from "../../../shared/ui";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { Button, DatePicker, Input, ModalShell, NativeSelect, Textarea, ToggleGroup, ToggleGroupItem } from "../../../shared/ui";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "../../../shared/ui/shadcn/field";
+import { Alert, AlertDescription } from "../../../shared/ui/shadcn/alert";
+import { addBusinessDays, businessDate } from "../../../shared/business-time";
+import { getApiErrorMessage } from "../../../shared/api";
+import { formatPhoneInput, isValidFormattedPhone, normalizePhoneForSubmit } from "../../../shared/phone";
 import { DispatcherLeadsApi } from "./leads.api";
-import {
-  CreateDispatcherLeadPayload,
-  DispatcherBranchOption,
-  DispatcherLeadChild,
-} from "./types";
-import { buttonStyles } from "../../../shared/ui/buttonStyles";
-import {
-  formatPhoneInput,
-  isValidFormattedPhone,
-  normalizePhoneForSubmit,
-} from "../../../shared/phone";
+import { CreateDispatcherLeadPayload, DispatcherBranchOption } from "./types";
+import { validateDispatcherParticipant } from "./lead.validation";
 
-interface CreateLeadModalProps {
+interface Props {
   branches: DispatcherBranchOption[];
   initialBranchId?: string;
   onClose: () => void;
-  onSuccess: () => Promise<void> | void;
+  onSuccess: (branchId: string) => Promise<void> | void;
 }
+const newParticipant = () => ({ fullName: "", birthDate: "", gender: "MALE" as const, experience: "BEGINNER" });
 
-const EMPTY_CHILD: DispatcherLeadChild = {
-  childName: "",
-  childAge: 0,
-};
-
-const MAX_NAME_LENGTH = 120;
-const MAX_EMAIL_LENGTH = 160;
-const MAX_COMMENT_LENGTH = 1000;
-const isValidEmail = (value: string) =>
-  value.trim().length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-
-const inputBaseClassName =
-  "w-full rounded-xl border bg-white px-3 py-2.5 outline-none transition focus:ring-4";
-
-const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
-  branches,
-  initialBranchId,
-  onClose,
-  onSuccess,
-}) => {
-  const [parentName, setParentName] = useState("");
+const CreateLeadModal: React.FC<Props> = ({ branches, initialBranchId, onClose, onSuccess }) => {
+  const [leadType, setLeadType] = useState<CreateDispatcherLeadPayload["leadType"]>("CHILDREN");
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [branchId, setBranchId] = useState(initialBranchId ?? branches[0]?.id ?? "");
   const [email, setEmail] = useState("");
+  const [branchId, setBranchId] = useState(initialBranchId || branches[0]?.id || "");
   const [comment, setComment] = useState("");
-  const [children, setChildren] = useState<DispatcherLeadChild[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const validation = useMemo(() => {
-    const fieldErrors = {
-      parentName: "",
-      phone: "",
-      branchId: "",
-      email: "",
-    };
-
-    if (!parentName.trim()) {
-      fieldErrors.parentName = "Укажите имя родителя";
-    }
-
-    if (!phone.trim()) {
-      fieldErrors.phone = "Укажите телефон";
-    } else if (!isValidFormattedPhone(phone)) {
-      fieldErrors.phone = "Введите номер в формате +7 777 123 45 67";
-    }
-
-    if (!branchId.trim()) {
-      fieldErrors.branchId = "Выберите филиал";
-    }
-
-    if (!isValidEmail(email)) {
-      fieldErrors.email = "Некорректный email";
-    }
-
-    const childErrors = children.map((child) => {
-      const hasName = child.childName.trim().length > 0;
-      const hasAge = Number.isInteger(child.childAge) && child.childAge > 0 && child.childAge <= 25;
-
-      if (!hasName && !hasAge) return "";
-      if (!hasName) return "Укажите имя ребенка";
-      if (!hasAge) return "Укажите возраст от 1 до 25 лет";
-      return "";
-    });
-
-    const isValid =
-      Object.values(fieldErrors).every((value) => !value) &&
-      childErrors.every((value) => !value);
-
-    return { fieldErrors, childErrors, isValid };
-  }, [branchId, children, email, parentName, phone]);
-
-  const updateChild = (index: number, nextChild: DispatcherLeadChild) => {
-    setChildren((prev) =>
-      prev.map((child, childIndex) => {
-        if (childIndex !== index) return child;
-        return nextChild;
-      })
-    );
+  const [participants, setParticipants] = useState<CreateDispatcherLeadPayload["participants"]>([newParticipant()]);
+  const [adult, setAdult] = useState<CreateDispatcherLeadPayload["participants"][number]>(newParticipant());
+  const [attempted, setAttempted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const visibleParticipants = leadType === "ADULT" ? [{ ...adult, fullName: name }] : participants;
+  const contactErrors = {
+    name: name.trim() ? "" : "Укажите имя контактного лица",
+    phone: isValidFormattedPhone(phone) ? "" : "Введите телефон в формате +7 777 123 45 67",
+    email: !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "" : "Некорректный email",
+    branch: branches.some(branch => branch.id === branchId) ? "" : "Выберите филиал",
   };
-
-  const handleSubmit = async () => {
-    if (!validation.isValid) return;
-
-    const payload: CreateDispatcherLeadPayload = {
-      parentName: parentName.trim(),
-      phone: normalizePhoneForSubmit(phone),
-      branchId,
-      email: email.trim() || undefined,
-      comment: comment.trim() || undefined,
-      children: children
-        .filter((child) => child.childName.trim() || child.childAge)
-        .map((child) => ({
-          childName: child.childName.trim(),
-          childAge: child.childAge,
-        })),
-    };
-
-    setLoading(true);
-    setError(null);
-
+  const participantErrors = visibleParticipants.map(validateDispatcherParticipant);
+  const updateParticipant = (index: number, patch: Partial<CreateDispatcherLeadPayload["participants"][number]>) => {
+    if (leadType === "ADULT") setAdult(value => ({ ...value, ...patch }));
+    else setParticipants(values => values.map((value,i) => i === index ? { ...value, ...patch } : value));
+  };
+  const submit = async () => {
+    if (saving) return;
+    setAttempted(true);
+    if (Object.values(contactErrors).some(Boolean) || participantErrors.some(Boolean) || visibleParticipants.length === 0) return;
+    setSaving(true);
+    setError("");
     try {
-      await DispatcherLeadsApi.create(payload);
-      await onSuccess();
+      if (!saved) {
+        await DispatcherLeadsApi.create({ leadType, branchId, primaryContact: { fullName: name.trim(), phone: normalizePhoneForSubmit(phone), email: email.trim() || undefined }, comment: comment.trim() || undefined, participants: visibleParticipants.map(participant => ({ ...participant, fullName: participant.fullName.trim() })) });
+        setSaved(true);
+      }
+      await onSuccess(branchId);
       onClose();
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Не удалось создать лид");
-    } finally {
-      setLoading(false);
-    }
+    } catch (reason) { setError(getApiErrorMessage(reason, "Не удалось создать лид")); }
+    finally { setSaving(false); }
   };
 
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <div>
-            <h3 className="ui-modal-title">
-              Новый лид
-            </h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Диспетчер создает входящий лид без назначения и изменения статуса.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className={buttonStyles("ghost", "sm", "rounded-full p-2 text-slate-400")}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="max-h-[80vh] overflow-y-auto px-6 py-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <label className="space-y-1 text-sm text-slate-600">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Имя родителя
-                <span className="ml-1 text-rose-500">*</span>
-              </span>
-              <Input
-                type="text"
-                value={parentName}
-                onChange={(event) => setParentName(event.target.value)}
-                maxLength={MAX_NAME_LENGTH}
-                autoComplete="name"
-                className={`${inputBaseClassName} ${
-                  validation.fieldErrors.parentName
-                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                    : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
-                }`}
-              />
-              {validation.fieldErrors.parentName ? (
-                <p className="text-xs text-rose-600">{validation.fieldErrors.parentName}</p>
-              ) : null}
-            </label>
-
-            <label className="space-y-1 text-sm text-slate-600">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Телефон
-                <span className="ml-1 text-rose-500">*</span>
-              </span>
-              <Input
-                type="tel"
-                value={phone}
-                onChange={(event) => setPhone(formatPhoneInput(event.target.value))}
-                placeholder="+7 777 123 45 67"
-                inputMode="tel"
-                autoComplete="tel"
-                maxLength={16}
-                className={`${inputBaseClassName} ${
-                  validation.fieldErrors.phone
-                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                    : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
-                }`}
-              />
-              {validation.fieldErrors.phone ? (
-                <p className="text-xs text-rose-600">{validation.fieldErrors.phone}</p>
-              ) : null}
-            </label>
-
-            <label className="space-y-1 text-sm text-slate-600">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Филиал
-                <span className="ml-1 text-rose-500">*</span>
-              </span>
-              <NativeSelect
-                value={branchId}
-                onChange={(event) => setBranchId(event.target.value)}
-                className={`${inputBaseClassName} ${
-                  validation.fieldErrors.branchId
-                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                    : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
-                }`}
-              >
-                <option value="">Выберите филиал</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </NativeSelect>
-              {validation.fieldErrors.branchId ? (
-                <p className="text-xs text-rose-600">{validation.fieldErrors.branchId}</p>
-              ) : null}
-            </label>
-
-            <label className="space-y-1 text-sm text-slate-600">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Email
-              </span>
-              <Input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-                maxLength={MAX_EMAIL_LENGTH}
-                className={`${inputBaseClassName} ${
-                  validation.fieldErrors.email
-                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                    : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
-                }`}
-              />
-              {validation.fieldErrors.email ? (
-                <p className="text-xs text-rose-600">{validation.fieldErrors.email}</p>
-              ) : null}
-            </label>
-          </div>
-
-          <label className="mt-4 block space-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Комментарий
-            </span>
-            <Textarea
-              value={comment}
-              onChange={(event) => setComment(event.target.value)}
-              rows={4}
-              maxLength={MAX_COMMENT_LENGTH}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-blue-100"
-            />
-            <div className="text-right text-xs text-slate-400">
-              {comment.length}/{MAX_COMMENT_LENGTH}
-            </div>
-          </label>
-
-          <section className="mt-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
-                Дети
-              </h4>
-              <button
-                type="button"
-                onClick={() => setChildren((prev) => [...prev, EMPTY_CHILD])}
-                className={buttonStyles("soft", "sm", "rounded-full")}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Добавить ребенка
-              </button>
-            </div>
-
-            {children.length > 0 ? (
-              <div className="space-y-3">
-                {children.map((child, index) => (
-                  <div
-                    key={`child-${index}`}
-                    className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_120px_44px]"
-                  >
-                    <label className="space-y-1 text-sm text-slate-600">
-                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Имя ребенка
-                      </span>
-                      <Input
-                        type="text"
-                        value={child.childName}
-                        onChange={(event) =>
-                          updateChild(index, {
-                            ...child,
-                            childName: event.target.value,
-                          })
-                        }
-                        maxLength={MAX_NAME_LENGTH}
-                        autoComplete="off"
-                        className={`${inputBaseClassName} ${
-                          validation.childErrors[index]
-                            ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                            : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
-                        }`}
-                      />
-                    </label>
-
-                    <label className="space-y-1 text-sm text-slate-600">
-                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Возраст
-                      </span>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={25}
-                        value={child.childAge || ""}
-                        onChange={(event) =>
-                          updateChild(index, {
-                            ...child,
-                            childAge: event.target.value ? Number(event.target.value) : 0,
-                          })
-                        }
-                        inputMode="numeric"
-                        className={`${inputBaseClassName} ${
-                          validation.childErrors[index]
-                            ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                            : "border-slate-200 focus:border-[#0066cc] focus:ring-blue-100"
-                        }`}
-                      />
-                    </label>
-
-                    <div className="flex items-end">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setChildren((prev) => prev.filter((_, childIndex) => childIndex !== index))
-                        }
-                        className={buttonStyles("softDanger", "md", "h-[46px] w-full rounded-xl px-0 text-slate-500 hover:text-rose-600")}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    {validation.childErrors[index] ? (
-                      <p className="text-xs text-rose-600 md:col-span-3">
-                        {validation.childErrors[index]}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
-                Дети не добавлены
-              </div>
-            )}
-          </section>
-
-          {error ? (
-            <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {error}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className={buttonStyles("secondary", "md", "rounded-xl")}
-          >
-            Отмена
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!validation.isValid || loading}
-            className={buttonStyles("primary", "md", "rounded-xl")}
-          >
-            {loading ? "Создание..." : "Создать лид"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return <ModalShell title="Новый лид" description="Добавьте контакт и учеников. Администратор филиала продолжит обработку заявки." placement="right" maxWidthClassName="max-w-[560px]" closeDisabled={saving} onClose={onClose} footer={
+    <div className="flex justify-between gap-2"><Button variant="secondary" disabled={saving} onClick={onClose}>Отмена</Button><Button disabled={saving} onClick={() => void submit()}>{saving ? "Сохранение…" : saved ? "Обновить список" : "Создать лид"}</Button></div>
+  }>
+    <form id="dispatcher-create-lead" onSubmit={event => { event.preventDefault(); void submit(); }}>
+      <FieldGroup>
+        <Field><FieldLabel htmlFor="lead-branch">Филиал *</FieldLabel><NativeSelect id="lead-branch" value={branchId} disabled={saving || saved} onChange={e => setBranchId(e.target.value)}><option value="">Выберите филиал</option>{branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</NativeSelect><FieldError>{attempted ? contactErrors.branch : ""}</FieldError></Field>
+        <Field><FieldLabel>Направление заявки</FieldLabel><ToggleGroup type="single" variant="outline" aria-label="Направление заявки" value={leadType} disabled={saving || saved} onValueChange={value => { if (value === "CHILDREN" || value === "ADULT") setLeadType(value); }}><ToggleGroupItem value="CHILDREN">Детский клуб</ToggleGroupItem><ToggleGroupItem value="ADULT">Взрослый ученик</ToggleGroupItem></ToggleGroup></Field>
+        <Field data-invalid={attempted && Boolean(contactErrors.name)}><FieldLabel htmlFor="lead-contact">{leadType === "ADULT" ? "Имя ученика / контакта *" : "Родитель / представитель *"}</FieldLabel><Input id="lead-contact" autoFocus value={name} maxLength={120} disabled={saving || saved} aria-invalid={attempted && Boolean(contactErrors.name)} onChange={e => setName(e.target.value)} /><FieldError>{attempted ? contactErrors.name : ""}</FieldError></Field>
+        <Field data-invalid={attempted && Boolean(contactErrors.phone)}><FieldLabel htmlFor="lead-phone">Телефон *</FieldLabel><Input id="lead-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 777 123 45 67" value={phone} maxLength={16} disabled={saving || saved} aria-invalid={attempted && Boolean(contactErrors.phone)} onChange={e => setPhone(formatPhoneInput(e.target.value))} /><FieldError>{attempted ? contactErrors.phone : ""}</FieldError></Field>
+        <Field data-invalid={attempted && Boolean(contactErrors.email)}><FieldLabel htmlFor="lead-email">Email</FieldLabel><Input id="lead-email" type="email" autoComplete="email" value={email} maxLength={160} disabled={saving || saved} aria-invalid={attempted && Boolean(contactErrors.email)} onChange={e => setEmail(e.target.value)} /><FieldError>{attempted ? contactErrors.email : ""}</FieldError></Field>
+        {visibleParticipants.map((participant,index) => <section key={index} className="rounded-xl border border-border p-4">
+          <div className="mb-4 flex items-center justify-between gap-2"><h3 className="ui-section-title">{leadType === "ADULT" ? "Данные ученика" : `Ученик ${index + 1}`}</h3>{leadType === "CHILDREN" && participants.length > 1 && <Button type="button" variant="ghost" size="sm" disabled={saving || saved} aria-label={`Удалить ученика ${index + 1}`} onClick={() => setParticipants(values => values.filter((_,i) => i !== index))}><Trash2 data-icon="inline-start" /></Button>}</div>
+          <FieldGroup>
+            {leadType === "CHILDREN" && <Field><FieldLabel htmlFor={`lead-student-${index}`}>Имя ученика *</FieldLabel><Input id={`lead-student-${index}`} value={participant.fullName} maxLength={120} disabled={saving || saved} aria-invalid={attempted && !participant.fullName.trim()} onChange={e => updateParticipant(index,{fullName:e.target.value})} /></Field>}
+            <Field><FieldLabel htmlFor={`lead-birth-${index}`}>Дата рождения *</FieldLabel><DatePicker id={`lead-birth-${index}`} placeholder={`Дата рождения ученика ${index + 1}`} value={participant.birthDate || ""} max={addBusinessDays(businessDate(),-1)} disabled={saving || saved} onValueChange={birthDate => updateParticipant(index,{birthDate})} /><FieldDescription>Укажите точную дату: она нужна для подбора группы.</FieldDescription></Field>
+            <Field><FieldLabel htmlFor={`lead-gender-${index}`}>Пол</FieldLabel><NativeSelect id={`lead-gender-${index}`} value={participant.gender} disabled={saving || saved} onChange={e => updateParticipant(index,{gender:e.target.value as "MALE" | "FEMALE"})}><option value="MALE">Мужской</option><option value="FEMALE">Женский</option></NativeSelect></Field>
+            <Field><FieldLabel htmlFor={`lead-experience-${index}`}>Подготовка</FieldLabel><NativeSelect id={`lead-experience-${index}`} value={participant.experience} disabled={saving || saved} onChange={e => updateParticipant(index,{experience:e.target.value})}><option value="BEGINNER">Начинающий</option><option value="INTERMEDIATE">Средний</option><option value="ADVANCED">Продвинутый</option></NativeSelect></Field>
+            <FieldError>{attempted ? participantErrors[index] : ""}</FieldError>
+          </FieldGroup>
+        </section>)}
+        {leadType === "CHILDREN" && <Button type="button" variant="secondary" disabled={saving || saved} onClick={() => setParticipants(values => [...values,newParticipant()])}><Plus data-icon="inline-start" />Добавить ученика</Button>}
+        <Field><FieldLabel htmlFor="lead-comment">Комментарий</FieldLabel><Textarea id="lead-comment" value={comment} maxLength={1000} disabled={saving || saved} onChange={e => setComment(e.target.value)} /><FieldDescription>{comment.length}/1000</FieldDescription></Field>
+        {saved && <Alert><AlertDescription>Лид создан. Повторное обновление списка не создаст дубликат.</AlertDescription></Alert>}
+        {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+      </FieldGroup>
+    </form>
+  </ModalShell>;
 };
-
 export default CreateLeadModal;

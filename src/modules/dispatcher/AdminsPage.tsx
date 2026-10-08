@@ -10,6 +10,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { Field, FieldLabel } from "../../shared/ui/shadcn/field";
 
 import { useAuth } from "../../shared/AuthContext";
 import { apiClient, getApiErrorMessage } from "../../shared/api";
@@ -32,6 +33,8 @@ import {
   PageShell,
   SectionCard,
   StatusBadge,
+  ToggleGroup,
+  ToggleGroupItem,
   formControlClassName,
   Table,
   TableBody,
@@ -100,6 +103,8 @@ const AdminsPage: React.FC = () => {
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [unassignTarget, setUnassignTarget] = useState<{ adminId: string; branchId: string; name: string } | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -140,8 +145,7 @@ const AdminsPage: React.FC = () => {
       const data = await apiClient.get<{ admins?: AdminApiDto[] }>("/dispatcher/admin");
       const rawAdmins = data.admins ?? [];
 
-      setAdmins(
-        rawAdmins.map((a) => ({
+      const refreshedAdmins = rawAdmins.map((a) => ({
           adminId: a.id,
           firstName: a.firstName,
           lastName: a.lastName,
@@ -156,8 +160,11 @@ const AdminsPage: React.FC = () => {
                 clubName: b.clubName,
               }))
             : [],
-        }))
-      );
+        }));
+      setAdmins(refreshedAdmins);
+      setSelectedAdmin((current) => current
+        ? refreshedAdmins.find((admin) => admin.adminId === current.adminId) ?? null
+        : null);
     } catch (err) {
       console.error(err);
       setError(getApiErrorMessage(err, "Не удалось загрузить администраторов"));
@@ -207,6 +214,7 @@ const AdminsPage: React.FC = () => {
   const unassignedAdmins = admins.filter((a) => a.branches.length === 0).length;
 
   const handleCreateAdmin = async () => {
+    if (pending) return;
     if (!createForm.email.trim() || !isValidEmail(createForm.email.trim())) {
       toast.error("Укажите корректный email");
       return;
@@ -228,6 +236,7 @@ const AdminsPage: React.FC = () => {
       return;
     }
 
+    setPending(true);
     try {
       const data = await apiClient.post<{ tempPassword?: string }>("/dispatcher/admin/register", {
         ...createForm,
@@ -249,6 +258,8 @@ const AdminsPage: React.FC = () => {
       await loadAdmins();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Ошибка создания администратора"));
+    } finally {
+      setPending(false);
     }
   };
 
@@ -263,6 +274,7 @@ const AdminsPage: React.FC = () => {
   };
 
   const handleEditAdmin = async () => {
+    if (pending) return;
     if (!selectedAdmin) return;
     if (!editForm.firstName.trim() || !editForm.lastName.trim()) {
       toast.error("Имя и фамилия обязательны");
@@ -273,6 +285,7 @@ const AdminsPage: React.FC = () => {
       return;
     }
 
+    setPending(true);
     try {
       await apiClient.put(`/dispatcher/admin/${selectedAdmin.adminId}`, {
         firstName: editForm.firstName.trim(),
@@ -285,16 +298,22 @@ const AdminsPage: React.FC = () => {
       await loadAdmins();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Ошибка сохранения"));
+    } finally {
+      setPending(false);
     }
   };
 
   const toggleStatus = async (adminId: string, nextActive: boolean) => {
+    if (pending) return;
+    setPending(true);
     try {
       await apiClient.patch(`/dispatcher/admin/${adminId}/status`, { active: nextActive });
       toast.success(nextActive ? "Администратор включен" : "Администратор отключен");
       await loadAdmins();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Ошибка смены статуса"));
+    } finally {
+      setPending(false);
     }
   };
 
@@ -305,11 +324,13 @@ const AdminsPage: React.FC = () => {
   };
 
   const handleAssignBranch = async () => {
+    if (pending) return;
     if (!selectedAdmin || !assignBranchId) {
       toast.error("Выберите филиал");
       return;
     }
 
+    setPending(true);
     try {
       await apiClient.patch(`/dispatcher/admin/${selectedAdmin.adminId}/assign-branch`, {
         branchId: assignBranchId,
@@ -320,20 +341,26 @@ const AdminsPage: React.FC = () => {
       await loadAdmins();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Ошибка назначения филиала"));
+    } finally {
+      setPending(false);
     }
   };
 
   const handleUnassignBranch = async (adminId: string, branchId: string) => {
-    if (!window.confirm("Открепить этот филиал у администратора?")) return;
+    if (pending) return;
+    setPending(true);
 
     try {
       await apiClient.patch(`/dispatcher/admin/${adminId}/unassign-branch`, { branchId });
       toast.success("Филиал откреплен");
+      setUnassignTarget(null);
       setShowDetailsModal(false);
       setSelectedAdmin(null);
       await loadAdmins();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Ошибка открепления филиала"));
+    } finally {
+      setPending(false);
     }
   };
 
@@ -355,6 +382,7 @@ const AdminsPage: React.FC = () => {
   };
 
   const handleDeleteAdmin = async () => {
+    if (pending) return;
     if (!selectedAdmin) return;
 
     if (deleteInput !== selectedAdmin.adminId) {
@@ -362,6 +390,7 @@ const AdminsPage: React.FC = () => {
       return;
     }
 
+    setPending(true);
     try {
       await apiClient.delete(`/dispatcher/admin/${selectedAdmin.adminId}`);
       toast.success("Администратор удален");
@@ -372,6 +401,8 @@ const AdminsPage: React.FC = () => {
       await loadAdmins();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Ошибка удаления администратора"));
+    } finally {
+      setPending(false);
     }
   };
 
@@ -392,7 +423,7 @@ const AdminsPage: React.FC = () => {
         }
       />
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 md:gap-3">
         <MetricCard title="Всего" value={totalAdmins} tone="neutral" />
         <MetricCard title="Активны" value={activeAdmins} tone="success" />
         <MetricCard title="Без филиала" value={unassignedAdmins} tone={unassignedAdmins ? "warning" : "neutral"} />
@@ -410,28 +441,23 @@ const AdminsPage: React.FC = () => {
             />
           </FormField>
 
-          <FormField label="Статус">
-            <div className="inline-flex w-full rounded-xl border border-slate-200 bg-slate-50 p-0.5">
+          <Field><FieldLabel>Статус</FieldLabel>
+            <ToggleGroup type="single" aria-label="Статус администратора" value={statusFilter} onValueChange={value => value && setStatusFilter(value as StatusFilter)} variant="outline" className="w-full">
               {[
                 ["all", "Все"],
                 ["active", "Активны"],
                 ["inactive", "Отключены"],
               ].map(([value, label]) => (
-                <button
+                <ToggleGroupItem
                   key={value}
-                  type="button"
-                  onClick={() => setStatusFilter(value as StatusFilter)}
-                  className={`flex-1 rounded-lg px-2 py-2 text-xs transition sm:text-sm ${
-                    statusFilter === value
-                      ? "bg-white text-slate-900"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
+                  value={value}
+                  className="flex-1"
                 >
                   {label}
-                </button>
+                </ToggleGroupItem>
               ))}
-            </div>
-          </FormField>
+            </ToggleGroup>
+          </Field>
         </div>
       </SectionCard>
 
@@ -442,19 +468,20 @@ const AdminsPage: React.FC = () => {
           <LoadingState label="Загрузка администраторов..." />
         ) : filteredAdmins.length === 0 ? (
           <EmptyState
-            title="Администраторы не найдены"
-            description="Измените фильтры или добавьте нового администратора."
+            title={admins.length ? "Администраторы не найдены" : "Добавьте администратора"}
+            description={admins.length ? "Измените поисковый запрос или статус." : "Назначьте администратора филиалу, чтобы он мог обрабатывать заявки."}
             action={
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
                 onClick={() => {
+                  if (!admins.length) { setShowCreateModal(true); return; }
                   setSearch("");
                   setStatusFilter("all");
                 }}
               >
-                Сбросить фильтры
+                {admins.length ? "Сбросить фильтры" : "Добавить администратора"}
               </Button>
             }
           />
@@ -504,7 +531,7 @@ const AdminsPage: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-sm text-slate-600">
-                      <div className="space-y-1">
+                      <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1.5">
                           <Mail className="h-4 w-4 text-slate-400" />
                           {admin.email || "Email не указан"}
@@ -567,15 +594,20 @@ const AdminsPage: React.FC = () => {
             setShowResetPasswordModal(true);
           }}
           onDelete={() => {
+            setShowDetailsModal(false);
             setDeleteInput("");
             setShowDeleteModal(true);
           }}
-          onUnassignBranch={handleUnassignBranch}
+          onUnassignBranch={(adminId, branchId) => {
+            setUnassignTarget({ adminId, branchId, name: selectedAdmin.branches.find(branch => branch.branchId === branchId)?.branchName || "Филиал" });
+            setShowDetailsModal(false);
+          }}
         />
       ) : null}
 
       {showCreateModal ? (
         <CreateAdminModal
+          pending={pending}
           form={createForm}
           branches={branches}
           onChange={setCreateForm}
@@ -586,6 +618,7 @@ const AdminsPage: React.FC = () => {
 
       {showEditModal && selectedAdmin ? (
         <EditAdminModal
+          pending={pending}
           admin={selectedAdmin}
           form={editForm}
           onChange={setEditForm}
@@ -596,6 +629,7 @@ const AdminsPage: React.FC = () => {
 
       {showAssignModal && selectedAdmin ? (
         <AssignBranchModal
+          pending={pending}
           admin={selectedAdmin}
           branches={branches}
           branchId={assignBranchId}
@@ -632,6 +666,7 @@ const AdminsPage: React.FC = () => {
 
       {showDeleteModal && selectedAdmin ? (
         <DeleteAdminModal
+          pending={pending}
           admin={selectedAdmin}
           value={deleteInput}
           onChange={setDeleteInput}
@@ -639,6 +674,7 @@ const AdminsPage: React.FC = () => {
           onDelete={handleDeleteAdmin}
         />
       ) : null}
+      {unassignTarget && <ModalShell title="Открепить филиал?" description={unassignTarget.name} closeDisabled={pending} maxWidthClassName="max-w-md" onClose={() => setUnassignTarget(null)} footer={<div className="flex justify-end gap-2"><Button variant="secondary" disabled={pending} onClick={() => setUnassignTarget(null)}>Отмена</Button><Button disabled={pending} onClick={() => void handleUnassignBranch(unassignTarget.adminId, unassignTarget.branchId)}>Открепить</Button></div>}><p className="text-sm text-muted-foreground">Администратор потеряет доступ к этому филиалу. Его можно назначить повторно.</p></ModalShell>}
     </PageShell>
   );
 };
@@ -676,7 +712,8 @@ const AdminDetailsModal: React.FC<{
 }> = ({ admin, onClose, onAssign, onEdit, onToggleStatus, onResetPassword, onDelete, onUnassignBranch }) => (
   <ModalShell
     title={`${admin.firstName} ${admin.lastName}`}
-    description={`ID: ${admin.adminId}`}
+    description="Контакты и доступ к филиалам"
+    placement="right"
     onClose={onClose}
     maxWidthClassName="max-w-2xl"
     footer={
@@ -701,7 +738,7 @@ const AdminDetailsModal: React.FC<{
       </div>
     }
   >
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-[#0066cc]">
@@ -740,7 +777,7 @@ const AdminDetailsModal: React.FC<{
             description="Назначьте хотя бы один филиал, чтобы администратор мог работать."
           />
         ) : (
-          <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+          <div className="max-h-64 flex flex-col gap-2 overflow-y-auto pr-1">
             {admin.branches.map((branch) => (
               <div
                 key={branch.branchId}
@@ -796,20 +833,23 @@ const CreateAdminModal: React.FC<{
     phone: string;
     assignedBranch: string;
   }>>;
+  pending: boolean;
   onClose: () => void;
   onSave: () => void | Promise<void>;
-}> = ({ form, branches, onChange, onClose, onSave }) => (
+}> = ({ form, branches, onChange, onClose, onSave, pending }) => (
   <ModalShell
     title="Создать администратора"
     description="После создания система покажет временный пароль один раз."
     onClose={onClose}
+    closeDisabled={pending}
+    placement="right"
     maxWidthClassName="max-w-xl"
     footer={
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={onClose}>
+        <Button type="button" variant="secondary" disabled={pending} onClick={onClose}>
           Отмена
         </Button>
-        <Button type="button" onClick={onSave}>
+        <Button type="button" disabled={pending} onClick={onSave}>
           Создать
         </Button>
       </div>
@@ -877,26 +917,29 @@ const EditAdminModal: React.FC<{
   admin: AdminView;
   form: { firstName: string; lastName: string; phone: string };
   onChange: React.Dispatch<React.SetStateAction<{ firstName: string; lastName: string; phone: string }>>;
+  pending: boolean;
   onClose: () => void;
   onSave: () => void | Promise<void>;
-}> = ({ admin, form, onChange, onClose, onSave }) => (
+}> = ({ admin, form, onChange, onClose, onSave, pending }) => (
   <ModalShell
     title="Редактировать администратора"
     description={`${admin.firstName} ${admin.lastName}`}
     onClose={onClose}
+    closeDisabled={pending}
+    placement="right"
     maxWidthClassName="max-w-lg"
     footer={
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={onClose}>
+        <Button type="button" variant="secondary" disabled={pending} onClick={onClose}>
           Отмена
         </Button>
-        <Button type="button" onClick={onSave}>
+        <Button type="button" disabled={pending} onClick={onSave}>
           Сохранить
         </Button>
       </div>
     }
   >
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <FormField label="Имя*">
         <Input
           type="text"
@@ -934,20 +977,23 @@ const AssignBranchModal: React.FC<{
   branches: BranchOption[];
   branchId: string;
   onChange: (value: string) => void;
+  pending: boolean;
   onClose: () => void;
   onSave: () => void | Promise<void>;
-}> = ({ admin, branches, branchId, onChange, onClose, onSave }) => (
+}> = ({ admin, branches, branchId, onChange, onClose, onSave, pending }) => (
   <ModalShell
     title="Назначить филиал"
     description={`${admin.firstName} ${admin.lastName}`}
     onClose={onClose}
+    closeDisabled={pending}
+    placement="right"
     maxWidthClassName="max-w-lg"
     footer={
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={onClose}>
+        <Button type="button" variant="secondary" disabled={pending} onClick={onClose}>
           Отмена
         </Button>
-        <Button type="button" onClick={onSave}>
+        <Button type="button" disabled={pending} onClick={onSave}>
           Сохранить
         </Button>
       </div>
@@ -956,7 +1002,7 @@ const AssignBranchModal: React.FC<{
     <FormField label="Филиал">
       <NativeSelect className={formControlClassName} value={branchId} onChange={(event) => onChange(event.target.value)}>
         <option value="">Выберите филиал</option>
-        {branches.map((branch) => (
+        {branches.filter(branch => !admin.branches.some(assigned => assigned.branchId === branch.branchId)).map((branch) => (
           <option key={branch.branchId} value={branch.branchId}>
             {branch.name}
           </option>
@@ -1007,6 +1053,7 @@ const ResetPasswordModal: React.FC<{
       title="Сбросить пароль"
       description={`Для администратора ${admin.firstName} ${admin.lastName} будет создан новый временный пароль.`}
       onClose={onClose}
+      closeDisabled={loading}
       maxWidthClassName="max-w-md"
       footer={
         <div className="flex justify-end gap-2">
@@ -1030,26 +1077,28 @@ const DeleteAdminModal: React.FC<{
   admin: AdminView;
   value: string;
   onChange: (value: string) => void;
+  pending: boolean;
   onClose: () => void;
   onDelete: () => void | Promise<void>;
-}> = ({ admin, value, onChange, onClose, onDelete }) => (
+}> = ({ admin, value, onChange, onClose, onDelete, pending }) => (
   <ModalShell
     title="Удалить администратора"
     description="Это действие нельзя отменить."
     onClose={onClose}
+    closeDisabled={pending}
     maxWidthClassName="max-w-md"
     footer={
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={onClose}>
+        <Button type="button" variant="secondary" disabled={pending} onClick={onClose}>
           Отмена
         </Button>
-        <Button type="button" variant="danger" disabled={value.length === 0} onClick={onDelete}>
+        <Button type="button" variant="danger" disabled={pending || value !== admin.adminId} onClick={onDelete}>
           Удалить
         </Button>
       </div>
     }
   >
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <p className="text-sm text-slate-600">
         Чтобы подтвердить удаление, введите ID администратора.
       </p>

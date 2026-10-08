@@ -13,6 +13,7 @@ export interface DispatcherLead {
   assignedAdminId: string | null;
   comment: string;
   createdAt: string;
+  leadType?: "CHILDREN" | "ADULT";
 }
 
 export interface DispatcherBranchOption {
@@ -21,10 +22,9 @@ export interface DispatcherBranchOption {
 }
 
 export interface CreateDispatcherLeadPayload {
-  parentName: string;
-  phone: string;
+  leadType: "CHILDREN" | "ADULT";
+  primaryContact: { fullName: string; phone: string; email?: string };
   branchId: string;
-  email?: string;
   comment?: string;
-  children?: DispatcherLeadChild[];
+  participants: Array<{ fullName: string; birthDate?: string; gender?: "MALE" | "FEMALE"; experience?: string }>;
 }
