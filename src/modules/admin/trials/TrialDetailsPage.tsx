@@ -1,9 +1,10 @@
+import { PageShell } from "../AdminPresentation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, ClipboardCheck, Mail, Phone, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../shared/api";
-import { ActionMenu, Button, ErrorState, LoadingState, PageShell, StatusBadge } from "../../../shared/ui";
+import { ActionMenu, Button, ErrorState, LoadingState, StatusBadge } from "../../../shared/ui";
 import { ShadcnButton } from "../../../shared/ui/shadcn/Button";
 import { Alert, AlertDescription, AlertTitle } from "../../../shared/ui/shadcn/alert";
 import { TrialsApi, attendanceLabels, coachRecommendationLabels, resultLabels, trialStatusLabels, trialStatusTone } from "./trials.api";

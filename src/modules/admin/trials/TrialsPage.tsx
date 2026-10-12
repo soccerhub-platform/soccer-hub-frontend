@@ -1,8 +1,9 @@
+import { SummaryStrip, PageHeader, PageShell, SectionCard, MetricCard } from "../AdminPresentation";
 import React, { useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, RefreshCw, Search, UserRoundPlus, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../shared/api";
-import { Button, EmptyState, ErrorState, LoadingState, NativeSelect, PageHeader, PageShell, StatusBadge } from "../../../shared/ui";
+import { Button, EmptyState, ErrorState, LoadingState, NativeSelect, StatusBadge } from "../../../shared/ui";
 import { ShadcnButton } from "../../../shared/ui/shadcn/Button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../../../shared/ui/shadcn/input-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../shared/ui/shadcn/Table";
@@ -12,7 +13,7 @@ import type { TrialBookingListItem, TrialsPageResponse } from "./trials.types";
 import { formatTrialDate, nextActionLabels, trialInterval, trialMatches, trialNextStep } from "./trial.workspace";
 
 import PeriodFilter from "../../../shared/operations/PeriodFilter";
-import {SectionCard,MetricCard,filtersClass} from "../../../shared/operations/WorkspacePresentation";
+import { filtersClass } from "../../../shared/operations/WorkspacePresentation";
 import {isValidPeriod} from "../../dispatcher/company/company.filters";
 import type {TrialListQuery} from "./trials.types";
 import TrialPreview from "./TrialPreview";
@@ -71,9 +72,10 @@ const TrialsPage: React.FC = () => {
       <ShadcnButton asChild variant="secondary"><Link to="/admin/schedule"><CalendarDays data-icon="inline-start"/>Расписание</Link></ShadcnButton>
       <ShadcnButton asChild><Link to="/admin/leads"><UserRoundPlus data-icon="inline-start"/>Записать из лида</Link></ShadcnButton>
     </>}/>
-    <SectionCard flush><div className={filtersClass}><PeriodFilter future from={from} to={to} onChange={(a,b)=>setParams(p=>{p.set("from",a);p.set("to",b);p.delete("page");return p;})}/><NativeSelect aria-label="Состояние пробного" value={status||"all"} onChange={e=>change("status",e.target.value)}><option value="all">Все состояния</option>{Object.entries({...trialStatusLabels,...attendanceLabels,...resultLabels}).map(([v,l])=><option value={v} key={v}>{l}</option>)}</NativeSelect><NativeSelect aria-label="Сортировка пробных" value={sort} onChange={e=>change("sort",e.target.value)}><option value="NEWEST">Сначала новые</option><option value="OLDEST">Сначала старые</option></NativeSelect></div></SectionCard>
-    <SectionCard flush><div className="grid grid-cols-2 divide-x divide-border sm:grid-cols-4">{Object.entries({SCHEDULED:"Запланировано",ATTENDED:"Посетили",NO_SHOW:"Не пришли",FOLLOW_UP:"Повторный контакт"}).map(([k,l])=><MetricCard key={k} title={l} value={data?.summary?.[k]||0} loading={loading} note="По всему выбранному периоду"/>)}</div></SectionCard>
+
+    <SummaryStrip columns={4} description="По выбранному периоду">{Object.entries({SCHEDULED:"Запланировано",ATTENDED:"Посетили",NO_SHOW:"Не пришли",FOLLOW_UP:"Повторный контакт"}).map(([k,l])=><MetricCard key={k} title={l} value={data?.summary?.[k]||0} loading={loading} note="По всему выбранному периоду"/>)}</SummaryStrip>
     <section className="trial-register" aria-label="Реестр пробных">
+    <SectionCard flush><div className={filtersClass}><PeriodFilter future from={from} to={to} onChange={(a,b)=>setParams(p=>{p.set("from",a);p.set("to",b);p.delete("page");return p;})}/><NativeSelect aria-label="Состояние пробного" value={status||"all"} onChange={e=>change("status",e.target.value)}><option value="all">Все состояния</option>{Object.entries({...trialStatusLabels,...attendanceLabels,...resultLabels}).map(([v,l])=><option value={v} key={v}>{l}</option>)}</NativeSelect><NativeSelect aria-label="Сортировка пробных" value={sort} onChange={e=>change("sort",e.target.value)}><option value="NEWEST">Сначала новые</option><option value="OLDEST">Сначала старые</option></NativeSelect></div></SectionCard>
       <div className="trial-register-toolbar">
         <ToggleGroup type="single" value={status} onValueChange={value => value && change("status", value)} className="flex-wrap justify-start" aria-label="Статус пробного занятия">
           {Object.entries(statusOptions).map(([value, label]) => <ToggleGroupItem key={value} value={value}>{label}</ToggleGroupItem>)}

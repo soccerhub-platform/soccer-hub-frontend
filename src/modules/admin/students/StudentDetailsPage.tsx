@@ -1,3 +1,4 @@
+import { PageShell, SectionCard, WorkspaceHeader, WorkspaceTabs } from "../AdminPresentation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { riskLabel } from './student.risk';
 import toast from "react-hot-toast";
@@ -17,21 +18,7 @@ import {
 } from "lucide-react";
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import type { MediaAsset } from "../../../shared/media.types";
-import {
-  Input,
-  Button,
-  DatePicker,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  ModalShell,
-  PageShell,
-  SectionCard,
-  WorkspaceBreadcrumbs,
-  WorkspaceHeader,
-  WorkspaceTabs,
-  formControlClassName,
- } from "../../../shared/ui";
+import { Input, Button, DatePicker, EmptyState, ErrorState, LoadingState, ModalShell, WorkspaceBreadcrumbs, formControlClassName } from "../../../shared/ui";
 import { StudentApi } from "./student.api";
 import StudentMembershipDrawers from "./StudentMembershipDrawers";
 import StudentAttendanceTab from "./StudentAttendanceTab";
@@ -511,7 +498,7 @@ const StudentDetailsPage: React.FC = () => {
   };
 
   return (
-    <PageShell className="max-w-none space-y-5 px-0 pb-4">
+    <PageShell className="px-0 pb-4">
       <WorkspaceBreadcrumbs
         items={[{ label: "Ученики", to: "/admin/students" }, { label: student.player.fullName }]}
         actions={(
@@ -580,7 +567,7 @@ const StudentDetailsPage: React.FC = () => {
       {activeSection === "overview" ? (
         <div className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-12">
-            <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-4">
+            <section className="rounded-xl border border-border bg-background p-4 xl:col-span-4">
               <h2 className="ui-section-title">Текущие группы</h2>
               <div className="mt-3 space-y-2">
                 {currentMemberships.slice(0, 3).map((item) => (
@@ -598,7 +585,7 @@ const StudentDetailsPage: React.FC = () => {
               <NavLink to={sectionPath("groups")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-admin-600">История участия в группах <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-3">
+            <section className="rounded-xl border border-border bg-background p-4 xl:col-span-3">
               <h2 className="ui-section-title">Следующее занятие</h2>
               {nextSessionAt && student.currentGroup ? (
                 <div className="mt-5 flex h-[calc(100%-2.25rem)] flex-col">
@@ -625,7 +612,7 @@ const StudentDetailsPage: React.FC = () => {
               ) : <EmptyState title="Занятие не запланировано" />}
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-2">
+            <section className="rounded-xl border border-border bg-background p-4 xl:col-span-2">
               <h2 className="ui-section-title">Требует внимания</h2>
               <div className="mt-3 space-y-2">
                 {student.risks.slice(0, 4).map((risk) => <button key={risk.code} type="button" onClick={() => openRisk(risk)} className="flex w-full items-start gap-2 rounded-md border border-slate-200 p-2.5 text-left transition hover:border-amber-200 hover:bg-amber-50"><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${riskIconClassName(risk)}`}><TriangleAlert className="h-4 w-4" /></span><span className="text-xs font-medium leading-5 text-slate-700">{riskLabel(risk)}</span></button>)}
@@ -633,13 +620,13 @@ const StudentDetailsPage: React.FC = () => {
               </div>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-3 xl:row-span-2">
+            <section className="rounded-xl border border-border bg-background p-4 xl:col-span-3 xl:row-span-2">
               <h2 className="ui-section-title">Последняя активность</h2>
               <div className="mt-3">{activityItems.length ? <ActivityTimeline items={activityItems} onNavigate={navigate} /> : <EmptyState title="Событий пока нет" />}</div>
               <NavLink to={sectionPath("activity")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-admin-600">Вся активность <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-5">
+            <section className="rounded-xl border border-border bg-background p-4 xl:col-span-5">
               <h2 className="ui-section-title">Посещаемость за последние 30 дней</h2>
               <div className="mt-4 grid grid-cols-4 gap-4">
                 <div><div className="ui-detail-title">{attendanceSummary?.attendanceRate ?? 0}%</div><div className="text-[11px] text-slate-500">Средняя</div></div>
@@ -654,7 +641,7 @@ const StudentDetailsPage: React.FC = () => {
               <NavLink to={sectionPath("attendance")} className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-admin-600">Открыть полную посещаемость <ChevronRight className="h-4 w-4" /></NavLink>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 xl:col-span-4">
+            <section className="rounded-xl border border-border bg-background p-4 xl:col-span-4">
               <h2 className="ui-section-title">Договор</h2>
               {contract ? <div className="mt-3 rounded-md border border-slate-200 p-3"><div className="flex items-center gap-2"><span className="ui-section-title">{contract.contractNumber}</span><span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Активен</span></div><div className="mt-1 text-xs text-slate-500">{formatDate(contract.startDate)} — {formatDate(contract.endDate)}</div><div className="mt-4 grid grid-cols-3 gap-3"><FinancialOverview label="Сумма" value={formatAmount(contract.amount, contract.currency)} /><FinancialOverview label="Оплачено" value={formatAmount(contract.paidAmount, contract.currency)} /><FinancialOverview label="Остаток" value={formatAmount(contract.outstandingAmount, contract.currency)} /></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${contract.amount ? Math.min(100, Math.round((contract.paidAmount / contract.amount) * 100)) : 0}%` }} /></div><Button className="mt-3" size="sm" variant="secondary" rounded="rounded-md" onClick={() => navigate(`/admin/contracts/${encodeURIComponent(contract.id)}/overview`)}>Открыть договор</Button></div> : <EmptyState title="Нет активного договора" />}
               <NavLink to={sectionPath("contracts")} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-admin-600">Все договоры <ChevronRight className="h-4 w-4" /></NavLink>

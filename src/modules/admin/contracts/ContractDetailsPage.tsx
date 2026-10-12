@@ -1,3 +1,4 @@
+import { SummaryStrip, PageShell, SectionCard, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs } from "../AdminPresentation";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Banknote,
@@ -13,28 +14,7 @@ import {
 import toast from "react-hot-toast";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../shared/api";
-import {
-  Button,
-  DatePicker,
-  DateTimePicker,
-  EmptyState,
-  EntitySheet,
-  ErrorState,
-  Input,
-  LoadingState,
-  PageShell,
-  SectionCard,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Textarea,
-  WorkspaceBreadcrumbs,
-  WorkspaceHeader,
-  WorkspaceMetric,
-  WorkspaceTabs,
-} from "../../../shared/ui";
+import { Button, DatePicker, DateTimePicker, EmptyState, EntitySheet, ErrorState, Input, LoadingState, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, WorkspaceBreadcrumbs } from "../../../shared/ui";
 import { ContractsApi } from "./contracts.api";
 import type {
   CancelReasonCode,
@@ -146,7 +126,7 @@ const ContractDetailsPage: React.FC = () => {
   const paidPercent = contract.amount > 0 ? Math.min(100, Math.round((Number(contract.paidAmount ?? 0) / contract.amount) * 100)) : 0;
 
   return (
-    <PageShell className="space-y-4">
+    <PageShell>
       <WorkspaceBreadcrumbs items={[{ label: "Договоры", to: "/admin/contracts" }, { label: contract.contractNumber }]} />
       <WorkspaceHeader
         actions={
@@ -172,12 +152,11 @@ const ContractDetailsPage: React.FC = () => {
         </div>
       </WorkspaceHeader>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <WorkspaceMetric icon={<Banknote />} label="Стоимость" value={money(contract.amount, contract.currency)} note={contract.paymentStatus === "PAID" ? "Оплачено полностью" : "По условиям договора"} />
+      <SummaryStrip columns={4} label="Обзор"><WorkspaceMetric icon={<Banknote />} label="Стоимость" value={money(contract.amount, contract.currency)} note={contract.paymentStatus === "PAID" ? "Оплачено полностью" : "По условиям договора"} />
         <WorkspaceMetric icon={<CheckCircle />} label="Оплачено" value={money(contract.paidAmount, contract.currency)} progress={paidPercent} note={`${paidPercent}% от суммы`} />
         <WorkspaceMetric icon={<Banknote />} label="Остаток" value={money(contract.outstandingAmount, contract.currency)} note={Number(contract.outstandingAmount ?? 0) > 0 ? "Требует оплаты" : "Задолженности нет"} />
         <WorkspaceMetric icon={<CalendarDays />} label="Период" value={date(contract.endDate)} note={`Начало: ${date(contract.startDate)}`} />
-      </div>
+      </SummaryStrip>
 
       <WorkspaceTabs items={sections.map((item) => ({ ...item, to: `/admin/contracts/${contract.id}/${item.key}` }))} />
 

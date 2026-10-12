@@ -1,0 +1,51 @@
+.admin-workspace { min-width: 0; }
+.admin-page-header { align-items: center; }
+.admin-page-header h1 { font-size: 26px; line-height: 1.2; }
+.admin-page-header p { font-size: 12px; line-height: 1.65; color: var(--dispatcher-muted-foreground); }
+.admin-summary, .admin-register { min-width: 0; overflow: hidden; border: 1px solid var(--dispatcher-border); border-radius: 12px; background: var(--dispatcher-background); }
+.admin-summary-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; padding: 12px 16px; border-bottom: 1px solid var(--dispatcher-border); }
+.admin-summary-heading h2 { font-size: 12px; font-weight: 600; }
+.admin-summary-heading p { font-size: 11px; color: var(--dispatcher-muted-foreground); }
+.admin-summary-grid { display: grid; grid-template-columns: repeat(var(--summary-columns, 4), minmax(0, 1fr)); }
+.admin-metric { display: flex; min-width: 0; flex-direction: column; align-items: stretch; gap: 5px; padding: 16px 20px; border: 1px solid var(--dispatcher-border); border-radius: 12px; background: var(--dispatcher-background); text-align: left; }
+.admin-summary-grid > .admin-metric { border: 0; border-left: 1px solid var(--dispatcher-border); border-radius: 0; }
+.admin-summary-grid > .admin-metric:first-child { border-left: 0; }
+button.admin-metric:hover { background: var(--dispatcher-muted); }
+button.admin-metric:focus-visible { outline: 2px solid var(--dispatcher-primary); outline-offset: -3px; }
+.admin-metric-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--dispatcher-muted-foreground); }
+.admin-metric-value { font-size: 28px; line-height: 1.3; font-weight: 600; letter-spacing: -.7px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.admin-metric-value[data-attention=true] { color: var(--dispatcher-destructive); }
+.admin-metric-note { font-size: 11px; line-height: 1.6; color: var(--dispatcher-muted-foreground); overflow-wrap: anywhere; }
+.admin-metric-progress { height: 4px; margin-top: 5px; border-radius: 4px; overflow: hidden; background: var(--dispatcher-muted); }
+.admin-metric-progress > span { display: block; height: 100%; background: var(--dispatcher-primary); }
+.admin-metric-compact .admin-metric-value { font-size: 22px; }
+.admin-workspace-tabs { position: static; padding: 0; background: transparent; }
+.admin-workspace-tabs a { font-size: 12px; padding: 12px 14px; }
+.admin-register > section, .admin-register > .admin-section { border: 0; border-radius: 0; }
+.admin-register > .admin-section { border-bottom: 1px solid var(--dispatcher-border); }
+.admin-register > section:last-child { border-bottom: 0; }
+.admin-register > .admin-toolbar { border-bottom: 1px solid var(--dispatcher-border); }
+.admin-register > section > .admin-toolbar { border-radius: 0; }
+.admin-register .admin-filter-panel { padding: 16px; border-bottom: 1px solid var(--dispatcher-border); background: var(--dispatcher-muted); }
+.admin-register :is(input, [data-slot=select-trigger]) { font-size: 12px; }
+.admin-workspace table thead { background: color-mix(in srgb, var(--dispatcher-muted) 40%, var(--dispatcher-background)); }
+.admin-workspace table th { height: 40px; font-size: 11px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--dispatcher-muted-foreground); }
+.admin-workspace table td { font-size: 12px; padding-top: 12px; padding-bottom: 12px; }
+.admin-workspace table :is(.ui-card-title, .ui-section-title) { font-size: 13px; line-height: 1.5; }
+@media (max-width: 767px) {
+  .admin-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-summary-grid > .admin-metric { border-top: 1px solid var(--dispatcher-border); }
+  .admin-summary-grid > .admin-metric:nth-child(-n+2) { border-top: 0; }
+  .admin-summary-grid > .admin-metric:nth-child(odd) { border-left: 0; }
+  .admin-metric { padding: 14px 16px; }
+  .admin-metric-value { font-size: 24px; }
+  .admin-page-header h1 { font-size: 23px; }
+  .admin-page-header > div:last-child { max-width: 100%; }
+}
+@media (max-width: 479px) {
+  .admin-page-header { align-items: flex-start; }
+}
+
+.admin-entity-header h1 { font-size: 26px; line-height: 1.2; }
+.admin-content > .dispatcher-workspace h1 { font-size: 26px; }
+.admin-register > div:has(> table), .admin-register > div > div:has(> table) { border: 0; border-radius: 0; }

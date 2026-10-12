@@ -1,27 +1,10 @@
+import { SummaryStrip, Registry, FilterBar, MetricCard, PageHeader, PageShell } from "../AdminPresentation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ChevronRight, FileText, Plus, Search, Wallet } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../shared/api";
-import {
-  Button,
-  DataTable,
-  EmptyState,
-  ErrorState,
-  FilterBar,
-  Input,
-  LoadingState,
-  MetricCard,
-  PageHeader,
-  PageShell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  StatusBadge,
-  type StatusTone,
-} from "../../../shared/ui";
+import { Button, DataTable, EmptyState, ErrorState, Input, LoadingState, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, type StatusTone } from "../../../shared/ui";
 import { useAdminBranch } from "../BranchContext";
 import ContractCreateDrawer from "./ContractCreateDrawer";
 import { ContractsApi } from "./contracts.api";
@@ -169,19 +152,20 @@ const ContractsPage: React.FC = () => {
   if (!branchId) return null;
 
   return (
-    <PageShell className="space-y-4">
+    <PageShell>
       <PageHeader
         title="Договоры"
         description="Коммерческие условия между клиентом и учеником"
         actions={<Button onClick={() => updateQuery("drawer", "create-contract")}><Plus className="h-4 w-4" /> Создать договор</Button>}
       />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <SummaryStrip columns={3} description="По текущей выдаче">
         <MetricCard icon={<FileText />} title="Всего в выдаче" value={data?.totalElements ?? 0} note="С учётом фильтров" />
         <MetricCard icon={<FileText />} title="Активные на странице" value={pageSummary.active} note={`Черновиков: ${pageSummary.drafts}`} />
         <MetricCard icon={<Wallet />} title="Остаток по действующим" value={money(pageSummary.debt)} note="Без отменённых договоров" tone={pageSummary.debt > 0 ? "danger" : "success"} />
-      </div>
+      </SummaryStrip>
 
+      <Registry label="Реестр договоров">
       <FilterBar>
         <div className="relative min-w-0 flex-1 sm:max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -220,6 +204,8 @@ const ContractsPage: React.FC = () => {
           } : undefined}
         />
       )}
+
+      </Registry>
 
       {createOpen ? (
         <ContractCreateDrawer

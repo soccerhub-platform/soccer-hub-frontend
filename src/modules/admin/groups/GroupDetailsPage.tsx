@@ -1,3 +1,4 @@
+import { PageShell, SectionCard, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs } from "../AdminPresentation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -30,25 +31,7 @@ import GroupScheduleTab from "./schedule/GroupScheduleTab";
 import GroupAvatar from "./components/GroupAvatar";
 import type { MediaAsset } from "../../../shared/media.types";
 import toast from "react-hot-toast";
-import {
-  Input,
-  Textarea,
-  NativeSelect,
-  Button,
-  ActionMenu,
-  ErrorState,
-  FormField,
-  formControlClassName,
-  LoadingState,
-  ModalShell,
-  PageShell,
-  SectionCard,
-  StatusBadge,
-  WorkspaceBreadcrumbs,
-  WorkspaceHeader,
-  WorkspaceMetric,
-  WorkspaceTabs,
-   } from "../../../shared/ui";
+import { Input, Textarea, NativeSelect, Button, ActionMenu, ErrorState, FormField, formControlClassName, LoadingState, ModalShell, StatusBadge, WorkspaceBreadcrumbs } from "../../../shared/ui";
 
 const groupStatusLabels: Record<AdminGroupDetailsModel["status"], string> = {
   ACTIVE: "Активна",
@@ -323,7 +306,7 @@ const GroupDetailsPage: React.FC = () => {
   }
 
   return (
-    <PageShell className="max-w-none space-y-5 px-0 pb-4">
+    <PageShell className="px-0 pb-4">
       <WorkspaceBreadcrumbs items={[{ label: "Группы", to: "/admin/groups" }, { label: group.name }]} />
 
       <WorkspaceHeader

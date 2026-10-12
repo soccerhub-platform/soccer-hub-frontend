@@ -1,3 +1,4 @@
+import { SummaryStrip, Registry, FilterBar, MetricCard, PageHeader, PageShell } from "../AdminPresentation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -14,25 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../shared/api";
-import {
-  Button,
-  DataTable,
-  EmptyState,
-  ErrorState,
-  FilterBar,
-  Input,
-  LoadingState,
-  MetricCard,
-  PageHeader,
-  PageShell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  StatusBadge,
-  type StatusTone,
-} from "../../../shared/ui";
+import { Button, DataTable, EmptyState, ErrorState, Input, LoadingState, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, type StatusTone } from "../../../shared/ui";
 import { useAdminBranch } from "../BranchContext";
 import { ClientApi } from "./client.api";
 import ClientOnboardingDrawer from "./ClientOnboardingDrawer";
@@ -283,7 +266,7 @@ const ClientsPage: React.FC = () => {
         actions={<Button onClick={() => updateQuery("drawer", "create-client")}><Plus className="h-4 w-4" /> Оформить клиента</Button>}
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <SummaryStrip columns={4} description="По текущей выдаче">
         <MetricCard icon={<UsersRound />} title="Клиентов в выдаче" value={summary.clients} note={`Активных: ${summary.activeClients}`} />
         <MetricCard icon={<Users />} title="Связанных учеников" value={summary.students} note="В текущей выдаче" />
         <MetricCard icon={<FileText />} title="Активные договоры" value={summary.contracts} note="В текущей выдаче" tone="violet" />
@@ -294,8 +277,9 @@ const ClientsPage: React.FC = () => {
           note={summary.debt > 0 ? "Требует внимания" : "Задолженности нет"}
           tone={summary.debt > 0 ? "danger" : "success"}
         />
-      </div>
+      </SummaryStrip>
 
+      <Registry label="Реестр клиентов">
       <FilterBar
         trailing={(
           <Select value={sort} onValueChange={(value) => updateQuery("sort", value)}>
@@ -330,7 +314,7 @@ const ClientsPage: React.FC = () => {
       </FilterBar>
 
       {filtersOpen || activeFilters ? (
-        <section className="grid gap-3 rounded-2xl border border-black/8 bg-white p-4 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto] xl:items-end">
+        <section className="admin-filter-panel grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto] xl:items-end">
           <FilterSelect label="Статус клиента" value={status} onChange={(value) => updateQuery("status", value)} options={[
             ["ALL", "Все статусы"], ["ACTIVE", "Активные"], ["NEW", "Новые"], ["IN_PROGRESS", "В работе"],
             ["CONTRACT_PENDING", "Оформление договора"], ["PAUSED", "Приостановленные"], ["INACTIVE", "Неактивные"],
@@ -382,6 +366,8 @@ const ClientsPage: React.FC = () => {
           </Select>
         </div>
       ) : null}
+
+      </Registry>
 
       {createOpen && branchId ? (
         <ClientOnboardingDrawer

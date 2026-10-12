@@ -1,3 +1,4 @@
+import { PageShell, SectionCard } from "./AdminPresentation";
 import React from "react";
 import UserProfilePage from "../../shared/profile/UserProfilePage";
 
@@ -5,6 +6,7 @@ const AdminProfilePage: React.FC = () => {
   return (
     <UserProfilePage
       scope="admin"
+      presentation={{ PageShell, SectionCard }}
       roleLabel="Администратор филиала"
       roleDescription="Управляет лидами, группами, тренерами, расписанием и операционной аналитикой выбранного филиала."
       workspaceTitle="Мой филиал"

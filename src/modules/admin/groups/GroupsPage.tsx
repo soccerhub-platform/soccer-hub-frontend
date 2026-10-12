@@ -1,3 +1,4 @@
+import { SummaryStrip, Registry, MetricCard, PageHeader, PageShell, SectionCard } from "../AdminPresentation";
 import React, { useEffect, useMemo, useState } from "react";
 import GroupFilters, { GroupHealthFilter } from "./components/GroupFilters";
 import GroupsTable from "./components/GroupsTable";
@@ -8,16 +9,7 @@ import {
 } from "./group.api";
 import { useAdminBranch } from "../BranchContext";
 import CreateGroupModal from "./components/CreateGroupModal";
-import {
-  Button,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  MetricCard,
-  PageHeader,
-  PageShell,
-  SectionCard,
-} from "../../../shared/ui";
+import { Button, EmptyState, ErrorState, LoadingState } from "../../../shared/ui";
 import {
   BadgeCheck,
   TriangleAlert,
@@ -137,7 +129,7 @@ const GroupsPage: React.FC = () => {
         }
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <SummaryStrip columns={4} description="По выбранному филиалу">
         <MetricCard
           icon={<Users className="h-6 w-6" />}
           title="Все группы"
@@ -166,8 +158,9 @@ const GroupsPage: React.FC = () => {
           note="неактивные группы"
           tone="neutral"
         />
-      </div>
+      </SummaryStrip>
 
+      <Registry label="Реестр групп">
       <SectionCard className="p-4">
         <GroupFilters value={filters} onChange={setFilters} />
       </SectionCard>
@@ -184,6 +177,8 @@ const GroupsPage: React.FC = () => {
       ) : (
         <GroupsTable groups={filteredGroups} />
       )}
+
+      </Registry>
 
       {showCreate && (
         <CreateGroupModal

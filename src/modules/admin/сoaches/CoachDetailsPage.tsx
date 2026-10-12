@@ -1,3 +1,4 @@
+import { SummaryStrip, PageShell, SectionCard, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs } from "../AdminPresentation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -22,7 +23,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../../../shared/AuthContext";
 import { resolveApiUrl } from "../../../shared/api";
 import { useAdminBranch } from "../BranchContext";
-import { ActionMenu, Input, Textarea, Button, DatePicker, DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, EmptyState, ErrorState, FormField, LoadingState, ModalShell, PageShell, SectionCard, TimePicker, WorkspaceBreadcrumbs, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs, formControlClassName  } from "../../../shared/ui";
+import { ActionMenu, Input, Textarea, Button, DatePicker, DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, EmptyState, ErrorState, FormField, LoadingState, ModalShell, TimePicker, WorkspaceBreadcrumbs, formControlClassName } from "../../../shared/ui";
 import { CoachApi, CoachAvailability, CoachGroupAssignmentHistoryItem, CoachProfile, CoachStatus, TrainerActivityResponse, TrainerOverview } from "./coach.api";
 import { GroupApi } from "../groups/group.api";
 import CoachScheduleTab from "./CoachScheduleTab";
@@ -377,7 +378,7 @@ const CoachDetailsPage: React.FC = () => {
   }
 
   return (
-    <PageShell className="max-w-none space-y-5">
+    <PageShell>
       <WorkspaceBreadcrumbs items={[{ label: "Тренеры", to: "/admin/coaches" }, { label: profile ? `${profile.firstName} ${profile.lastName}` : "Профиль" }]} />
 
       {error ? (
@@ -549,13 +550,12 @@ const CoachOverviewTab: React.FC<{
   const maxDailyLoad = Math.max(1, ...dailyLoad.map((item) => item.count));
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <WorkspaceMetric icon={<Users />} iconClassName="bg-emerald-50 text-emerald-700" label="Активные группы" value={String(profile.groups.length)} note="Смотреть группы" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/groups`)} />
+      <SummaryStrip columns={5} label="Обзор"><WorkspaceMetric icon={<Users />} iconClassName="bg-emerald-50 text-emerald-700" label="Активные группы" value={String(profile.groups.length)} note="Смотреть группы" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/groups`)} />
         <WorkspaceMetric icon={<CalendarDays />} iconClassName="bg-sky-50 text-sky-700" label="Занятия сегодня" value={String(todaySessions.length)} note="Смотреть расписание" onClick={() => onNavigate(`/admin/coaches/${profile.coachId}/schedule`)} />
         <WorkspaceMetric icon={<ChartBar />} iconClassName="bg-violet-50 text-violet-700" label="Загрузка на неделю" value={`${loadPercent}%`} progress={loadPercent} />
         <WorkspaceMetric icon={<CalendarDays />} iconClassName="bg-amber-50 text-amber-700" label="Начало отпуска" value={profile.vacationFrom ? formatDate(profile.vacationFrom) : "Не задан"} note={profile.vacationTo ? `до ${formatDate(profile.vacationTo)}` : undefined} />
         <WorkspaceMetric icon={<RefreshCw />} iconClassName={overview?.substitutionsThisWeek ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"} label="Замены на этой неделе" value={String(overview?.substitutionsThisWeek ?? 0)} />
-      </div>
+      </SummaryStrip>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.95fr_0.85fr]">
         <SectionCard title={todaySessions.length ? "Сегодня" : "Ближайшее занятие"}>

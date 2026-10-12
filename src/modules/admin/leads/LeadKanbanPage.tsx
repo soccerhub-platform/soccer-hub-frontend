@@ -1,3 +1,4 @@
+import { PageHeader, PageShell } from "../AdminPresentation";
 import React, { useEffect, useState, useMemo } from "react";
 import {
   ArrowUpRight, Search, RefreshCw, Bookmark, Columns3, List, SlidersHorizontal,
@@ -7,14 +8,7 @@ import {
 import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../shared/AuthContext";
-import {
-  Button,
-  EmptyState,
-  ErrorState,
-  PageHeader,
-  PageShell,
-  Skeleton,
-} from "../../../shared/ui";
+import { Button, EmptyState, ErrorState, Skeleton } from "../../../shared/ui";
 import { useAdminBranch } from "../BranchContext";
 import LeadKanbanColumn from "./LeadKanbanColumn";
 import {

@@ -1,7 +1,8 @@
+import { PageShell } from "../AdminPresentation";
 import React from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../../shared/AuthContext";
-import { EmptyState, ErrorState, PageShell } from "../../../shared/ui";
+import { EmptyState, ErrorState } from "../../../shared/ui";
 import { useAdminBranch } from "../BranchContext";
 import LeadDrawer from "./LeadDrawer";
 import { LeadAction } from "./types";

@@ -1,3 +1,4 @@
+import { SummaryStrip, Registry, MetricCard, PageHeader, PageShell, SectionCard } from "./AdminPresentation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   RefreshCw,
@@ -10,29 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../../shared/api";
-import {
-  Input,
-  Textarea,
-  NativeSelect,
-  Button,
-  Badge,
-  DatePicker,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  MetricCard,
-  ModalShell,
-  PageHeader,
-  PageShell,
-  SectionCard,
-  StatusBadge,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-   } from "../../shared/ui";
+import { Input, Textarea, NativeSelect, Button, Badge, DatePicker, EmptyState, ErrorState, LoadingState, ModalShell, StatusBadge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../shared/ui";
 import { useAuth } from "../../shared/AuthContext";
 import { useAdminBranch } from "./BranchContext";
 import { ContractsApi } from "./contracts/contracts.api";
@@ -228,16 +207,17 @@ const PaymentsPage: React.FC = () => {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <SummaryStrip columns={4} description="По текущей выдаче">
         <MetricCard title="Всего" value={summary.total} icon={<CreditCard />} tone="info" />
         <MetricCard title="Активны" value={summary.active} icon={<CreditCard />} tone="success" />
         <MetricCard title="Отменены" value={summary.cancelled} icon={<Ban />} tone="danger" />
         <MetricCard title="Сумма" value={formatAmount(summary.amount)} icon={<CreditCard />} tone="info" />
-      </div>
+      </SummaryStrip>
 
+      <Registry label="Реестр платежей">
       <SectionCard
-        title="Фильтры"
-        description="Поиск по договору, клиенту, игроку, идентификатору платежа или комментарию. Дополнительно можно сузить по статусу, методу и диапазону дат."
+        title="Журнал платежей"
+        description="Поиск, статус, способ оплаты и период"
         icon={<CreditCard className="h-4 w-4" />}
       >
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
@@ -286,11 +266,7 @@ const PaymentsPage: React.FC = () => {
 
       </SectionCard>
 
-      <SectionCard
-        title="Журнал платежей"
-        description="Список ручных оплат с быстрым переходом в договор и отменой записи."
-        icon={<CreditCard className="h-4 w-4" />}
-      >
+      <SectionCard flush>
         {error ? (
           <ErrorState message={error} onRetry={() => void loadPayments("refresh")} />
         ) : loading ? (
@@ -375,6 +351,7 @@ const PaymentsPage: React.FC = () => {
           </Table>
         )}
       </SectionCard>
+      </Registry>
 
       {selectedPayment ? (
         <PaymentDetailsModal

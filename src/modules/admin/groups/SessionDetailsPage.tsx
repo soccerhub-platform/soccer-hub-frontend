@@ -1,3 +1,4 @@
+import { MetricCard, PageShell } from "../AdminPresentation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -13,22 +14,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../../shared/AuthContext";
-import {
-  Textarea,
-  NativeSelect,
-  Button,
-  ActionMenu,
-  DateTimePicker,
-  ErrorState,
-  FormField,
-  formControlClassName,
-  LoadingState,
-  MetricCard,
-  ModalShell,
-  PageShell,
-  StatusBadge,
-  type StatusTone,
-   } from "../../../shared/ui";
+import { Textarea, NativeSelect, Button, ActionMenu, DateTimePicker, ErrorState, FormField, formControlClassName, LoadingState, ModalShell, StatusBadge, type StatusTone } from "../../../shared/ui";
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import { useAdminBranch } from "../BranchContext";
 import { Coach, CoachApi } from "../сoaches/coach.api";
@@ -193,7 +179,7 @@ const SessionDetailsPage: React.FC = () => {
         : `${session.attendance.marked} из ${session.attendance.total} учеников отмечено`;
 
   return (
-    <PageShell className="space-y-4">
+    <PageShell>
       <button type="button" onClick={() => navigate(backTo)} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-admin-600">
         <ArrowLeft className="h-4 w-4" />{fromCalendar || !groupId ? "К занятиям" : "Расписание группы"}
       </button>

@@ -1,7 +1,8 @@
+import { SectionCard } from "../AdminPresentation";
 import {useQuery,useQueryClient} from "@tanstack/react-query";
-import {ErrorState,LoadingState} from "../../../shared/ui";
+import { ErrorState, LoadingState } from "../../../shared/ui";
 import {getApiErrorMessage} from "../../../shared/api";
-import {SectionCard} from "../../../shared/operations/WorkspacePresentation";
+
 import {AdminOperationsApi} from "./operations.api";
 import {dateTime,OUTCOMES} from "../../dispatcher/operations/operations.format";
 import {dateLabel} from "../../dispatcher/company/company.api";

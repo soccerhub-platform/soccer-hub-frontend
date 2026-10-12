@@ -1,3 +1,4 @@
+import { SummaryStrip, Registry, MetricCard, PageHeader, PageShell, SectionCard } from "../AdminPresentation";
 import React, { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
@@ -48,40 +49,7 @@ import {
 } from "./coach.api";
 import CreateCoachModal from "./CreateCoachModal";
 import { GroupApi, GroupApiModel } from "../groups/group.api";
-import {
-  Input,
-  Textarea,
-  NativeSelect,
-  Button,
-  Checkbox,
-  DatePicker,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  EmptyState,
-  EntitySheet,
-  ErrorState,
-  FormField,
-  LoadingState,
-  ModalShell,
-  PageHeader,
-  PageShell,
-  RadioGroup,
-  RadioGroupItem,
-  SectionCard,
-  Skeleton,
-  StatusBadge as SharedStatusBadge,
-  formControlClassName,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-   } from "../../../shared/ui";
+import { Input, Textarea, NativeSelect, Button, Checkbox, DatePicker, DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, EmptyState, EntitySheet, ErrorState, FormField, LoadingState, ModalShell, RadioGroup, RadioGroupItem, Skeleton, StatusBadge as SharedStatusBadge, formControlClassName, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../shared/ui";
 import { ApiError, resolveApiUrl } from "../../../shared/api";
 
 type StatusFilter = CoachOverviewStatus;
@@ -660,13 +628,14 @@ const CoachesPage: React.FC = () => {
         }
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <SummaryStrip columns={4} description="По выбранному филиалу">
         <CoachMetric icon={<Users className="h-6 w-6" />} label="Все тренеры" value={overview.summary.total} hint="в текущем филиале" tone="info" />
         <CoachMetric icon={<CheckCircle className="h-6 w-6" />} label="Активные" value={overview.summary.active} hint="готовы к назначениям" tone="success" />
         <CoachMetric icon={<TriangleAlert className="h-6 w-6" />} label="Требуют внимания" value={overview.summary.withoutGroups + overview.summary.overloaded} hint="без групп или перегружены" tone={overview.summary.withoutGroups + overview.summary.overloaded > 0 ? "warning" : "success"} />
         <CoachMetric icon={<CalendarDays className="h-6 w-6" />} label="Ведут сегодня" value={overview.summary.withSessionsToday} hint="есть занятия сегодня" tone="neutral" />
-      </div>
+      </SummaryStrip>
 
+      <Registry label="Реестр тренеров">
       <SectionCard className="p-4">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {statusFilters.map((item) => (
@@ -720,19 +689,14 @@ const CoachesPage: React.FC = () => {
             Фильтры{advancedFilterCount > 0 ? ` ${advancedFilterCount}` : ""}
           </button>
 
-          <label className="relative inline-flex h-10 w-full items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-slate-300 xl:w-[320px]">
-            <ChevronsUpDown className="mr-2 h-4 w-4" />
-            <span className="mr-1 text-muted-foreground">Сортировка:</span>
-            <NativeSelect
-              aria-label="Сортировка тренеров"
-              value={sortValue}
-              onChange={(event) => changeSortOption(event.target.value)}
-              className="w-full appearance-none bg-transparent pr-5 outline-hidden"
-            >
-              {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </NativeSelect>
-            <ChevronDown className="pointer-events-none absolute right-2 h-4 w-4" />
-          </label>
+          <NativeSelect
+            aria-label="Сортировка тренеров"
+            value={sortValue}
+            onChange={(event) => changeSortOption(event.target.value)}
+            className="w-full xl:w-52"
+          >
+            {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </NativeSelect>
         </div>
       </SectionCard>
 
@@ -767,7 +731,7 @@ const CoachesPage: React.FC = () => {
         />
       ) : (
         <div>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto border-y border-border">
             <Table className="min-w-[1080px]">
               <TableHeader><TableRow className="hover:bg-transparent">
                 <TableHead><SortableHeader label="Тренер" sortKey="lastName" currentSort={sort} onSort={changeSort} /></TableHead>
@@ -797,7 +761,7 @@ const CoachesPage: React.FC = () => {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-2 text-sm text-slate-700">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-xs text-muted-foreground">
             <div>
               Показано {pageStart}-{pageEnd} из {totalElements} тренеров
             </div>
@@ -827,6 +791,8 @@ const CoachesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      </Registry>
 
       {showCreate ? (
         <CreateCoachModal
@@ -886,25 +852,7 @@ const CoachMetric: React.FC<{
   hint: string;
   tone: "neutral" | "success" | "warning" | "info";
 }> = ({ icon, label, value, hint, tone }) => {
-  const toneClassName = {
-    neutral: "bg-slate-100 text-slate-600",
-    success: "bg-emerald-50 text-emerald-700",
-    warning: "bg-amber-50 text-amber-700",
-    info: "bg-blue-50 text-admin-600",
-  }[tone];
-
-  return (
-    <div className="flex min-h-[96px] items-center gap-4 rounded-lg border border-slate-200 bg-white p-4">
-      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${toneClassName}`}>{icon}</span>
-      <div className="min-w-0">
-        <div className="text-sm font-medium text-slate-600">{label}</div>
-        <div className="mt-1 flex items-end gap-2">
-          <span className="text-[26px] font-semibold leading-none text-slate-950">{value}</span>
-          <span className="pb-0.5 text-xs text-muted-foreground">{hint}</span>
-        </div>
-      </div>
-    </div>
-  );
+  return <MetricCard icon={icon} title={label} value={value} note={hint} tone={tone} />;
 };
 
 const FilterChip: React.FC<{ label: string; onClear: () => void }> = ({ label, onClear }) => (

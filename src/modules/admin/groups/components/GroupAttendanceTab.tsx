@@ -1,3 +1,4 @@
+import { MetricCard } from "../../AdminPresentation";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -15,13 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { useAuth } from "../../../../shared/AuthContext";
-import {
-  Button,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  MetricCard,
-} from "../../../../shared/ui";
+import { Button, EmptyState, ErrorState, LoadingState } from "../../../../shared/ui";
 import {
   AdminGroupAttendanceOutput,
   AdminGroupAttendanceSession,
