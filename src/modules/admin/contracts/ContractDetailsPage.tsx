@@ -44,7 +44,10 @@ import type {
   PaymentMethod,
 } from "./contracts.types";
 
+import {businessLocalDateTime,sessionTimestamp} from "../../../shared/business-time";
+import FollowUpPanel from "../operations/FollowUpPanel";
 const sections = [
+  {key:"follow-up",label:"Сопровождение"},
   { key: "overview", label: "Обзор" },
   { key: "payments", label: "Платежи" },
   { key: "history", label: "Изменения" },
@@ -61,7 +64,7 @@ const statusLabels: Record<ContractStatus, string> = {
 const money = (value?: number | null, currency = "KZT") =>
   `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Number(value ?? 0))} ${currency}`;
 const date = (value?: string | null) => value ? new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" }).format(new Date(value)) : "Без срока";
-const dateTime = (value?: string | null) => value ? new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—";
+const dateTime = (value?: string | null) => value ? new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short",timeZone:"Asia/Almaty" }).format(new Date(sessionTimestamp(value))) : "—";
 
 const ContractDetailsPage: React.FC = () => {
   const { contractId, section } = useParams<{ contractId: string; section: string }>();
@@ -178,6 +181,7 @@ const ContractDetailsPage: React.FC = () => {
 
       <WorkspaceTabs items={sections.map((item) => ({ ...item, to: `/admin/contracts/${contract.id}/${item.key}` }))} />
 
+      {activeSection === "follow-up" && <FollowUpPanel id={contract.id} branchId={contract.branchId} status={contract.status}/>}
       {activeSection === "overview" ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.8fr)]">
           <div className="space-y-4">
@@ -313,7 +317,7 @@ const CancelDrawer: React.FC<{ contract: ContractDetails; onClose: () => void; o
 const PaymentDrawer: React.FC<{ contract: ContractDetails; onClose: () => void; onSaved: () => void }> = ({ contract, onClose, onSaved }) => {
   const [amount, setAmount] = useState(String(Math.max(Number(contract.outstandingAmount ?? 0), 0)));
   const [method, setMethod] = useState<PaymentMethod>("KASPI");
-  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 16));
+  const [paidAt, setPaidAt] = useState(businessLocalDateTime());
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const submit = async () => { setSaving(true); try { await ContractsApi.createPayment({ contractId: contract.id, amount: Number(amount), currency: contract.currency, method, paidAt, comment: comment || undefined }); onSaved(); } catch (reason) { toast.error(getApiErrorMessage(reason, "Не удалось добавить оплату")); } finally { setSaving(false); } };

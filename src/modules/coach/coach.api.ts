@@ -29,6 +29,7 @@ export type CoachTrialRecommendation =
   | "NOT_RECOMMENDED";
 
 export interface CoachTrialStudent {
+  version: number;
   trialBookingId: string;
   studentId?: string | null;
   name: string;
@@ -49,6 +50,9 @@ export interface CoachSessionCard {
   date: string;
   time: string;
   studentCount: number;
+  unmarkedAttendance:number;
+  trialsWithoutRecommendation:number;
+  reportStatus?:string;
   status: CoachSessionStatus;
   cancelReason?: string | null;
   reportDone: boolean;
@@ -100,6 +104,9 @@ export interface CoachHistoryItem {
 }
 
 export interface CoachHistoryResponse {
+  summary:Record<string,number>;
+  attendance?:Record<string,number>;
+  workload?:Array<{name:string;value:number}>;
   content: CoachHistoryItem[];
   totalElements: number;
   totalPages: number;
@@ -140,7 +147,7 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
-const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Almaty";
+const timezone = "Asia/Almaty";
 
 export const CoachApi = {
   getTodaySessions: (date: string) =>
@@ -160,12 +167,12 @@ export const CoachApi = {
       )}&timezone=${encodeURIComponent(timezone)}`
     ),
 
-  getHistory: (dateFrom: string, dateTo: string, page = 0, size = 20) =>
-    apiClient.get<CoachHistoryResponse>(
-      `/coach/history?dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(
-        dateTo
-      )}&page=${page}&size=${size}`
-    ),
+  getHistory: (dateFrom: string, dateTo: string, page = 0, size = 20, filters: {groupId?:string;status?:string;report?:string;sort?:string} = {}) => {
+    const params=new URLSearchParams({page:String(page),size:String(size)});
+    if(dateFrom)params.set("dateFrom",dateFrom);if(dateTo)params.set("dateTo",dateTo);
+    Object.entries(filters).forEach(([k,v])=>{if(v)params.set(k,v);});
+    return apiClient.get<CoachHistoryResponse>(`/coach/history?${params}`);
+  },
 
   updateAttendance: (sessionId: string, students: Array<{ studentId: string; attendance: CoachAttendanceStatus }>) =>
     apiClient.patch<CoachAttendanceUpdateResponse>(`/coach/sessions/${sessionId}/attendance`, { students }),
@@ -177,26 +184,26 @@ export const CoachApi = {
     sessionId: string,
     trialId: string,
     status: CoachTrialAttendanceStatus,
-    comment?: string,
+    comment: string | undefined, version: number,
   ) =>
     apiClient.patch<CoachTrialStudent>(
       `/coach/sessions/${sessionId}/trials/${trialId}/attendance`,
-      { status, comment },
+      { status, comment, version },
     ),
 
   recordTrialRecommendation: (
     sessionId: string,
     trialId: string,
     recommendation: CoachTrialRecommendation,
-    recommendedGroupId?: string,
-    comment?: string,
+    recommendedGroupId: string | undefined,
+    comment: string | undefined, version: number,
   ) =>
     apiClient.put<CoachTrialStudent>(
       `/coach/sessions/${sessionId}/trials/${trialId}/recommendation`,
       {
         recommendation,
         recommendedGroupId,
-        comment,
+        comment, version,
       },
     ),
 

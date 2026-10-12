@@ -3,6 +3,12 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../../shared/ProtectedRoute';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+const TasksPage = React.lazy(() => import("./operations/TasksPage"));
+const TrialsPage = React.lazy(() => import("./operations/TrialsPage"));
+const CapacityPage = React.lazy(() => import("./operations/CapacityPage"));
+const ReportsPage = React.lazy(() => import("./operations/ReportsPage"));
+const CompanyListPage = React.lazy(() => import("./company/CompanyListPage"));
+const EmployeesPage = React.lazy(() => import("./employees/EmployeesPage"));
 const Dashboard = React.lazy(() => import('./Dashboard'));
 const DispatcherLayout = React.lazy(() => import('./DispatcherLayout'));
 const ClubsAndBranchesPage = React.lazy(() => import('./ClubsAndBranchesPage'));
@@ -27,10 +33,18 @@ const DispatcherRoutes: React.FC = () => {
         <Route element={<DispatcherLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path='clubs' element={<ClubsAndBranchesPage />} />
+          <Route path="employees" element={<EmployeesPage />} />
           <Route path="admins" element={<AdminsPage />} />
           <Route path="leads" element={<DispatcherLeadsPage />} />
-          <Route path="clients" element={<Navigate to="/dispatcher/leads" replace />} />
-          <Route path="trial-trainings" element={<Navigate to="/dispatcher/leads" replace />} />
+          <Route path="students" element={<CompanyListPage key="students" kind="students" />} />
+          <Route path="contracts" element={<CompanyListPage key="contracts" kind="contracts" />} />
+          <Route path="debts" element={<CompanyListPage key="debts" kind="debts" />} />
+          <Route path="payments" element={<CompanyListPage key="payments" kind="payments" />} />
+          <Route path="clients" element={<Navigate to="/dispatcher/students" replace />} />
+          <Route path="trial-trainings" element={<TrialsPage />} />
+          <Route path="tasks" element={<TasksPage />} />
+          <Route path="capacity" element={<CapacityPage />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route path="profile" element={<DispatcherProfilePage />} />
           {/* Default when accessing /dispatcher root */}
           <Route index element={<Dashboard />} />

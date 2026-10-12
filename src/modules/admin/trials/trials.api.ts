@@ -13,11 +13,15 @@ import type {
 
 const queryString = (query: TrialListQuery) => {
   const params = new URLSearchParams();
+  let branch: string | undefined;
+  try { branch=JSON.parse(localStorage.getItem("admin.branch")||"{}").branchId; } catch { /* BranchGuard resolves the branch before requests. */ }
+  if (branch) params.set("branchId", branch);
   if (query.status && query.status !== "all") params.set("status", query.status);
   if (query.leadId) params.set("leadId", query.leadId);
   params.set("page", String(query.page ?? 0));
   params.set("size", String(query.size ?? 20));
-  params.set("sort", "createdAt,desc");
+  if(query.dateFrom)params.set("dateFrom",query.dateFrom);if(query.dateTo)params.set("dateTo",query.dateTo);
+  params.set("sort",query.leadId?"createdAt,desc":query.sort||"NEWEST");
   return params.toString();
 };
 
@@ -27,7 +31,7 @@ export const TrialsApi = {
   },
 
   list(query: TrialListQuery): Promise<TrialsPageResponse> {
-    return apiClient.get(`/admin/trials?${queryString(query)}`);
+    return apiClient.get(`${query.leadId?"/admin/trials":"/admin/operations/trials"}?${queryString(query)}`);
   },
 
   async findByLead(leadId: string): Promise<TrialBookingListItem | null> {
@@ -39,38 +43,39 @@ export const TrialsApi = {
     return apiClient.get(`/admin/trials/${trialId}`);
   },
 
-  cancel(trialId: string, reason: string): Promise<TrialDetails> {
-    return apiClient.post(`/admin/trials/${trialId}/cancel`, { reason });
+  cancel(trialId: string, reason: string, version: number): Promise<TrialDetails> {
+    return apiClient.post(`/admin/trials/${trialId}/cancel`, { reason, version });
   },
 
-  reschedule(
+  async reschedule(
     trialId: string,
-    trainingSessionId: string,
+    trainingSessionId: string, version?: number,
   ): Promise<TrialDetails> {
     return apiClient.post(
       `/admin/trials/${trialId}/reschedule`,
-      { trainingSessionId },
+      { trainingSessionId, version: version ?? (await this.getById(trialId)).version },
     );
   },
 
-  markAttendance(trialId: string, status: TrialAttendanceStatus, comment?: string): Promise<TrialDetails> {
-    return apiClient.post(`/admin/trials/${trialId}/attendance`, { status, comment });
+  async markAttendance(trialId: string, status: TrialAttendanceStatus, comment?: string, version?: number): Promise<TrialDetails> {
+    return apiClient.post(`/admin/trials/${trialId}/attendance`, { status, comment, version: version ?? (await this.getById(trialId)).version });
   },
 
   recordResult(
     trialId: string,
     result: TrialResult,
-    recommendedGroupId?: string,
-    coachFeedback?: string,
-    nextActionType?: TrialNextActionType,
-    nextActionAt?: string,
+    recommendedGroupId: string | undefined,
+    coachFeedback: string | undefined,
+    nextActionType: TrialNextActionType | undefined,
+    nextActionAt: string | undefined,
+    version: number,
   ): Promise<TrialDetails> {
     return apiClient.post(`/admin/trials/${trialId}/result`, {
       result,
       recommendedGroupId,
       coachFeedback,
       nextActionType,
-      nextActionAt,
+      nextActionAt, version,
     });
   },
 };

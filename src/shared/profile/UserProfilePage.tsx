@@ -1,3 +1,4 @@
+import { permissionLabel } from "../useEmployeeAccess";
 import { Input } from "../ui";
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -21,8 +22,9 @@ import {
   Button,
   FormField,
   LoadingState,
-  PageShell,
-  SectionCard,
+  PageShell as SharedPageShell,
+  SectionCard as SharedSectionCard,
+  PageHeader,
   formControlClassName,
 } from "../ui";
 import { ProfileScope, RoleProfileApi, RoleProfileResponse } from "./profile.api";
@@ -42,6 +44,7 @@ type UserProfilePageProps = {
   workspaceTitle: string;
   helpText: string;
   theme: ProfileTheme;
+  presentation?: { PageShell: typeof SharedPageShell; SectionCard: typeof SharedSectionCard };
 };
 
 const SectionError: React.FC<{ message: string }> = ({ message }) => {
@@ -60,7 +63,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   workspaceTitle,
   helpText,
   theme,
+  presentation,
 }) => {
+  const PageShell = presentation?.PageShell || SharedPageShell;
+  const SectionCard = presentation?.SectionCard || SharedSectionCard;
+  const compact = Boolean(presentation);
+  const ProfileHeading = compact ? "h2" : "h1";
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -152,7 +160,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     if (rights.length > 0) {
       branches.push({
         title: scope === "admin" ? "Ключевые доступы" : "Зоны ответственности",
-        description: rights.join(", "),
+        description: scope === "admin" ? rights.map(permissionLabel).join(", ") : rights.join(", "),
       });
     }
     return branches;
@@ -260,17 +268,18 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   }
 
   return (
-    <PageShell className="max-w-6xl space-y-5">
-      <section className={`rounded-2xl border ${theme.border} bg-white p-5`}>
+    <PageShell className={compact ? undefined : "max-w-6xl"}>
+      {compact && <PageHeader title="Профиль" description="Личные данные, уведомления и безопасность учётной записи." />}
+      <section className={`${compact ? "rounded-xl" : "rounded-2xl"} border ${theme.border} bg-background p-4 sm:p-5`}>
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
             <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-lg font-semibold text-white ${theme.button}`}>
               {initials || <CircleUserRound className="h-8 w-8" />}
             </div>
             <div className="min-w-0">
-              <h1 className="ui-detail-title">
+              <ProfileHeading className="ui-detail-title">
                 {profile.firstName} {profile.lastName}
-              </h1>
+              </ProfileHeading>
               <div className="mt-1 truncate text-sm text-slate-500">{profile.email}</div>
               <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
                 <CheckCircle className="h-3.5 w-3.5" />
@@ -278,7 +287,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               </div>
             </div>
           </div>
-          <div className={`rounded-2xl ${theme.softBg} px-4 py-3`}>
+          <div className={`rounded-xl ${theme.softBg} px-4 py-3`}>
             <div className={`text-sm font-semibold ${theme.text}`}>{roleLabel}</div>
             <div className="mt-1 max-w-md text-xs leading-5 text-slate-600">{roleDescription}</div>
           </div>
@@ -286,7 +295,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       </section>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_360px]">
-        <div className="space-y-5">
+        <div className="flex min-w-0 flex-col gap-5">
           <SectionCard
             title="Основные данные"
             icon={<Badge className={`h-5 w-5 ${theme.text}`} />}
@@ -377,12 +386,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           </SectionCard>
         </div>
 
-        <div className="space-y-5">
+        <div className="flex min-w-0 flex-col gap-5">
           <SectionCard
             title={workspaceTitle}
             icon={<Building2 className={`h-5 w-5 ${theme.text}`} />}
           >
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {workspaceItems.length === 0 ? (
                 <div className="rounded-xl bg-slate-50 px-3 py-3 text-xs text-slate-500">
                   Данные рабочей зоны пока не получены.
@@ -402,7 +411,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             title="Безопасность"
             icon={<LockKeyhole className={`h-5 w-5 ${theme.text}`} />}
           >
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
               <Input
                 type="password"
                 value={passwordForm.currentPassword}
@@ -438,7 +447,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             </Button>
           </SectionCard>
 
-          <section className={`rounded-2xl border ${theme.border} ${theme.softBg} p-4`}>
+          <section className={`rounded-xl border ${theme.border} ${theme.softBg} p-4`}>
             <div className="flex items-start gap-3">
               <ShieldCheck className={`mt-0.5 h-5 w-5 shrink-0 ${theme.text}`} />
               <div>

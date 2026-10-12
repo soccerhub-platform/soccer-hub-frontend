@@ -2,15 +2,19 @@ import React, { useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, RefreshCw, Search, UserRoundPlus, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../shared/api";
-import { Button, EmptyState, ErrorState, LoadingState, PageHeader, PageShell, StatusBadge } from "../../../shared/ui";
+import { Button, EmptyState, ErrorState, LoadingState, NativeSelect, PageHeader, PageShell, StatusBadge } from "../../../shared/ui";
 import { ShadcnButton } from "../../../shared/ui/shadcn/Button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../../../shared/ui/shadcn/input-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../shared/ui/shadcn/Table";
 import { ToggleGroup, ToggleGroupItem } from "../../../shared/ui/shadcn/toggle-group";
 import { TrialsApi, attendanceLabels, resultLabels, trialStatusLabels, trialStatusTone } from "./trials.api";
-import type { TrialBookingListItem, TrialBookingStatus, TrialsPageResponse } from "./trials.types";
+import type { TrialBookingListItem, TrialsPageResponse } from "./trials.types";
 import { formatTrialDate, nextActionLabels, trialInterval, trialMatches, trialNextStep } from "./trial.workspace";
 
+import PeriodFilter from "../../../shared/operations/PeriodFilter";
+import {SectionCard,MetricCard,filtersClass} from "../../../shared/operations/WorkspacePresentation";
+import {isValidPeriod} from "../../dispatcher/company/company.filters";
+import type {TrialListQuery} from "./trials.types";
 import TrialPreview from "./TrialPreview";
 
 const statusOptions = { all: "Все пробные", SCHEDULED: "Запланированы", COMPLETED: "Завершены", CANCELED: "Отменены" };
@@ -23,16 +27,18 @@ const TrialsPage: React.FC = () => {
   const [revision, setRevision] = useState(0);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const requested = params.get("status");
-  const status = requested && Object.prototype.hasOwnProperty.call(trialStatusLabels, requested) ? requested as TrialBookingStatus : "all";
+  const status = requested && ["SCHEDULED","COMPLETED","CANCELED","ATTENDED","NO_SHOW","UNMARKED","FOLLOW_UP","PENDING","INTERESTED","NOT_INTERESTED","CONVERTED"].includes(requested)?requested as TrialListQuery["status"]:"all";
+  const from=params.get("from")||"";const to=params.get("to")||"";const sort=params.get("sort")||"NEWEST";const valid=isValidPeriod(from,to,true);
   const rawPage = Number(params.get("page"));
   const page = Number.isSafeInteger(rawPage) && rawPage >= 0 ? rawPage : 0;
   const query = params.get("q") || "";
   const attentionOnly = params.get("attention") === "true";
 
   useEffect(() => {
+    if(!valid){setLoading(false);setError("Выберите обе даты и диапазон не более 367 дней");return;}
     let active = true;
     setLoading(true); setError(null);
-    void TrialsApi.list({ status, page, size: 20 }).then(result => {
+    void TrialsApi.list({ status, page, size: 20,dateFrom:from,dateTo:to,sort }).then(result => {
       if (!active) return;
       const lastPage = Math.max(0, result.totalPages - 1);
       if (page > lastPage) {
@@ -41,13 +47,13 @@ const TrialsPage: React.FC = () => {
     }).catch(reason => { if (active) setError(getApiErrorMessage(reason, "Не удалось загрузить пробные занятия")); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [page, status, revision]);
+  }, [page,status,from,to,sort,valid,revision]);
 
   const change = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value && value !== "all" && value !== "false") next.set(key, value); else next.delete(key);
     if (key === "status" || key === "page") setPreviewId(null);
-    if (key === "status") { next.delete("page"); next.delete("q"); next.delete("attention"); }
+    if (["status","sort"].includes(key)) { next.delete("page"); next.delete("q"); next.delete("attention"); }
     if (key === "page") { next.delete("q"); next.delete("attention"); }
     setParams(next, { replace: key === "q" });
   };
@@ -65,6 +71,8 @@ const TrialsPage: React.FC = () => {
       <ShadcnButton asChild variant="secondary"><Link to="/admin/schedule"><CalendarDays data-icon="inline-start"/>Расписание</Link></ShadcnButton>
       <ShadcnButton asChild><Link to="/admin/leads"><UserRoundPlus data-icon="inline-start"/>Записать из лида</Link></ShadcnButton>
     </>}/>
+    <SectionCard flush><div className={filtersClass}><PeriodFilter future from={from} to={to} onChange={(a,b)=>setParams(p=>{p.set("from",a);p.set("to",b);p.delete("page");return p;})}/><NativeSelect aria-label="Состояние пробного" value={status||"all"} onChange={e=>change("status",e.target.value)}><option value="all">Все состояния</option>{Object.entries({...trialStatusLabels,...attendanceLabels,...resultLabels}).map(([v,l])=><option value={v} key={v}>{l}</option>)}</NativeSelect><NativeSelect aria-label="Сортировка пробных" value={sort} onChange={e=>change("sort",e.target.value)}><option value="NEWEST">Сначала новые</option><option value="OLDEST">Сначала старые</option></NativeSelect></div></SectionCard>
+    <SectionCard flush><div className="grid grid-cols-2 divide-x divide-border sm:grid-cols-4">{Object.entries({SCHEDULED:"Запланировано",ATTENDED:"Посетили",NO_SHOW:"Не пришли",FOLLOW_UP:"Повторный контакт"}).map(([k,l])=><MetricCard key={k} title={l} value={data?.summary?.[k]||0} loading={loading} note="По всему выбранному периоду"/>)}</div></SectionCard>
     <section className="trial-register" aria-label="Реестр пробных">
       <div className="trial-register-toolbar">
         <ToggleGroup type="single" value={status} onValueChange={value => value && change("status", value)} className="flex-wrap justify-start" aria-label="Статус пробного занятия">

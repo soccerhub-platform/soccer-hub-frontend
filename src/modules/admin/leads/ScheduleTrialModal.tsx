@@ -43,6 +43,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({ lead, branchId,
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [existingTrials, setExistingTrials] = useState<TrialBookingListItem[]>([]);
+  const [trialVersions,setTrialVersions]=useState<Record<string,number>>({});
   const [existingTrialError, setExistingTrialError] = useState("");
   const [rangeStart, setRangeStart] = useState(getToday());
   const rangeEnd = addDays(rangeStart, 59);
@@ -64,8 +65,10 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({ lead, branchId,
     let mounted = true;
     setLoadingExistingTrial(true);
     void LeadApi.getById(lead.id, token)
-      .then((trial) => {
-        if (mounted) setExistingTrials(trial.currentTrials ?? []);
+      .then(async (trial) => {
+        const current=trial.currentTrials??[];
+        const details=await Promise.all(current.filter(t=>t.status==="SCHEDULED").map(t=>TrialsApi.getById(t.id)));
+        if(mounted){setExistingTrials(current);setTrialVersions(Object.fromEntries(details.map(t=>[t.id,t.version])));}
       })
       .catch(() => {
         if (mounted) setExistingTrialError("Не удалось проверить существующие пробные. Закройте окно и повторите попытку.");
@@ -133,7 +136,7 @@ const ScheduleTrialModal: React.FC<ScheduleTrialModalProps> = ({ lead, branchId,
     try {
       let trialId: string;
       if (existingTrial?.status === "SCHEDULED") {
-        const updated = await TrialsApi.reschedule(existingTrial.id, selectedSession.id);
+        const updated = await TrialsApi.reschedule(existingTrial.id, selectedSession.id,trialVersions[existingTrial.id]);
         trialId = updated.id;
       } else {
         const created = await TrialsApi.create({

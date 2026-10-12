@@ -1,0 +1,15 @@
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "../../../shared/api";
+import { Button, EmptyState, ErrorState, LoadingState, SectionCard } from "../../../shared/ui";
+interface Snapshot {name?:string;address?:string;phone?:string;email?:string;managerAdminId?:string;workingHours?:unknown[];active?:boolean}
+interface Event {id:string;event:string;changedBy:string;createdAt:string;before:Snapshot|null;after:Snapshot}
+const labels:Record<string,string>={CREATED:"Филиал создан",UPDATED:"Данные изменены",ARCHIVED:"Филиал архивирован",RESTORED:"Филиал восстановлен"};
+const fields=[ ["name","Название"],["address","Адрес"],["phone","Телефон"],["email","Email"],["managerAdminId","Руководитель"],["workingHours","График работы"],["active","Статус"] ] as const;
+export default function BranchHistory({id}:{id:string}) {
+ const [page,setPage]=useState(0);
+ const query=useQuery(["dispatcher","branch-history",id,page],()=>apiClient.get<{content:Event[];totalPages:number}>(`/dispatcher/branch/${id}/history?page=${page}&size=10`));
+ const names=useQuery(["dispatcher","branch-managers"],()=>apiClient.get<{admins:Array<{id:string;firstName:string;lastName:string}>}>("/dispatcher/admin"));
+ const value=(key:string,raw:unknown)=>{if(key==="active")return raw?"Активен":"Архив";if(key==="managerAdminId"){const admin=names.data?.admins.find(a=>a.id===raw);return admin?`${admin.firstName} ${admin.lastName}`:raw?"Сотрудник":"Не назначен";}return String(raw || "Не указано");};
+ return <SectionCard title="История изменений">{query.isError?<ErrorState message="Не удалось загрузить историю" onRetry={()=>void query.refetch()} />:query.isLoading?<LoadingState label="Загрузка истории…" />:!query.data?.content.length?<EmptyState title="Изменений ещё нет" description="Новые изменения, архивирование и восстановление будут сохраняться здесь." />:<div className="flex flex-col gap-4">{query.data.content.map(event=><article key={event.id} className="flex flex-col gap-2 border-b border-border pb-4"><h4 className="text-sm font-semibold">{labels[event.event] || event.event}</h4><p className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("ru-RU",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Almaty"}).format(new Date(event.createdAt))}</p><dl className="flex flex-col gap-2 text-xs">{fields.filter(([key])=>event.before && JSON.stringify(event.before[key])!==JSON.stringify(event.after[key])).map(([key,label])=><div key={key}><dt className="font-medium">{label}</dt><dd className="mt-1 break-words text-muted-foreground">{key==="workingHours"?"Обновлён график работы":`${value(key,event.before?.[key])} → ${value(key,event.after[key])}`}</dd></div>)}</dl></article>)}<div className="flex items-center justify-between gap-3"><Button size="sm" variant="secondary" disabled={page===0} onClick={()=>setPage(page-1)}>Назад</Button><span className="text-xs text-muted-foreground">{page+1} / {query.data.totalPages}</span><Button size="sm" variant="secondary" disabled={page+1>=query.data.totalPages} onClick={()=>setPage(page+1)}>Далее</Button></div></div>}</SectionCard>;
+}

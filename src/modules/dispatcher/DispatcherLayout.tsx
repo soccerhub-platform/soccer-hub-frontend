@@ -1,16 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Building2, ChevronLeft, ChevronRight, CircleUserRound, House, LayoutDashboard, LogOut, Menu, Users } from "lucide-react";
+import { CheckSquare, CalendarDays, ChartNoAxesCombined, Gauge, FileText, GraduationCap, Wallet, Building2, ChevronLeft, ChevronRight, CircleUserRound, House, LayoutDashboard, LogOut, Menu, Users } from "lucide-react";
 import { useAuth } from "../../shared/AuthContext";
 import BrandMark from "../../shared/ui/BrandMark";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, ModalShell } from "../../shared/ui";
 import { cn } from "../../shared/ui/utils";
 
+import { DispatcherScopeProvider } from "./company/DispatcherScope";
+
 const NAV_ITEMS = [
   { to: "/dispatcher/dashboard", label: "Главная", icon: House },
+  { to: "/dispatcher/tasks", label: "Задачи", icon: CheckSquare },
   { to: "/dispatcher/leads", label: "Лиды", icon: LayoutDashboard },
+  { to: "/dispatcher/trial-trainings", label: "Пробные тренировки", icon: CalendarDays },
+  { to: "/dispatcher/students", label: "Ученики", icon: GraduationCap },
+  { to: "/dispatcher/contracts", label: "Договоры", icon: FileText },
+  { to: "/dispatcher/debts", label: "Задолженность", icon: Wallet },
+  { to: "/dispatcher/payments", label: "Оплаты", icon: Wallet },
+  { to: "/dispatcher/capacity", label: "Загрузка групп", icon: Gauge },
+  { to: "/dispatcher/reports", label: "Отчёты", icon: ChartNoAxesCombined },
   { to: "/dispatcher/clubs", label: "Клубы и филиалы", icon: Building2 },
-  { to: "/dispatcher/admins", label: "Администраторы", icon: Users },
+  { to: "/dispatcher/employees", label: "Сотрудники", icon: Users },
 ];
 const COLLAPSED_KEY = "dispatcher.sidebar.collapsed";
 
@@ -27,7 +37,7 @@ const DispatcherLayout: React.FC = () => {
   const handleLogout = () => { logout(); navigate("/login"); };
 
   return (
-    <div className="flex h-dvh overflow-hidden app-bg-admin">
+    <div className="dispatcher-workspace flex h-dvh overflow-hidden app-bg-admin">
       <a href="#dispatcher-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:bg-background focus:p-3">Перейти к содержимому</a>
       <aside className={cn("relative hidden shrink-0 flex-col border-r border-border bg-muted/30 transition-[width] md:flex", collapsed ? "w-[68px]" : "w-[216px]")}>
         <div className={cn("flex items-center py-6", collapsed ? "justify-center px-3" : "gap-3 px-4")}>
@@ -37,16 +47,16 @@ const DispatcherLayout: React.FC = () => {
             {collapsed ? <ChevronRight data-icon="inline-start" /> : <ChevronLeft data-icon="inline-start" />}
           </Button>
         </div>
-        <nav aria-label="Разделы диспетчера" className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pb-4">
+        <nav aria-label="Разделы руководителя" className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pb-4">
           {!collapsed && <div className="px-6 pb-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Рабочее пространство</div>}
-          {NAV_ITEMS.map(({to, label, icon: Icon}) => <NavLink key={to} to={to} title={collapsed ? label : undefined} aria-label={label} className={({isActive}) => cn("mx-3 flex items-center rounded-lg text-[13px] font-medium transition-colors", collapsed ? "justify-center py-3" : "gap-2.5 px-3 py-2", isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><Icon className="size-[18px] shrink-0" />{!collapsed && <span className="truncate">{label}</span>}</NavLink>)}
+          {NAV_ITEMS.map(({to, label, icon: Icon}) => <NavLink key={to} to={to} title={collapsed ? label : undefined} aria-label={label} className={({isActive}) => cn("mx-3 flex items-center rounded-lg text-[13px] font-medium transition-colors", collapsed ? "justify-center py-3" : "gap-2.5 px-3 py-2", isActive ? "bg-primary/10 text-admin-700" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><Icon className="size-[18px] shrink-0" />{!collapsed && <span className="truncate">{label}</span>}</NavLink>)}
         </nav>
         <div className="px-3 pb-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" aria-label="Меню профиля" className={cn("flex w-full items-center rounded-xl border border-border py-3 text-left hover:bg-background", collapsed ? "justify-center" : "gap-3 px-3")}>
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">{(user?.email?.[0] || "D").toUpperCase()}</span>
-                {!collapsed && <span className="min-w-0"><span className="block text-sm font-semibold text-foreground">Диспетчер</span><span className="block truncate text-xs text-muted-foreground">{user?.email}</span></span>}
+                {!collapsed && <span className="min-w-0"><span className="block text-sm font-semibold text-foreground">Руководитель</span><span className="block truncate text-xs text-muted-foreground">{user?.email}</span></span>}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-56">
@@ -60,13 +70,13 @@ const DispatcherLayout: React.FC = () => {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:hidden">
           <Button variant="ghost" size="sm" aria-label="Открыть разделы" onClick={() => setMobileMenuOpen(true)}><Menu data-icon="inline-start" /></Button>
-          <span className="text-sm font-semibold">Soccer Hub</span><span className="ml-auto text-xs text-muted-foreground">Диспетчер</span>
+          <span className="text-sm font-semibold">Soccer Hub</span><span className="ml-auto text-xs text-muted-foreground">Руководитель</span>
         </header>
-        <main id="dispatcher-main" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto p-3 sm:p-6"><Outlet /></main>
+        <DispatcherScopeProvider><main id="dispatcher-main" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto p-3 sm:p-6"><Outlet /></main></DispatcherScopeProvider>
       </div>
-      {mobileMenuOpen && <ModalShell title="Разделы" description="Рабочее пространство диспетчера" placement="right" maxWidthClassName="max-w-sm" onClose={() => setMobileMenuOpen(false)}>
+      {mobileMenuOpen && <ModalShell title="Разделы" description="Рабочее пространство руководителя" placement="right" maxWidthClassName="max-w-sm" onClose={() => setMobileMenuOpen(false)}>
         <nav aria-label="Мобильное меню" className="flex flex-col gap-1">
-          {NAV_ITEMS.map(({to,label,icon: Icon}) => <NavLink key={to} to={to} onClick={() => setMobileMenuOpen(false)} className={({isActive}) => cn("flex items-center gap-3 rounded-lg p-3 text-sm",isActive ? "bg-primary/10 text-primary" : "text-muted-foreground")}><Icon className="size-4" />{label}</NavLink>)}
+          {NAV_ITEMS.map(({to,label,icon: Icon}) => <NavLink key={to} to={to} onClick={() => setMobileMenuOpen(false)} className={({isActive}) => cn("flex items-center gap-3 rounded-lg p-3 text-sm",isActive ? "bg-primary/10 text-admin-700" : "text-muted-foreground")}><Icon className="size-4" />{label}</NavLink>)}
           <NavLink to="/dispatcher/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg p-3 text-sm"><CircleUserRound className="size-4" />Профиль</NavLink>
           <Button variant="ghost" onClick={handleLogout}><LogOut data-icon="inline-start" />Выйти</Button>
         </nav>
