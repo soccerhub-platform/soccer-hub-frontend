@@ -1,8 +1,12 @@
 import React from 'react';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../../shared/ProtectedRoute';
 import { AdminBranchProvider } from './BranchContext';
 
+const TasksPage=React.lazy(()=>import("./operations/TasksPage"));
+const ReportsPage=React.lazy(()=>import("./operations/ReportsPage"));
+const OperationsListPage=React.lazy(()=>import("./operations/OperationsListPage"));
 const Dashboard = React.lazy(() => import('./Dashboard'));
 const ContractsPage = React.lazy(() => import('./Contracts'));
 const PaymentsPage = React.lazy(() => import('./Payments'));
@@ -34,7 +38,9 @@ const TrialDetailsPage = React.lazy(() => import('./trials/TrialDetailsPage'));
  * contracts, payments and user management.  Unauthenticated or
  * unauthorized users are redirected to the shared `/login`.  */
 const AdminRoutes: React.FC = () => {
+  const [queryClient]=React.useState(()=>new QueryClient());
   return (
+    <QueryClientProvider client={queryClient}>
     <AdminBranchProvider>
       <Routes>
         {/* Public */}
@@ -52,6 +58,10 @@ const AdminRoutes: React.FC = () => {
             <Route element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="tasks" element={<TasksPage/>}/>
+              <Route path="reports" element={<ReportsPage/>}/>
+              <Route path="capacity" element={<OperationsListPage kind="capacity" key="capacity"/>}/>
+              <Route path="debts" element={<OperationsListPage kind="debts" key="debts"/>}/>
               <Route path="schedule" element={<SchedulePage />} />
               <Route path="contracts" element={<ContractsPage />} />
               <Route path="contracts/:contractId" element={<Navigate to="overview" replace />} />
@@ -86,6 +96,7 @@ const AdminRoutes: React.FC = () => {
         </Route>
       </Routes>
     </AdminBranchProvider>
+    </QueryClientProvider>
   );
 };
 

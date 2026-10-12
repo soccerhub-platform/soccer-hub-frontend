@@ -45,7 +45,9 @@ import type {
 import { ClientApi } from "../clients/client.api";
 import type { ClientStudentRelation } from "../clients/client.types";
 
+import StudentJourneyPanel from "../operations/StudentJourneyPanel";
 const sections = [
+  {key:"journey",label:"Общая история"},
   { key: "overview", label: "Обзор" },
   { key: "groups", label: "Группы" },
   { key: "attendance", label: "Посещаемость" },
@@ -708,6 +710,7 @@ const StudentDetailsPage: React.FC = () => {
         </div>
       ) : null}
 
+      {activeSection === "journey" && <StudentJourneyPanel id={student.player.id}/>}
       {activeSection === "activity" ? (
         <SectionCard title="Активность ученика">
           {activityItems.length ? <ActivityTimeline items={activityItems} onNavigate={navigate} /> : <EmptyState title="Активность пока пуста" />}

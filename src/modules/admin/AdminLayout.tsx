@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, ClipboardCheck, CreditCard, FileText, GraduationCap, House, LayoutDashboard, LogOut, Menu, User, Users } from "lucide-react";
 import { useAuth } from "../../shared/AuthContext";
+import { useEmployeeAccess } from "../../shared/useEmployeeAccess";
+import { ErrorState, LoadingState } from "../../shared/ui";
 import BrandMark from "../../shared/ui/BrandMark";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, ModalShell } from "../../shared/ui";
 import { useAdminBranch } from "./BranchContext";
@@ -17,6 +19,7 @@ type AdminNavItem = {
 
 const MAIN_NAV_ITEMS: AdminNavItem[] = [
   { to: "/admin/dashboard", label: "Главная", icon: House, end: true },
+  {to:"/admin/tasks",label:"Задачи",icon:ClipboardCheck},
   { to: "/admin/leads", label: "Лиды", icon: LayoutDashboard },
   { to: "/admin/trials", label: "Пробные", icon: ClipboardCheck },
   { to: "/admin/clients", label: "Клиенты", icon: User },
@@ -26,11 +29,16 @@ const MAIN_NAV_ITEMS: AdminNavItem[] = [
   { to: "/admin/schedule", label: "Занятия", icon: CalendarDays },
   { to: "/admin/contracts", label: "Договоры", icon: FileText },
   { to: "/admin/payments", label: "Платежи", icon: CreditCard },
+  {to:"/admin/debts",label:"Задолженность",icon:CreditCard},
+  {to:"/admin/capacity",label:"Загрузка групп",icon:Users},
+  {to:"/admin/reports",label:"Отчёты",icon:LayoutDashboard},
 ];
 
 const AdminLayout: React.FC = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const access = useEmployeeAccess();
+  const navItems = MAIN_NAV_ITEMS.filter(item => access.canVisit(item.to));
   const { branchName } = useAdminBranch();
   const branchLabel = branchName === "Main Branch" ? "Главный филиал" : branchName;
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -142,7 +150,7 @@ const AdminLayout: React.FC = () => {
           {!sidebarCollapsed ? (
             <div className="mb-3 px-6 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Рабочее пространство</div>
           ) : null}
-          {MAIN_NAV_ITEMS.map((item, i) => <React.Fragment key={item.to}>{!sidebarCollapsed && (i === 4 || i === 8) && <div className="px-6 pb-2 pt-6 text-[10px] font-semibold uppercase tracking-widest text-slate-500">{i === 4 ? "Клуб и занятия" : "Финансы"}</div>}{renderNavItem(item)}</React.Fragment>)}
+          {navItems.map((item) => <React.Fragment key={item.to}>{!sidebarCollapsed && (item.to === "/admin/clients" || item.to === "/admin/contracts") && <div className="px-6 pb-2 pt-6 text-[10px] font-semibold uppercase tracking-widest text-slate-500">{item.to === "/admin/clients" ? "Клуб и занятия" : "Финансы"}</div>}{renderNavItem(item)}</React.Fragment>)}
         </nav>
 
         <div className="px-3 pb-4 pt-2">
@@ -173,11 +181,12 @@ const AdminLayout: React.FC = () => {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 md:hidden"><button aria-label="Открыть разделы" onClick={() => setMobileMenuOpen(true)} className="rounded-lg p-2 text-slate-600"><Menu className="h-5 w-5"/></button><span className="text-sm font-semibold">Soccer Hub</span><span className="ml-auto max-w-[130px] truncate text-xs text-slate-500">{branchLabel}</span></header>
         <main id="admin-main" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto p-3 text-[0.95rem] sm:p-6">
-          <Outlet />
+          {access.error ? <ErrorState message="Не удалось загрузить права доступа" onRetry={access.reload} /> : access.loading ? <LoadingState label="Загрузка прав…" /> : !access.canViewCurrent ? <ErrorState message="Руководитель не предоставил доступ к этому разделу" onRetry={access.reload} /> : <>{access.readOnly && <p role="status" className="mb-4 text-sm text-muted-foreground">Доступен только просмотр. Для изменения данных обратитесь к руководителю.</p>}<Outlet /></>}
+
         </main>
       </div>
       {mobileMenuOpen && <ModalShell title="Разделы" description={branchLabel || "Рабочее пространство"} placement="right" maxWidthClassName="max-w-sm" onClose={() => setMobileMenuOpen(false)}>
-        <nav aria-label="Мобильное меню" className="grid gap-1">{MAIN_NAV_ITEMS.map(item => <NavLink key={item.to} to={item.to} onClick={() => setMobileMenuOpen(false)} className={({isActive}) => `flex items-center gap-3 rounded-lg p-3 text-sm ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-700"}`}><item.icon className="h-4 w-4"/>{item.label}</NavLink>)}
+        <nav aria-label="Мобильное меню" className="grid gap-1">{navItems.map(item => <NavLink key={item.to} to={item.to} onClick={() => setMobileMenuOpen(false)} className={({isActive}) => `flex items-center gap-3 rounded-lg p-3 text-sm ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-700"}`}><item.icon className="h-4 w-4"/>{item.label}</NavLink>)}
           <NavLink to="/admin/profile" className="rounded-lg p-3 text-sm text-slate-700" onClick={() => setMobileMenuOpen(false)}>Профиль</NavLink>
           <button onClick={handleLogout} className="rounded-lg p-3 text-left text-sm text-rose-700">Выйти</button>
         </nav>

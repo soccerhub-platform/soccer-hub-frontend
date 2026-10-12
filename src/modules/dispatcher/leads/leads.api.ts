@@ -1,3 +1,4 @@
+import { CompanyApi } from "../company/company.api";
 import { apiClient } from "../../../shared/api";
 import {
   CreateDispatcherLeadPayload,
@@ -48,6 +49,14 @@ export const normalizeDispatcherLead = (lead: DispatcherLeadResponse): Dispatche
 });
 
 export const DispatcherLeadsApi = {
+  async listCompanyPage(branchId: string, options: { page: number; search?: string; status?: string; attention?: string; dateFrom?:string; dateTo?:string;sort?:string }) {
+    const payload = await CompanyApi.page("leads",{branchId,...options});
+    return { items: payload.content.map(row => ({
+      id:row.id, branchId:row.branchId, parentName:row.name || "Без имени", phone:row.phone || "", email:row.email || null,
+      children:(row.participants || []).map(p => ({childName:p.fullName,childAge:ageFromBirthDate(p.birthDate)})),status:row.status as DispatcherLead["status"],assignedAdminId:row.ownerId||null,ownerName:row.ownerName,nextAction:row.nextAction,dueAt:row.dueAt,lastContactAt:row.lastContactAt,comment:row.notes || "",createdAt:row.eventDate || "",
+    })), totalElements:payload.totalElements,totalPages:payload.totalPages };
+
+  },
   async listPage(branchId: string, options: { page: number; search?: string; status?: string }) {
     const params = new URLSearchParams({branchId, page: String(options.page), size: "20", sort: "createdAt,desc"});
     if (options.search?.trim()) params.set("search", options.search.trim());

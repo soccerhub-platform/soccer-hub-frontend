@@ -26,7 +26,6 @@ const resultOptions: { value: Exclude<TrialResult, "PENDING">; description: stri
   { value: "INTERESTED", description: "Готов обсуждать зачисление" },
   { value: "FOLLOW_UP", description: "Нужно связаться ещё раз" },
   { value: "NOT_INTERESTED", description: "Не планирует продолжать" },
-  { value: "CONVERTED", description: "Оформление уже выполнено" },
 ];
 
 export default function TrialDialog({ action, trial, saving, error, blocked, close, submit }: Props) {
@@ -83,19 +82,19 @@ export default function TrialDialog({ action, trial, saving, error, blocked, clo
     if (action === "cancel") {
       const parsed = cancelSchema.safeParse({ reason });
       if (!parsed.success) return validate(parsed.error.issues);
-      await submit(() => TrialsApi.cancel(trial.id, parsed.data.reason));
+      await submit(() => TrialsApi.cancel(trial.id, parsed.data.reason, trial.version));
     } else if (action === "attendance") {
       const parsed = attendanceSchema.safeParse({ status: attendance, comment });
       if (!parsed.success) return validate(parsed.error.issues);
-      await submit(() => TrialsApi.markAttendance(trial.id, parsed.data.status, parsed.data.comment));
+      await submit(() => TrialsApi.markAttendance(trial.id, parsed.data.status, parsed.data.comment, trial.version));
     } else if (action === "result") {
       const parsed = resultSchema.safeParse({ result, groupId, feedback, nextActionType, nextActionAt });
       if (!parsed.success) return validate(parsed.error.issues);
-      await submit(() => TrialsApi.recordResult(trial.id, result, groupId || undefined, parsed.data.feedback || undefined, result === "FOLLOW_UP" ? nextActionType : undefined, result === "FOLLOW_UP" ? nextActionAt : undefined));
+      await submit(() => TrialsApi.recordResult(trial.id, result, groupId || undefined, parsed.data.feedback || undefined, result === "FOLLOW_UP" ? nextActionType : undefined, result === "FOLLOW_UP" ? nextActionAt : undefined, trial.version));
     } else {
       const selected = sessions.find(s => s.id === sessionId);
       if (!selected || sessionTimestamp(selected.startsAt) <= Date.now()) return setErrors({ sessionId: "Выберите будущее занятие из списка" });
-      await submit(() => TrialsApi.reschedule(trial.id, selected.id));
+      await submit(() => TrialsApi.reschedule(trial.id, selected.id, trial.version));
     }
   };
   const groupOptions = groups.map(g => ({ value: g.groupId, label: g.name }));

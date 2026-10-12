@@ -1,71 +1,20 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { CoachApi, CoachHistoryItem } from "../coach.api";
-import { SESSION_STATUS_META } from "../coach.labels";
-
-const CoachHistoryPage: React.FC = () => {
-  const [history, setHistory] = useState<CoachHistoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const period = useMemo(() => {
-    const to = new Date();
-    const from = new Date();
-    from.setMonth(from.getMonth() - 2);
-    return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await CoachApi.getHistory(period.from, period.to, 0, 20);
-        if (!mounted) return;
-        setHistory(response.content ?? []);
-      } catch {
-        if (!mounted) return;
-        setError("Не удалось загрузить историю");
-        setHistory([]);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [period.from, period.to]);
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="ui-page-title">История</h1>
-        <p className="mt-1 text-sm text-slate-500">Прошедшие тренировки, посещаемость и готовность отчёта.</p>
-      </div>
-
-      <div className="space-y-2">
-        {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-        {loading && <div className="rounded-2xl border border-black/12 bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>}
-        {history.map((session) => (
-          <Link
-            to={`/coach/sessions/${session.id}`}
-            key={session.id}
-            className="block rounded-2xl border border-black/12 bg-white p-4 "
-          >
-            <div className="text-sm font-medium text-slate-950">{session.date} · {session.groupName}</div>
-            <div className="mt-1 text-xs text-slate-500">Статус: {SESSION_STATUS_META[session.status].label}</div>
-            <div className="text-xs text-slate-500">Посещаемость: {session.attendanceSummary}</div>
-            <div className="text-xs text-slate-500">Отчёт: {session.reportDone ? "заполнен" : "ожидает заполнения"}</div>
-          </Link>
-        ))}
-        {!loading && history.length === 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">История пуста.</div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default CoachHistoryPage;
+import {useEffect,useState} from "react";
+import {Link,useSearchParams} from "react-router-dom";
+import {CoachApi,type CoachHistoryResponse,type CoachProfileGroup} from "../coach.api";
+import {SESSION_STATUS_META,ATTENDANCE_LABELS} from "../coach.labels";
+import {Button,PageHeader,NativeSelect,ErrorState,LoadingState,EmptyState,Table,TableHeader,TableHead,TableBody,TableRow,TableCell} from "../../../shared/ui";
+import {PageShell,SectionCard,MetricCard,filtersClass} from "../../../shared/operations/WorkspacePresentation";
+import PeriodFilter from "../../../shared/operations/PeriodFilter";
+import {BreakdownChart} from "../../../shared/operations/OperationsCharts";
+import Pagination from "../../dispatcher/operations/OperationsPagination";
+import {getApiErrorMessage} from "../../../shared/api";
+import {isValidPeriod} from "../../dispatcher/company/company.filters";
+import {dateLabel} from "../../dispatcher/company/company.api";
+export default function CoachHistoryPage() {
+ const [params,setParams]=useSearchParams();const [data,setData]=useState<CoachHistoryResponse|null>(null);const [groups,setGroups]=useState<CoachProfileGroup[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [revision,setRevision]=useState(0);
+ const from=params.get("from")||"";const to=params.get("to")||"";const status=params.get("status")||"";const report=params.get("report")||"";const groupId=params.get("groupId")||"";const sort=params.get("sort")||"NEWEST";const page=Math.max(0,Number(params.get("page"))||0);const valid=isValidPeriod(from,to,true);
+ const change=(key:string,value:string)=>setParams(p=>{p.set(key,value);p.delete("page");return p;});
+ useEffect(()=>{let active=true;void CoachApi.getProfile().then(p=>{if(active)setGroups(p.groups||[]);}).catch(()=>{});return()=>{active=false;};},[]);
+ useEffect(()=>{if(!valid){setLoading(false);return;}let active=true;setLoading(true);setError("");void CoachApi.getHistory(from,to,page,20,{status,report,groupId,sort}).then(value=>{if(active)setData(value);}).catch(e=>{if(active)setError(getApiErrorMessage(e));}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[from,to,page,status,report,groupId,sort,valid,revision]);
+ return <PageShell><PageHeader title="История" description="Занятия, посещаемость и отчёты ваших групп · время Алматы"/><SectionCard flush><div className={filtersClass}><PeriodFilter from={from} to={to} onChange={(a,b)=>setParams(p=>{p.set("from",a);p.set("to",b);p.delete("page");return p;})}/><NativeSelect aria-label="Группа" value={groupId} onChange={e=>change("groupId",e.target.value)}><option value="">Все мои группы</option>{groups.map(g=><option key={g.groupId} value={g.groupId}>{g.groupName}</option>)}</NativeSelect><NativeSelect aria-label="Статус занятия" value={status} onChange={e=>change("status",e.target.value)}><option value="">Все статусы</option>{Object.entries(SESSION_STATUS_META).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</NativeSelect><NativeSelect aria-label="Готовность отчёта" value={report} onChange={e=>change("report",e.target.value)}><option value="">Все отчёты</option><option value="DONE">Заполнен</option><option value="PENDING">Не заполнен</option></NativeSelect><NativeSelect aria-label="Сортировка" value={sort} onChange={e=>change("sort",e.target.value)}><option value="NEWEST">Сначала новые</option><option value="OLDEST">Сначала старые</option></NativeSelect><Button variant="ghost" onClick={()=>setRevision(v=>v+1)}>Обновить</Button></div></SectionCard>{!valid?<ErrorState message="Выберите обе даты и период не более 367 дней"/>:error?<ErrorState message={error} onRetry={()=>setRevision(v=>v+1)}/>:loading?<LoadingState/>:data&&<><SectionCard flush><div className="grid grid-cols-2 divide-x divide-border lg:grid-cols-4"><MetricCard title="Занятий" value={data.totalElements} note="По всем выбранным фильтрам"/><MetricCard title="Завершено" value={data.summary?.completed||0}/><MetricCard title="Отчёты заполнены" value={data.summary?.reportsDone||0}/><MetricCard title="Ждут отчёта" value={data.summary?.reportsPending||0}/></div></SectionCard><BreakdownChart title="Готовность отчётов" description="Заполненные отчёты и прошедшие занятия, ожидающие отчёта, по всему выбранному набору." horizontal unit="занятий" data={[{name:"Заполнены",value:data.summary?.reportsDone||0},{name:"Ожидают отчёта",value:data.summary?.reportsPending||0}]}/><div className="grid gap-4 xl:grid-cols-2"><BreakdownChart title="Посещаемость" description="Сохранённые отметки постоянных учеников. Неотмеченные посещения и отменённые занятия не включены." unit="отметок" horizontal data={Object.entries(data.attendance||{}).map(([key,value])=>({name:ATTENDANCE_LABELS[key as keyof typeof ATTENDANCE_LABELS]||key,value}))}/><BreakdownChart title="Занятия по группам" description="Количество ваших занятий по всем выбранным фильтрам и статусам." unit="занятий" horizontal data={data.workload||[]}/></div><SectionCard flush>{!data.content.length?<EmptyState title="Занятия не найдены"/>:<><div className="hidden md:block"><Table scrollLabel="Прокрутка истории" className="min-w-[650px]"><TableHeader><TableRow><TableHead>Дата</TableHead><TableHead>Группа</TableHead><TableHead>Статус</TableHead><TableHead>Посещение</TableHead><TableHead>Отчёт</TableHead><TableHead/></TableRow></TableHeader><TableBody>{data.content.map(s=><TableRow key={s.id}><TableCell>{dateLabel(s.date)}</TableCell><TableCell>{s.groupName}</TableCell><TableCell>{SESSION_STATUS_META[s.status]?.label||s.status}</TableCell><TableCell>{s.attendanceSummary}</TableCell><TableCell>{s.reportDone?"Заполнен":"Не заполнен"}</TableCell><TableCell><Link className="text-primary hover:underline" to={`/coach/sessions/${s.id}`}>Открыть</Link></TableCell></TableRow>)}</TableBody></Table></div><div className="divide-y divide-border md:hidden">{data.content.map(s=><article key={s.id} className="flex items-center justify-between gap-3 p-4"><div className="min-w-0"><p className="text-xs text-muted-foreground">{dateLabel(s.date)} · {SESSION_STATUS_META[s.status]?.label||s.status}</p><p className="mt-1 font-medium">{s.groupName}</p><p className="mt-1 text-xs text-muted-foreground">Посещение: {s.attendanceSummary} · Отчёт: {s.reportDone?"заполнен":"не заполнен"}</p></div><Link className="shrink-0 text-sm text-primary hover:underline" to={`/coach/sessions/${s.id}`}>Открыть</Link></article>)}</div><Pagination pageSize={20} page={page} total={data.totalElements} totalPages={data.totalPages} pending={loading} onChange={v=>setParams(p=>{p.set("page",String(v));return p;})}/></>}</SectionCard></>}</PageShell>;
+}

@@ -1,5 +1,5 @@
 import { Button, Input, NativeSelect, StatusBadge, Textarea, ToggleGroup, ToggleGroupItem, type StatusTone } from "../../../shared/ui";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   CoachApi,
@@ -16,6 +16,9 @@ import {
   TRIAL_ATTENDANCE_LABELS,
   TRIAL_RECOMMENDATION_LABELS,
 } from "../coach.labels";
+import {getApiErrorMessage} from "../../../shared/api";
+import {Alert,AlertDescription} from "../../../shared/ui/shadcn/alert";
+import {useEmployeeAccess} from "../../../shared/useEmployeeAccess";
 import toast from "react-hot-toast";
 
 const sessionStatusTones: Record<CoachSessionDetailsResponse["status"], StatusTone> = {
@@ -39,6 +42,8 @@ const trialRecommendationOptions: CoachTrialRecommendation[] = [
 ];
 
 const CoachSessionDetailsPage: React.FC = () => {
+  const access=useEmployeeAccess();
+  const canWrite=access.can("COACH_SESSIONS_WRITE");
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<CoachSessionDetailsResponse | null>(null);
   const [students, setStudents] = useState<CoachStudentAttendance[]>([]);
@@ -51,6 +56,8 @@ const CoachSessionDetailsPage: React.FC = () => {
   const [comment, setComment] = useState("");
   const [incidents, setIncidents] = useState("");
   const [homework, setHomework] = useState("");
+  const savedTrialAttendance=useRef<Record<string,string>>({});
+  const [mutationError,setMutationError]=useState("");
   const [cancelReason, setCancelReason] = useState("");
 
   const loadSession = async (sessionId: string) => {
@@ -61,6 +68,7 @@ const CoachSessionDetailsPage: React.FC = () => {
       setSession(data);
       setStudents(data.students ?? []);
       setTrialStudents(data.trialStudents ?? []);
+      savedTrialAttendance.current=Object.fromEntries((data.trialStudents??[]).map(t=>[t.trialBookingId,JSON.stringify([t.attendance,t.attendanceComment||""])]));
       setTopic(data.report?.topic ?? "");
       setComment(data.report?.coachComment ?? "");
       setIncidents(data.report?.incidents ?? "");
@@ -140,15 +148,15 @@ const CoachSessionDetailsPage: React.FC = () => {
 
   const persistAttendance = async () => {
     if (!id) return;
-    setSaving(true);
+    setMutationError("");setSaving(true);
     try {
       await CoachApi.updateAttendance(
         id,
         students.map((student) => ({ studentId: student.id, attendance: student.attendance }))
       );
       toast.success("Посещаемость сохранена");
-      await loadSession(id);
-    } catch {
+    } catch (reason) {
+      setMutationError(getApiErrorMessage(reason));
       toast.error("Не удалось сохранить посещаемость");
     } finally {
       setSaving(false);
@@ -157,12 +165,13 @@ const CoachSessionDetailsPage: React.FC = () => {
 
   const handleMarkAllPresent = async () => {
     if (!id) return;
-    setSaving(true);
+    setMutationError("");setSaving(true);
     try {
       await CoachApi.markAllPresent(id);
-      await loadSession(id);
+      setStudents(items=>items.map(s=>({...s,attendance:"PRESENT"})));
       toast.success("Все ученики отмечены как присутствующие");
-    } catch {
+    } catch (reason) {
+      setMutationError(getApiErrorMessage(reason));
       toast.error("Не удалось обновить посещаемость");
     } finally {
       setSaving(false);
@@ -203,17 +212,19 @@ const CoachSessionDetailsPage: React.FC = () => {
       return;
     }
 
-    setSaving(true);
+    setMutationError("");setSaving(true);
     try {
-      await CoachApi.markTrialAttendance(
+      const updated=await CoachApi.markTrialAttendance(
         id,
         trial.trialBookingId,
         trial.attendance,
-        trial.attendanceComment?.trim() || undefined,
+        trial.attendanceComment?.trim() || undefined, trial.version,
       );
+      savedTrialAttendance.current[trial.trialBookingId]=JSON.stringify([trial.attendance,trial.attendanceComment||""]);
+      setTrialStudents(items=>items.map(t=>t.trialBookingId===trial.trialBookingId?{...t,version:updated.version,result:updated.result,...(updated.attendance==="NO_SHOW"?{coachRecommendation:null,coachRecommendedGroupId:null,coachRecommendationComment:null}: {})}:t));
       toast.success("Пробный ученик отмечен");
-      await loadSession(id);
-    } catch {
+    } catch (reason) {
+      setMutationError(getApiErrorMessage(reason));
       toast.error("Не удалось сохранить пробного ученика");
     } finally {
       setSaving(false);
@@ -282,18 +293,19 @@ const CoachSessionDetailsPage: React.FC = () => {
       return;
     }
 
-    setSaving(true);
+    setMutationError("");setSaving(true);
     try {
-      await CoachApi.recordTrialRecommendation(
+      const updated=await CoachApi.recordTrialRecommendation(
         id,
         trial.trialBookingId,
         trial.coachRecommendation,
         trial.coachRecommendedGroupId ?? undefined,
-        trial.coachRecommendationComment?.trim() || undefined,
+        trial.coachRecommendationComment?.trim() || undefined, trial.version,
       );
-      toast.success("Рекомендация сохранена");
-      await loadSession(id);
-    } catch {
+      setTrialStudents(items=>items.map(t=>t.trialBookingId===trial.trialBookingId?{...t,version:updated.version,coachRecommendationAt:updated.coachRecommendationAt}:t));
+      toast.success("Рекомендация передана администратору");
+    } catch (reason) {
+      setMutationError(getApiErrorMessage(reason));
       toast.error("Не удалось сохранить рекомендацию");
     } finally {
       setSaving(false);
@@ -302,7 +314,7 @@ const CoachSessionDetailsPage: React.FC = () => {
 
   const saveReport = async () => {
     if (!id) return;
-    setSaving(true);
+    setMutationError("");setSaving(true);
     try {
       await CoachApi.saveReport(id, {
         topic,
@@ -310,9 +322,10 @@ const CoachSessionDetailsPage: React.FC = () => {
         incidents,
         homework,
       });
+      setSession(value=>value?{...value,reportDone:true}:value);
       toast.success("Отчет сохранен");
-      await loadSession(id);
-    } catch {
+    } catch (reason) {
+      setMutationError(getApiErrorMessage(reason));
       toast.error("Не удалось сохранить отчет");
     } finally {
       setSaving(false);
@@ -321,12 +334,13 @@ const CoachSessionDetailsPage: React.FC = () => {
 
   const runStatusAction = async (fn: () => Promise<unknown>, successMessage: string) => {
     if (!id) return;
-    setSaving(true);
+    setMutationError("");setSaving(true);
     try {
       await fn();
       toast.success(successMessage);
       await loadSession(id);
-    } catch {
+    } catch (reason) {
+      setMutationError(getApiErrorMessage(reason));
       toast.error("Не удалось выполнить действие");
     } finally {
       setSaving(false);
@@ -339,17 +353,17 @@ const CoachSessionDetailsPage: React.FC = () => {
   const isOverdue = session.status === "OVERDUE";
   const isCompleted = session.status === "COMPLETED";
   const isCancelled = session.status === "CANCELLED";
-  const canEditAttendance = isInProgress || isOverdue;
-  const canEditReport = isInProgress || isOverdue;
-  const canStart = isPlanned;
-  const canComplete = isInProgress || isOverdue;
-  const canCancel = isPlanned || isInProgress;
+  const canEditAttendance = canWrite&&(isInProgress || isOverdue);
+  const canEditReport = canWrite&&(isInProgress || isOverdue);
+  const canStart = canWrite&&isPlanned;
+  const canComplete = canWrite&&(isInProgress || isOverdue);
+  const canCancel = canWrite&&(isPlanned || isInProgress);
   const hasRequiredReportFields = Boolean(topic.trim());
-  const hasUnmarkedStudents = students.some((student) => !student.attendance);
+  const hasUnmarkedStudents = students.some((student) => !student.attendance)||trialStudents.some(t=>t.attendance==="UNMARKED");
   const canSaveAttendance = canEditAttendance && !hasUnmarkedStudents;
   const canSaveReport = canEditReport && hasRequiredReportFields;
   const canCompleteNow =
-    canComplete && !hasUnmarkedStudents && (isInProgress ? true : hasRequiredReportFields);
+    canComplete && !hasUnmarkedStudents && hasRequiredReportFields;
 
   const nextStepText = (() => {
     if (isPlanned) return "Начните тренировку, когда группа готова.";
@@ -362,7 +376,7 @@ const CoachSessionDetailsPage: React.FC = () => {
 
   const primaryActionLabel = canStart
     ? "Начать тренировку"
-    : isOverdue
+    : canComplete && isOverdue
     ? "Закрыть тренировку"
     : canComplete
     ? "Завершить тренировку"
@@ -378,12 +392,12 @@ const CoachSessionDetailsPage: React.FC = () => {
       toast.error("Отметьте посещаемость для всех учеников");
       return;
     }
-    if (isOverdue && !hasRequiredReportFields) {
+    if (!hasRequiredReportFields) {
       toast.error("Укажите тему тренировки");
       return;
     }
-    if (isOverdue) {
-      setSaving(true);
+    if (isOverdue || isInProgress) {
+      setMutationError("");setSaving(true);
       try {
         await CoachApi.updateAttendance(
           id,
@@ -395,10 +409,18 @@ const CoachSessionDetailsPage: React.FC = () => {
           incidents,
           homework,
         });
+        for(const trial of trialStudents){
+          if(savedTrialAttendance.current[trial.trialBookingId]!==JSON.stringify([trial.attendance,trial.attendanceComment||""])){
+            const updated=await CoachApi.markTrialAttendance(id,trial.trialBookingId,trial.attendance,trial.attendanceComment?.trim()||undefined,trial.version);
+            savedTrialAttendance.current[trial.trialBookingId]=JSON.stringify([trial.attendance,trial.attendanceComment||""]);
+            setTrialStudents(items=>items.map(t=>t.trialBookingId===trial.trialBookingId?{...t,version:updated.version}:t));
+          }
+        }
         await CoachApi.completeSession(id);
         toast.success("Тренировка закрыта");
         await loadSession(id);
-      } catch {
+      } catch (reason) {
+        setMutationError(getApiErrorMessage(reason));
         toast.error("Не удалось закрыть тренировку");
       } finally {
         setSaving(false);
@@ -411,7 +433,8 @@ const CoachSessionDetailsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
+      {mutationError&&<Alert><AlertDescription>{mutationError}. Введённые данные сохранены. <Button variant="ghost" disabled={saving} onClick={()=>void loadSession(id)}>Загрузить актуальное состояние</Button></AlertDescription></Alert>}
       <div className="rounded-2xl border border-black/12 bg-white p-5 ">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -456,15 +479,15 @@ const CoachSessionDetailsPage: React.FC = () => {
 
       <div className="grid grid-cols-3 gap-2 rounded-2xl border border-black/12 bg-white p-3 text-sm ">
         <div>
-          <div className="text-[11px] uppercase text-slate-700/45">Дата</div>
+          <div className="text-[11px] uppercase text-muted-foreground">Дата</div>
           <div className="mt-1 font-medium text-slate-950">{session.date}</div>
         </div>
         <div>
-          <div className="text-[11px] uppercase text-slate-700/45">Время</div>
+          <div className="text-[11px] uppercase text-muted-foreground">Время</div>
           <div className="mt-1 font-medium text-slate-950">{session.time}</div>
         </div>
         <div>
-          <div className="text-[11px] uppercase text-slate-700/45">Было</div>
+          <div className="text-[11px] uppercase text-muted-foreground">Было</div>
           <div className="mt-1 font-medium text-slate-950">{attendanceSummary}</div>
         </div>
       </div>
@@ -541,6 +564,7 @@ const CoachSessionDetailsPage: React.FC = () => {
                       </div>
                       <div className="text-xs text-slate-500">
                         {trial.age ? `${trial.age} лет` : "Возраст не указан"}
+                        {trial.coachRecommendation && <p className="mt-1">{trial.result==="PENDING" ? "Рекомендация ожидает решения администратора" : `Итог администратора: ${{CONVERTED:"Зачислен",FOLLOW_UP:"Повторный контакт",NOT_INTERESTED:"Отказ",NO_SHOW:"Неявка"}[trial.result]||trial.result}`}</p>}
                       </div>
                     </div>
 
@@ -581,6 +605,7 @@ const CoachSessionDetailsPage: React.FC = () => {
                             event.target.value,
                           )
                         }
+                        aria-label={`Комментарий посещения: ${trial.name}`}
                         placeholder="Комментарий по пробному ученику"
                         className="mt-2 w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
                         rows={2}
@@ -603,7 +628,7 @@ const CoachSessionDetailsPage: React.FC = () => {
                     </div>
                   ) : null}
 
-                  {isCompleted && trial.attendance === "ATTENDED" ? (
+                  {canWrite && isCompleted && trial.attendance === "ATTENDED" && trial.result !== "CONVERTED" ? (
                     <div className="mt-3 border-t border-black/6 pt-3">
                       <div className="text-xs font-medium uppercase text-slate-500">
                         Рекомендация тренера
@@ -635,6 +660,7 @@ const CoachSessionDetailsPage: React.FC = () => {
 
                       {trial.coachRecommendation === "RECOMMEND_ANOTHER_GROUP" ? (
                         <NativeSelect
+                          aria-label={`Рекомендуемая группа: ${trial.name}`}
                           value={trial.coachRecommendedGroupId ?? ""}
                           onChange={(event) =>
                             updateTrialRecommendedGroup(
@@ -661,6 +687,7 @@ const CoachSessionDetailsPage: React.FC = () => {
                             event.target.value,
                           )
                         }
+                        aria-label={`Комментарий рекомендации: ${trial.name}`}
                         placeholder="Комментарий или рекомендация тренера"
                         className="mt-2 w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100"
                         rows={2}
@@ -698,15 +725,15 @@ const CoachSessionDetailsPage: React.FC = () => {
         <div>
           <h2 className="ui-section-title">Отчет тренера</h2>
         </div>
-        <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Тема тренировки" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" />
+        <Input value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Тема тренировки" placeholder="Тема тренировки" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" />
         {!hasRequiredReportFields ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             Укажите тему тренировки перед сохранением отчета.
           </div>
         ) : null}
-        <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Комментарий тренера" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" rows={3} />
-        <Textarea value={incidents} onChange={(e) => setIncidents(e.target.value)} placeholder="Инциденты или важные заметки" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" rows={2} />
-        <Textarea value={homework} onChange={(e) => setHomework(e.target.value)} placeholder="Домашнее задание" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" rows={2} />
+        <Textarea value={comment} onChange={(e) => setComment(e.target.value)} aria-label="Комментарий тренера" placeholder="Комментарий тренера" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" rows={3} />
+        <Textarea value={incidents} onChange={(e) => setIncidents(e.target.value)} aria-label="Инциденты или важные заметки" placeholder="Инциденты или важные заметки" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" rows={2} />
+        <Textarea value={homework} onChange={(e) => setHomework(e.target.value)} aria-label="Домашнее задание" placeholder="Домашнее задание" className="w-full rounded-xl border border-black/12 px-3 py-2.5 text-sm outline-hidden focus:border-admin-600 focus:ring-4 focus:ring-blue-100" rows={2} />
         <Button
           disabled={saving || !canSaveReport}
           onClick={saveReport}

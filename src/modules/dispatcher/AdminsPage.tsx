@@ -1,3 +1,5 @@
+import EmployeeCard from "./employees/EmployeeCard";
+import { SearchInput, toolbarClass, PageShell, SectionCard, MetricCard } from "./ui/DispatcherPresentation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Building2,
@@ -8,9 +10,9 @@ import {
   Plus,
   Trash2,
   UserPlus,
+  RefreshCw,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { Field, FieldLabel } from "../../shared/ui/shadcn/field";
 
 import { useAuth } from "../../shared/AuthContext";
 import { apiClient, getApiErrorMessage } from "../../shared/api";
@@ -27,22 +29,15 @@ import {
   ErrorState,
   FormField,
   LoadingState,
-  MetricCard,
   ModalShell,
   PageHeader,
-  PageShell,
-  SectionCard,
   StatusBadge,
-  ToggleGroup,
-  ToggleGroupItem,
   formControlClassName,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
    } from "../../shared/ui";
+
+import { useDispatcherScope } from "./company/DispatcherScope";
+
+import EmployeePermissions from "./employees/EmployeePermissions";
 
 interface BranchAssignment {
   branchId: string;
@@ -96,8 +91,9 @@ const getInitials = (admin: AdminView) => {
   return (f + l).toUpperCase();
 };
 
-const AdminsPage: React.FC = () => {
+const AdminsPage: React.FC<{categoryTabs?: React.ReactNode}> = ({categoryTabs}) => {
   const { user } = useAuth();
+  const { branchId: scopeBranchId } = useDispatcherScope();
 
   const [admins, setAdmins] = useState<AdminView[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
@@ -109,6 +105,7 @@ const AdminsPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [permissionTarget,setPermissionTarget] = useState<AdminView | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
@@ -197,6 +194,7 @@ const AdminsPage: React.FC = () => {
     const term = search.trim().toLowerCase();
 
     return admins.filter((admin) => {
+      if (scopeBranchId && !admin.branches.some(branch => branch.branchId === scopeBranchId)) return false;
       if (statusFilter === "active" && !admin.active) return false;
       if (statusFilter === "inactive" && admin.active) return false;
       if (!term) return true;
@@ -207,11 +205,12 @@ const AdminsPage: React.FC = () => {
 
       return fullName.includes(term) || email.includes(term) || phone.includes(term);
     });
-  }, [admins, search, statusFilter]);
+  }, [admins, search, statusFilter, scopeBranchId]);
 
-  const totalAdmins = admins.length;
-  const activeAdmins = admins.filter((a) => a.active).length;
-  const unassignedAdmins = admins.filter((a) => a.branches.length === 0).length;
+  const scopedAdmins = admins.filter(a => !scopeBranchId || a.branches.some(b => b.branchId === scopeBranchId));
+  const totalAdmins = scopedAdmins.length;
+  const activeAdmins = scopedAdmins.filter((a) => a.active).length;
+  const unassignedAdmins = scopedAdmins.filter((a) => a.branches.length === 0).length;
 
   const handleCreateAdmin = async () => {
     if (pending) return;
@@ -413,8 +412,8 @@ const AdminsPage: React.FC = () => {
   return (
     <PageShell>
       <PageHeader
-        title="Администраторы"
-        description="Управление доступом администраторов и привязкой к филиалам."
+        title={categoryTabs ? "Сотрудники" : "Администраторы"}
+        description="Управляйте командой, доступом и назначениями в филиалы."
         actions={
           <Button type="button" onClick={() => setShowCreateModal(true)}>
             <Plus className="h-4 w-4" />
@@ -423,45 +422,22 @@ const AdminsPage: React.FC = () => {
         }
       />
 
-      <div className="grid grid-cols-3 gap-2 md:gap-3">
-        <MetricCard title="Всего" value={totalAdmins} tone="neutral" />
-        <MetricCard title="Активны" value={activeAdmins} tone="success" />
-        <MetricCard title="Без филиала" value={unassignedAdmins} tone={unassignedAdmins ? "warning" : "neutral"} />
+      <div className="grid grid-cols-2 divide-x divide-border overflow-hidden rounded-xl border border-border bg-background lg:grid-cols-4">
+        <MetricCard title="Администраторы" value={totalAdmins} loading={loading || Boolean(error)} note="В выбранной области" />
+        <MetricCard title="Доступ активен" value={activeAdmins} loading={loading || Boolean(error)} note="Могут войти в портал" />
+        <MetricCard title="Доступ отключён" value={totalAdmins-activeAdmins} loading={loading || Boolean(error)} note="Учётные записи сохранены" />
+        <MetricCard title="Без филиала" value={unassignedAdmins} loading={loading || Boolean(error)} note="Ожидают назначения" tone={unassignedAdmins ? "warning" : "neutral"} />
       </div>
 
-      <SectionCard>
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_260px]">
-          <FormField label="Поиск">
-            <Input
-              type="text"
-              placeholder="Имя, email или телефон"
-              className={formControlClassName}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </FormField>
-
-          <Field><FieldLabel>Статус</FieldLabel>
-            <ToggleGroup type="single" aria-label="Статус администратора" value={statusFilter} onValueChange={value => value && setStatusFilter(value as StatusFilter)} variant="outline" className="w-full">
-              {[
-                ["all", "Все"],
-                ["active", "Активны"],
-                ["inactive", "Отключены"],
-              ].map(([value, label]) => (
-                <ToggleGroupItem
-                  key={value}
-                  value={value}
-                  className="flex-1"
-                >
-                  {label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </Field>
+      <SectionCard flush>
+        {categoryTabs}
+        <div className={toolbarClass}>
+          <SearchInput aria-label="Поиск администраторов" placeholder="Имя, email, телефон…" maxLength={200} value={search} onChange={event=>setSearch(event.target.value)} />
+          <NativeSelect aria-label="Доступ администратора" value={statusFilter} onChange={event=>setStatusFilter(event.target.value as StatusFilter)} className="h-9 w-full text-xs sm:w-44"><option value="all">Любой доступ</option><option value="active">Доступ активен</option><option value="inactive">Доступ отключён</option></NativeSelect>
+          <span role="status" className="ml-auto text-xs tabular-nums text-muted-foreground">{error?"Данные недоступны":loading?"Загрузка…":`Найдено: ${filteredAdmins.length}`}</span>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={loading} aria-label="Обновить администраторов" onClick={()=>void loadAdmins()}><RefreshCw className="h-3.5 w-3.5" /></Button>
         </div>
-      </SectionCard>
-
-      <SectionCard>
+        <div className="p-4 sm:p-5">
         {error ? (
           <ErrorState message={error} onRetry={loadAdmins} />
         ) : loading ? (
@@ -486,87 +462,11 @@ const AdminsPage: React.FC = () => {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <Table className="min-w-full divide-y divide-slate-200">
-              <TableHeader className="bg-slate-50">
-                <TableRow>
-                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                    Администратор
-                  </TableHead>
-                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                    Контакты
-                  </TableHead>
-                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                    Филиалы
-                  </TableHead>
-                  <TableHead className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                    Статус
-                  </TableHead>
-                  <TableHead className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">
-                    Действия
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="divide-y divide-slate-200">
-                {filteredAdmins.map((admin) => (
-                  <TableRow
-                    key={admin.adminId}
-                    className="transition-colors hover:bg-slate-50"
-                    onClick={() => {
-                      setSelectedAdmin(admin);
-                      setShowDetailsModal(true);
-                    }}
-                  >
-                    <TableCell className="px-4 py-3 text-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-xs font-semibold text-admin-600">
-                          {getInitials(admin)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-slate-900">
-                            {admin.firstName} {admin.lastName}
-                          </div>
-                          <div className="text-xs text-muted-foreground">ID: {admin.adminId.slice(0, 8)}...</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-slate-600">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          {admin.email || "Email не указан"}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          {admin.phone || "Телефон не указан"}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-slate-600">
-                      <BranchBadges branches={admin.branches} />
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-sm">
-                      <StatusBadge tone={admin.active ? "success" : "danger"}>{admin.active ? "Активен" : "Отключен"}</StatusBadge>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          setSelectedAdmin(admin);
-                          setShowDetailsModal(true);
-                        }}
-                      >
-                        Открыть
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {filteredAdmins.map(admin=><EmployeeCard key={admin.adminId} name={`${admin.firstName} ${admin.lastName}`} role="Администратор" email={admin.email} phone={admin.phone} active={admin.active} branches={admin.branches.map(branch=>branch.branchName)} onOpen={()=>{setSelectedAdmin(admin);setShowDetailsModal(true);}} onEdit={()=>openEditModal(admin)} onPermissions={()=>setPermissionTarget(admin)} />)}
           </div>
         )}
+        </div>
       </SectionCard>
 
       {showDetailsModal && selectedAdmin ? (
@@ -576,6 +476,7 @@ const AdminsPage: React.FC = () => {
             setShowDetailsModal(false);
             setSelectedAdmin(null);
           }}
+          onPermissions={() => { setPermissionTarget(selectedAdmin); setShowDetailsModal(false); }}
           onAssign={() => {
             setShowDetailsModal(false);
             openAssignBranchModal(selectedAdmin);
@@ -605,6 +506,7 @@ const AdminsPage: React.FC = () => {
         />
       ) : null}
 
+      {permissionTarget && <EmployeePermissions id={permissionTarget.adminId} name={`${permissionTarget.firstName} ${permissionTarget.lastName}`} role="admin" onClose={() => setPermissionTarget(null)} />}
       {showCreateModal ? (
         <CreateAdminModal
           pending={pending}
@@ -679,37 +581,17 @@ const AdminsPage: React.FC = () => {
   );
 };
 
-const BranchBadges: React.FC<{ branches: BranchAssignment[] }> = ({ branches }) => {
-  if (branches.length === 0) {
-    return <span className="text-xs text-muted-foreground">Не привязан к филиалам</span>;
-  }
-
-  const firstBranch = branches[0];
-
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-xs text-admin-600">
-        {firstBranch.branchName}
-      </span>
-      {branches.length > 1 ? (
-        <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-          + еще {branches.length - 1}
-        </span>
-      ) : null}
-    </div>
-  );
-};
-
 const AdminDetailsModal: React.FC<{
   admin: AdminView;
   onClose: () => void;
+  onPermissions: () => void;
   onAssign: () => void;
   onEdit: () => void;
   onToggleStatus: () => void;
   onResetPassword: () => void;
   onDelete: () => void;
   onUnassignBranch: (adminId: string, branchId: string) => void;
-}> = ({ admin, onClose, onAssign, onEdit, onToggleStatus, onResetPassword, onDelete, onUnassignBranch }) => (
+}> = ({ admin, onClose, onPermissions, onAssign, onEdit, onToggleStatus, onResetPassword, onDelete, onUnassignBranch }) => (
   <ModalShell
     title={`${admin.firstName} ${admin.lastName}`}
     description="Контакты и доступ к филиалам"
@@ -739,6 +621,7 @@ const AdminDetailsModal: React.FC<{
     }
   >
     <div className="flex flex-col gap-5">
+      <Button variant="secondary" onClick={onPermissions}>Права доступа</Button>
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-admin-600">

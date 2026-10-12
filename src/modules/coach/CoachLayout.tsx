@@ -8,25 +8,28 @@ import {
   CircleUserRound,
 } from "lucide-react";
 import { useAuth } from "../../shared/AuthContext";
+import { useEmployeeAccess } from "../../shared/useEmployeeAccess";
+import { ErrorState, LoadingState } from "../../shared/ui";
 import BrandMark from "../../shared/ui/BrandMark";
 
 const CoachLayout: React.FC = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const access = useEmployeeAccess();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-xs font-medium sm:text-sm ${
-      isActive ? "bg-[#1d1d1f] text-white" : "text-slate-700 hover:bg-blue-50"
+      isActive ? "bg-primary text-primary-foreground" : "text-slate-700 hover:bg-blue-50"
     }`;
 
   return (
-    <div className="min-h-screen bg-[#eef5f1]">
+    <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-black/12 bg-white/95 px-4 py-3 backdrop-blur-sm">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between">
           <div className="flex items-center gap-3">
             <BrandMark compact />
             <div>
-              <div className="heading-font ui-section-title">Club Hub</div>
+              <div className="heading-font ui-section-title">Soccer Hub</div>
               <div className="text-xs text-slate-500">{user?.email ?? "Тренер"}</div>
             </div>
           </div>
@@ -44,12 +47,12 @@ const CoachLayout: React.FC = () => {
       </header>
 
       <div className="mx-auto w-full max-w-4xl px-4 pb-24 pt-5">
-        <Outlet />
+        {access.error ? <ErrorState message="Не удалось загрузить права доступа" onRetry={access.reload} /> : access.loading ? <LoadingState label="Загрузка прав…" /> : !access.canViewCurrent ? <ErrorState message="Руководитель не предоставил доступ к занятиям" onRetry={access.reload} /> : <>{access.readOnly && <p role="status" className="mb-4 text-sm text-muted-foreground">Доступен только просмотр занятий. Изменение посещаемости и отчётов отключено.</p>}<Outlet /></>}
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 border-t border-black/12 bg-white/95 px-3 py-2 backdrop-blur-sm">
         <div className="mx-auto grid w-full max-w-4xl grid-cols-4 gap-2">
-          <NavLink to="/coach/today" className={linkClass}>
+          {access.can("COACH_SESSIONS_READ") && <><NavLink to="/coach/today" className={linkClass}>
             <Home className="h-4 w-4" />
             Сегодня
           </NavLink>
@@ -61,7 +64,7 @@ const CoachLayout: React.FC = () => {
             <Clock3 className="h-4 w-4" />
             История
           </NavLink>
-          <NavLink to="/coach/profile" className={linkClass}>
+          </>}<NavLink to="/coach/profile" className={linkClass}>
             <CircleUserRound className="h-4 w-4" />
             Профиль
           </NavLink>

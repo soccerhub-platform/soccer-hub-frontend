@@ -1,99 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { CheckCircle, ClipboardCheck, Clock3 } from "lucide-react";
-import { CoachApi, CoachSessionCard } from "../coach.api";
-import { SESSION_STATUS_META } from "../coach.labels";
-
-const toDate = (date: Date) => date.toISOString().slice(0, 10);
-
-const CoachTodayPage: React.FC = () => {
-  const [todaySessions, setTodaySessions] = useState<CoachSessionCard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const today = useMemo(() => toDate(new Date()), []);
-
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await CoachApi.getTodaySessions(today);
-        if (!mounted) return;
-        setTodaySessions(response.sessions ?? []);
-      } catch {
-        if (!mounted) return;
-        setError("Не удалось загрузить тренировки на сегодня");
-        setTodaySessions([]);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [today]);
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-black/12 bg-white p-5 ">
-        <div className="ui-page-title">Сегодня</div>
-        <p className="mt-1 text-sm text-slate-500">
-          Здесь собраны тренировки на день. Откройте карточку, отметьте посещаемость и заполните короткий отчет.
-        </p>
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <div className="rounded-2xl bg-blue-50 p-3">
-            <Clock3 className="h-5 w-5 text-admin-600" />
-            <div className="mt-2 ui-card-title">{todaySessions.length}</div>
-            <div className="text-[11px] text-slate-500">тренировки</div>
-          </div>
-          <div className="rounded-2xl bg-amber-50 p-3">
-            <ClipboardCheck className="h-5 w-5 text-amber-700" />
-            <div className="mt-2 text-lg font-semibold text-amber-900">
-              {todaySessions.filter((s) => s.status === "OVERDUE").length}
-            </div>
-            <div className="text-[11px] text-amber-800/70">отчета ждут</div>
-          </div>
-          <div className="rounded-2xl bg-emerald-50 p-3">
-            <CheckCircle className="h-5 w-5 text-emerald-700" />
-            <div className="mt-2 text-lg font-semibold text-emerald-900">
-              {todaySessions.filter((s) => s.status === "COMPLETED").length}
-            </div>
-            <div className="text-[11px] text-emerald-800/70">готово</div>
-          </div>
-        </div>
-      </div>
-
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-      {loading && <div className="rounded-2xl border border-black/12 bg-white px-4 py-3 text-sm text-slate-500">Загрузка...</div>}
-
-      {todaySessions.map((session) => {
-        const meta = SESSION_STATUS_META[session.status];
-        return (
-          <div key={session.id} className="rounded-2xl border border-black/12 bg-white p-4 ">
-            <div className="flex items-center justify-between">
-              <div className="ui-modal-title text-slate-950">{session.time}</div>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${meta.tone}`}>{meta.label}</span>
-            </div>
-            <div className="mt-3 text-base font-medium text-slate-950">{session.groupName}</div>
-            <div className="mt-1 text-sm text-slate-500">Учеников в группе: {session.studentCount}</div>
-            <Link
-              to={`/coach/sessions/${session.id}`}
-              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#1d1d1f] px-3 text-sm font-semibold text-white transition hover:bg-admin-600"
-            >
-              {meta.action}
-            </Link>
-          </div>
-        );
-      })}
-
-      {todaySessions.length === 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">На сегодня сессий нет.</div>
-      )}
-    </div>
-  );
-};
-
-export default CoachTodayPage;
+import {useEffect,useState} from "react";
+import {Link,useSearchParams} from "react-router-dom";
+import {CoachApi,type CoachSessionCard} from "../coach.api";
+import {SESSION_STATUS_META} from "../coach.labels";
+import {businessDate} from "../../../shared/business-time";
+import {PageHeader,Button,NativeSelect,StatusBadge,ErrorState,LoadingState,EmptyState} from "../../../shared/ui";
+import {PageShell,SectionCard,MetricCard,toolbarClass} from "../../../shared/operations/WorkspacePresentation";
+import {getApiErrorMessage} from "../../../shared/api";
+export default function CoachTodayPage() {
+ const [sessions,setSessions]=useState<CoachSessionCard[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [revision,setRevision]=useState(0);const [params,setParams]=useSearchParams();const status=params.get("status")||"";const group=params.get("group")||"";const today=businessDate();
+ useEffect(()=>{let active=true;setLoading(true);setError("");void CoachApi.getTodaySessions(today).then(d=>{if(active)setSessions(d.sessions||[]);}).catch(e=>{if(active)setError(getApiErrorMessage(e));}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[today,revision]);
+ const visible=sessions.filter(s=>(!status||s.status===status)&&(!group||s.groupName===group));const change=(k:string,v:string)=>setParams(p=>{p.set(k,v);return p;});
+ return <PageShell><PageHeader title="Сегодня" description={`${today} · Алматы · посещаемость, пробные и отчёты`}/>{error?<ErrorState message={error} onRetry={()=>setRevision(v=>v+1)}/>:loading?<LoadingState/>:<><SectionCard flush><div className="grid grid-cols-2 divide-x divide-border lg:grid-cols-4"><MetricCard title="Занятий сегодня" value={sessions.length}/><MetricCard note="Постоянные и пробные" title="Не отмечены ученики" value={sessions.filter(s=>s.status!=="CANCELLED").reduce((sum,s)=>sum+(s.unmarkedAttendance||0),0)}/><MetricCard title="Ждут отчёта" value={sessions.filter(s=>!s.reportDone&&['PENDING','OVERDUE'].includes(s.reportStatus||s.status)).length}/><MetricCard title="Пробные без рекомендации" value={sessions.reduce((sum,s)=>sum+(s.trialsWithoutRecommendation||0),0)}/></div></SectionCard><SectionCard flush><div className={toolbarClass}><NativeSelect aria-label="Статус занятия" value={status} onChange={e=>change("status",e.target.value)}><option value="">Все занятия</option>{Object.entries(SESSION_STATUS_META).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</NativeSelect><NativeSelect aria-label="Группа" value={group} onChange={e=>change("group",e.target.value)}><option value="">Все мои группы</option>{Array.from(new Set(sessions.map(s=>s.groupName))).map(name=><option key={name} value={name}>{name}</option>)}</NativeSelect><Button variant="ghost" onClick={()=>setRevision(v=>v+1)}>Обновить</Button><Link className="text-xs text-primary" to="/coach/history?report=PENDING">Все незаполненные отчёты</Link></div></SectionCard>{!visible.length?<EmptyState title="Занятий по фильтру нет"/>:<div className="grid gap-3 lg:grid-cols-2">{visible.map(s=><SectionCard key={s.id} title={`${s.time} · ${s.groupName}`}><div className="flex flex-col gap-3"><StatusBadge tone={s.status==="COMPLETED"?"success":s.status==="OVERDUE"?"warning":"neutral"}>{SESSION_STATUS_META[s.status]?.label||s.status}</StatusBadge><p className="text-xs text-muted-foreground">Посещение: {s.attendanceSummary} · Не отмечено: {s.unmarkedAttendance||0}</p><p className="text-xs text-muted-foreground">Отчёт: {s.reportDone?"заполнен":"не заполнен"} · Пробных без рекомендации: {s.trialsWithoutRecommendation||0}</p><Link className="rounded-lg bg-primary px-4 py-3 text-center text-sm font-medium text-primary-foreground" to={`/coach/sessions/${s.id}`}>{SESSION_STATUS_META[s.status]?.action||"Открыть занятие"}</Link></div></SectionCard>)}</div>}</>}</PageShell>;
+}

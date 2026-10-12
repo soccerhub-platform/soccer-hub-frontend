@@ -1,11 +1,13 @@
 import React from "react";
+import { PageShell, SectionCard } from "./ui/DispatcherPresentation";
 import UserProfilePage from "../../shared/profile/UserProfilePage";
 
 const DispatcherProfilePage: React.FC = () => {
   return (
     <UserProfilePage
       scope="dispatcher"
-      roleLabel="Диспетчер"
+      presentation={{ PageShell, SectionCard }}
+      roleLabel="Руководитель"
       roleDescription="Ведет клубы, филиалы, администраторов и поток заявок между филиалами."
       workspaceTitle="Рабочая зона"
       helpText="Доступ к филиалам и системные права назначаются владельцем клуба или системным администратором."

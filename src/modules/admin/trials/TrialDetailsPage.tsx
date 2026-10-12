@@ -10,15 +10,22 @@ import { TrialsApi, attendanceLabels, coachRecommendationLabels, resultLabels, t
 import type { TrialDetails } from "./trials.types";
 import { actionCapability, actionLabels, detailsNextStep, formatTrialDate, nextActionLabels, trialInterval, trialReturnTo, type TrialAction } from "./trial.workspace";
 import { TrialCard, TrialFacts } from "./TrialUI";
+import {useQuery} from "@tanstack/react-query";
+import {apiClient} from "../../../shared/api";
+import Timeline from "../../dispatcher/operations/Timeline";
+import type {TimelineEvent} from "../../dispatcher/operations/operations.api";
+import {useEmployeeAccess} from "../../../shared/useEmployeeAccess";
 import TrialDialog from "./TrialDialog";
 
 const TrialDetailsPage: React.FC = () => {
+  const access=useEmployeeAccess();
   const { trialId, section } = useParams<{ trialId: string; section: string }>();
   const [params, setParams] = useSearchParams();
   const [trial, setTrial] = useState<TrialDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
+  const history=useQuery(["admin","trial-history",trialId,revision],()=>apiClient.get<TimelineEvent[]>(`/admin/trials/${trialId}/history`),{enabled:Boolean(trialId)});
   const [acting, setActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const busy = useRef(false);
@@ -58,7 +65,7 @@ const TrialDetailsPage: React.FC = () => {
       }
       const updated = await operation();
       if (currentId.current !== id) return;
-      setTrial(updated);
+      setTrial(updated);void history.refetch();
       const next = new URLSearchParams(params); next.delete("drawer"); setParams(next, { replace: true });
       toast.success("Изменения сохранены", { id: "trial-save" });
     } catch (reason) {
@@ -72,8 +79,8 @@ const TrialDetailsPage: React.FC = () => {
 
   const name = trial.student?.fullName || trial.lead?.fullName || "Участник пробного";
   const next = detailsNextStep(trial);
-  const primary: TrialAction | null = trial.capabilities.canRecordResult && trial.result === "PENDING" ? "result" : trial.capabilities.canMarkAttendance ? "attendance" : null;
-  const available = (["attendance", "result", "reschedule", "cancel"] as TrialAction[]).filter(key => trial.capabilities[actionCapability[key]] && (key !== "reschedule" || trial.group));
+  const primary: TrialAction | null = !access.can("SCHEDULE_WRITE")?null:trial.capabilities.canRecordResult && trial.result === "PENDING" ? "result" : trial.capabilities.canMarkAttendance ? "attendance" : null;
+  const available = (!access.can("SCHEDULE_WRITE")?[]:(["attendance", "result", "reschedule", "cancel"] as TrialAction[])).filter(key => trial.capabilities[actionCapability[key]] && (key !== "reschedule" || trial.group));
   const canAct = action && available.includes(action);
   const sessionLink = trial.group && trial.session ? "/admin/groups/" + trial.group.id + "/sessions/" + trial.session.id : null;
 
@@ -102,6 +109,7 @@ const TrialDetailsPage: React.FC = () => {
             {trial.coachRecommendation && <div className="trial-recommendation"><strong>{coachRecommendationLabels[trial.coachRecommendation.recommendation]}</strong>{trial.coachRecommendation.comment && <p>{trial.coachRecommendation.comment}</p>}</div>}
           </TrialCard>
         </div>
+        <TrialCard title="История операций">{history.isError?<ErrorState message="Не удалось загрузить историю" onRetry={()=>void history.refetch()}/>:history.isLoading?<LoadingState/>:<Timeline events={history.data||[]}/>}</TrialCard>
         <TrialCard title="Участник и контакт">
           <div className="trial-two-columns"><TrialFacts items={[{label:"Ученик",value:name},{label:"Дата рождения",value:formatTrialDate(trial.student?.birthDate)},{label:"Возраст",value:trial.student?.age != null ? trial.student.age + " лет" : "Не указан"}]}/>
           <TrialFacts items={[{label:"Контакт",value:trial.lead?.fullName || "Нет связанного лида"},{label:"Телефон",value:trial.lead?.phone ? <a className="trial-text-link" href={"tel:" + trial.lead.phone}>{trial.lead.phone}</a> : "Не указан"},{label:"Email",value:trial.lead?.email ? <a className="trial-text-link" href={"mailto:" + trial.lead.email}>{trial.lead.email}</a> : "Не указан"}]}/></div>

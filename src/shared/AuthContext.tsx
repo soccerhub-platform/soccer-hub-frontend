@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getApiUrl } from './api';
+import { ApiError, getApiUrl } from './api';
 import {
   clearStoredUser,
   readStoredUser,
@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     });
 
     if (!response.ok) {
-      throw new Error('Login failed');
+      throw new ApiError('Login failed', response.status);
     }
 
     const data = await response.json();

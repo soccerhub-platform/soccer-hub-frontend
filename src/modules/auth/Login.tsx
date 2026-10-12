@@ -1,3 +1,4 @@
+import { loginErrorMessage } from "./login-error";
 import { Input } from "../../shared/ui";
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -50,8 +51,8 @@ const LoginPage: React.FC = () => {
 
       toast.success("Добро пожаловать");
       navigate(nextPath, { replace: true });
-    } catch {
-      setError("Не удалось войти. Проверьте email и пароль.");
+    } catch (reason) {
+      setError(loginErrorMessage(reason));
       toast.error("Ошибка входа");
     } finally {
       setLoading(false);
@@ -72,7 +73,7 @@ const LoginPage: React.FC = () => {
               Одна платформа для всей команды
             </div>
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Универсальное рабочее пространство для клуба: администратор, диспетчер и тренер попадут в свой интерфейс автоматически, без лишних шагов.
+              Универсальное рабочее пространство для клуба: администратор, руководитель и тренер попадут в свой интерфейс автоматически, без лишних шагов.
             </p>
 
             <div className="mt-8 grid grid-cols-3 gap-3">
@@ -149,7 +150,7 @@ const LoginPage: React.FC = () => {
               </div>
 
               {error && (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                   {error}
                 </div>
               )}

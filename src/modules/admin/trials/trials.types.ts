@@ -34,6 +34,7 @@ export interface TrialBookingListItem {
 }
 
 export interface TrialsPageResponse {
+  summary?:Record<string,number>;
   content: TrialBookingListItem[];
   totalElements: number;
   totalPages: number;
@@ -42,6 +43,7 @@ export interface TrialsPageResponse {
 }
 
 export interface TrialDetails {
+  version: number;
   id: string;
   status: TrialBookingStatus;
   attendanceStatus: TrialAttendanceStatus;
@@ -65,7 +67,8 @@ export interface TrialDetails {
 }
 
 export interface TrialListQuery {
-  status?: TrialBookingStatus | "all";
+  status?: TrialBookingStatus | TrialAttendanceStatus | TrialResult | "all";
+  dateFrom?:string;dateTo?:string;sort?:string;
   leadId?: string;
   page?: number;
   size?: number;

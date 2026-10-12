@@ -5,12 +5,17 @@ export interface DispatcherLeadChild {
 
 export interface DispatcherLead {
   id: string;
+  branchId?: string;
   parentName: string;
   phone: string;
   email?: string | null;
   children: DispatcherLeadChild[];
   status: string;
   assignedAdminId: string | null;
+  ownerName?: string;
+  nextAction?: string;
+  dueAt?: string;
+  lastContactAt?: string;
   comment: string;
   createdAt: string;
   leadType?: "CHILDREN" | "ADULT";
