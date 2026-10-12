@@ -1,3 +1,4 @@
+import "./admin-workspace.css";
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, ClipboardCheck, CreditCard, FileText, GraduationCap, House, LayoutDashboard, LogOut, Menu, User, Users } from "lucide-react";
@@ -180,7 +181,7 @@ const AdminLayout: React.FC = () => {
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 md:hidden"><button aria-label="Открыть разделы" onClick={() => setMobileMenuOpen(true)} className="rounded-lg p-2 text-slate-600"><Menu className="h-5 w-5"/></button><span className="text-sm font-semibold">Soccer Hub</span><span className="ml-auto max-w-[130px] truncate text-xs text-slate-500">{branchLabel}</span></header>
-        <main id="admin-main" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto p-3 text-[0.95rem] sm:p-6">
+        <main id="admin-main" tabIndex={-1} className="admin-content min-w-0 flex-1 overflow-y-auto p-3 text-[0.95rem] sm:p-6">
           {access.error ? <ErrorState message="Не удалось загрузить права доступа" onRetry={access.reload} /> : access.loading ? <LoadingState label="Загрузка прав…" /> : !access.canViewCurrent ? <ErrorState message="Руководитель не предоставил доступ к этому разделу" onRetry={access.reload} /> : <>{access.readOnly && <p role="status" className="mb-4 text-sm text-muted-foreground">Доступен только просмотр. Для изменения данных обратитесь к руководителю.</p>}<Outlet /></>}
 
         </main>

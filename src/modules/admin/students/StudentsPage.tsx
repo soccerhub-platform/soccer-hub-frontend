@@ -1,3 +1,4 @@
+import { SummaryStrip, Registry, MetricCard, PageHeader, PageShell } from "../AdminPresentation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { riskLabel } from './student.risk';
 import toast from "react-hot-toast";
@@ -24,36 +25,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
-import {
-  Input,
-  NativeSelect,
-  Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-  EmptyState,
-  ErrorState,
-  InteractiveTableRow,
-  LoadingState,
-  MetricCard,
-  ModalShell,
-  PageHeader,
-  PageShell,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  StatusBadge,
-  type StatusTone,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-   } from "../../../shared/ui";
+import { Input, NativeSelect, Button, DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, EmptyState, ErrorState, InteractiveTableRow, LoadingState, ModalShell, Popover, PopoverContent, PopoverTrigger, StatusBadge, type StatusTone, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../shared/ui";
 import { useAuth } from "../../../shared/AuthContext";
 import { useAdminBranch } from "../BranchContext";
 import { GroupApi } from "../groups/group.api";
@@ -523,14 +495,15 @@ const StudentsPage: React.FC = () => {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <SummaryStrip columns={4} description="С учётом фильтров">
         <MetricCard icon={<Users className="h-5 w-5" />} title="Всего" value={summary.total} tone="info" />
         <MetricCard icon={<CheckCircle className="h-5 w-5" />} title="Оплачены" value={summary.paid} tone="success" />
         <MetricCard icon={<Wallet className="h-5 w-5" />} title="С долгом" value={summary.withDebt} tone="danger" />
         <MetricCard icon={<TriangleAlert className="h-5 w-5" />} title="С рисками" value={summary.withRisks} tone="warning" />
-      </div>
+      </SummaryStrip>
 
-      <div className="relative rounded-2xl border border-slate-200 bg-white p-3">
+      <Registry label="Реестр учеников">
+      <div className="admin-toolbar border-b border-border p-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
@@ -595,7 +568,7 @@ const StudentsPage: React.FC = () => {
 
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="overflow-hidden">
         {error ? (
           <ErrorState message={error} onRetry={() => void loadStudents("refresh")} />
         ) : loading ? (
@@ -660,6 +633,8 @@ const StudentsPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      </Registry>
 
       {selectedStudent || detailsLoading ? (
         <StudentDetailsModal

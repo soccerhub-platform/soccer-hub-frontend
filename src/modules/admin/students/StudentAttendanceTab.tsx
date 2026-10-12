@@ -1,3 +1,4 @@
+import { SectionCard } from "../AdminPresentation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   useNavigate, useSearchParams } from "react-router-dom";
@@ -9,7 +10,7 @@ import {
 } from "lucide-react";
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import type { MediaAsset } from "../../../shared/media.types";
-import { NativeSelect, EmptyState, ErrorState, LoadingState, SectionCard, formControlClassName   } from "../../../shared/ui";
+import { NativeSelect, EmptyState, ErrorState, LoadingState, formControlClassName } from "../../../shared/ui";
 import { StudentApi } from "./student.api";
 import type {
   AdminStudentAttendanceResponse,

@@ -1,3 +1,4 @@
+import { SectionCard } from "../AdminPresentation";
 import LeadWorkModal from "./LeadWorkModal";
 import LeadDetailOverview from "./LeadDetailOverview";
 import LeadPreferencesModal from "./LeadPreferencesModal";
@@ -29,7 +30,7 @@ import {
   getConvertedParticipants,
 } from "./lead.ui-actions";
 import { ToggleGroup, ToggleGroupItem } from "../../../shared/ui/shadcn/toggle-group";
-import { Button, ErrorState, LoadingState, SectionCard } from "../../../shared/ui";
+import { Button, ErrorState, LoadingState } from "../../../shared/ui";
 import {
   formatLeadDateTime,
   formatTrialTime,

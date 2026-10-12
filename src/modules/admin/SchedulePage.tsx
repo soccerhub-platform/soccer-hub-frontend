@@ -1,9 +1,10 @@
+import { PageHeader, PageShell } from "./AdminPresentation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarDays, RefreshCw, Search, Settings2, SlidersHorizontal, ArrowUpRight, Plus, TriangleAlert, MapPin, Ban, X } from "lucide-react";
 import { useAuth } from "../../shared/AuthContext";
 import { addBusinessDays, businessDate } from "../../shared/business-time";
-import { Button, EmptyState, ErrorState, LoadingState, ModalShell, NativeSelect, PageHeader, PageShell } from "../../shared/ui";
+import { Button, EmptyState, ErrorState, LoadingState, ModalShell, NativeSelect } from "../../shared/ui";
 import { InputGroup, InputGroupInput, InputGroupAddon } from "../../shared/ui/shadcn/input-group";
 import { CalendarToolbar, SessionCalendar, SessionPreview, type SessionAction } from "./calendar/SessionCalendar";
 import { cn } from "../../shared/ui/utils";

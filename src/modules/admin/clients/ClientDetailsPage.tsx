@@ -1,3 +1,4 @@
+import { SummaryStrip, PageShell, SectionCard, WorkspaceHeader, WorkspaceMetric, WorkspaceTabs } from "../AdminPresentation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -19,29 +20,7 @@ import {
   CircleX,
 } from "lucide-react";
 import { getApiErrorMessage } from "../../../shared/api";
-import {
-  Button,
-  ActionMenu,
-  Checkbox,
-  DatePicker,
-  EmptyState,
-  EntitySheet,
-  ErrorState,
-  LoadingState,
-  PageShell,
-  SectionCard,
-  StatusBadge,
-  type StatusTone,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  WorkspaceBreadcrumbs,
-  WorkspaceHeader,
-  WorkspaceMetric,
-  WorkspaceTabs,
-} from "../../../shared/ui";
+import { Button, ActionMenu, Checkbox, DatePicker, EmptyState, EntitySheet, ErrorState, LoadingState, StatusBadge, type StatusTone, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, WorkspaceBreadcrumbs } from "../../../shared/ui";
 import { ContractsApi } from "../contracts/contracts.api";
 import type { ContractListItem, ContractPaymentItem, ContractStatus } from "../contracts/contracts.types";
 import { ClientApi } from "./client.api";
@@ -117,7 +96,7 @@ const OverviewPanel: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ title, action, children, className = "" }) => (
-  <section className={`rounded-lg border border-slate-200 bg-white p-4 ${className}`}>
+  <section className={`rounded-xl border border-border bg-background p-4 ${className}`}>
     <div className="mb-4 flex min-h-6 items-center justify-between gap-3">
       <h2 className="ui-section-title">{title}</h2>
       {action}
@@ -327,12 +306,11 @@ const ClientDetailsPage: React.FC = () => {
 
       <WorkspaceTabs items={sections.map((item) => ({ ...item, to: sectionPath(item.key) }))} className="bg-transparent" />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <WorkspaceMetric icon={<Users />} iconClassName="bg-emerald-50 text-emerald-700" label="Ученики" value={client.summary.studentsCount} note={`Активных ${activeStudents.length}`} onClick={() => navigate(sectionPath("students"))} />
+      <SummaryStrip columns={4} label="Обзор"><WorkspaceMetric icon={<Users />} iconClassName="bg-emerald-50 text-emerald-700" label="Ученики" value={client.summary.studentsCount} note={`Активных ${activeStudents.length}`} onClick={() => navigate(sectionPath("students"))} />
         <WorkspaceMetric icon={<FileText />} iconClassName="bg-violet-50 text-violet-700" label="Активные договоры" value={client.summary.activeContractsCount} note={activeContracts.length ? `На сумму ${formatAmount(activeContracts.reduce((sum, item) => sum + Number(item.amount ?? 0), 0), currency)}` : "Договоров нет"} onClick={() => navigate(sectionPath("contracts"))} />
         <WorkspaceMetric icon={<Banknote />} iconClassName="bg-orange-50 text-orange-700" label="Баланс" value={client.summary.money.mixedCurrencies ? "Разные валюты" : formatAmount(balanceAmount, currency)} note={outstandingAmount > 0 ? `К оплате ${formatAmount(outstandingAmount, currency)}` : "К оплате нет"} onClick={() => navigate(sectionPath("payments"))} />
         <WorkspaceMetric icon={<CalendarDays />} iconClassName="bg-blue-50 text-blue-700" label="Следующий платёж" value={outstandingAmount > 0 ? formatAmount(outstandingAmount, currency) : "Не требуется"} note={outstandingAmount > 0 ? "Есть задолженность" : "Всё оплачено"} onClick={() => navigate(sectionPath("payments"))} />
-      </div>
+      </SummaryStrip>
 
       {activeSection === "overview" ? <div className="grid gap-3 lg:grid-cols-3">
         <OverviewPanel title="Ученики" action={<button type="button" onClick={() => navigate(sectionPath("students"))} className={panelLinkClassName}>Все</button>}>

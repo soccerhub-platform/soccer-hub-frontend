@@ -1,3 +1,4 @@
+import { PageShell } from "../AdminPresentation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -12,7 +13,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../../shared/AuthContext";
-import { Input, NativeSelect, Button, EmptyState, ErrorState, LoadingState, PageShell, StatusBadge, type StatusTone } from "../../../shared/ui";
+import { Input, NativeSelect, Button, EmptyState, ErrorState, LoadingState, StatusBadge, type StatusTone } from "../../../shared/ui";
 import { getApiErrorMessage, resolveApiUrl } from "../../../shared/api";
 import { MediaAsset } from "../../../shared/media.types";
 import CoachProfileLink from "./components/CoachProfileLink";
@@ -256,7 +257,7 @@ const SessionAttendancePage: React.FC = () => {
   const trialParticipants =attendance.trialParticipants ?? [];
 
   return (
-    <PageShell className="space-y-4 pb-4">
+    <PageShell className="pb-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button type="button" onClick={navigateBack} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-admin-600">
           <ArrowLeft className="h-4 w-4" />Назад к занятию

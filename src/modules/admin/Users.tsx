@@ -1,20 +1,8 @@
+import { PageHeader, PageShell, SectionCard } from "./AdminPresentation";
 import React, { useEffect, useState } from "react";
 import { apiClient } from "../../shared/api";
 import { Role } from "../../shared/types";
-import {
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  PageHeader,
-  PageShell,
-  SectionCard,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../shared/ui";
+import { EmptyState, ErrorState, LoadingState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../shared/ui";
 
 interface UserRow {
   id: string;
@@ -51,7 +39,7 @@ const UsersPage: React.FC = () => {
   }, []);
 
   return (
-    <PageShell className="space-y-5">
+    <PageShell>
       <PageHeader title="Пользователи" description="Системные пользователи и их доступы." />
 
       <SectionCard className="p-0">

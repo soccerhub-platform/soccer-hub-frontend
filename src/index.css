@@ -15,7 +15,7 @@
   --color-admin-900: #003f7f;
 }
 
-/* Semantic utilities are bound to the dispatcher workspace's palette. */
+/* Semantic utilities share the palette of the admin and dispatcher workspaces. */
 @theme inline {
   --color-background: var(--dispatcher-background);
   --color-foreground: var(--dispatcher-foreground);
@@ -27,7 +27,7 @@
   --color-destructive: var(--dispatcher-destructive);
 }
 
-.dispatcher-workspace {
+.dispatcher-workspace, .admin-workspace, .admin-content {
   --dispatcher-background: var(--admin-surface);
   --dispatcher-foreground: var(--admin-ink);
   --dispatcher-muted: var(--admin-canvas);

@@ -1,3 +1,4 @@
+import { PageHeader } from "../AdminPresentation";
 // src/admin/BranchSelectPage.tsx
 
 import { useEffect, useState } from "react";
@@ -74,12 +75,12 @@ export default function BranchSelectPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5">
           <div className="flex items-center gap-3 text-sm text-slate-500">
             <RefreshCw className="h-5 w-5 animate-spin text-admin-600" />
             Загрузка филиалов...
           </div>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 flex flex-col gap-3">
             <Skeleton className="h-14 rounded-xl" />
             <Skeleton className="h-14 rounded-xl" />
           </div>
@@ -90,20 +91,8 @@ export default function BranchSelectPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
-            <Building2 className="h-6 w-6 text-admin-600" />
-          </div>
-          <div>
-            <h1 className="ui-page-title">
-              Выберите филиал
-            </h1>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
-              После выбора система откроет рабочий кабинет администратора для этого филиала.
-            </p>
-          </div>
-        </div>
+      <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+        <PageHeader title="Выберите филиал" description="Рабочий кабинет откроется для выбранного филиала." />
 
         {error ? (
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4">
@@ -130,7 +119,7 @@ export default function BranchSelectPage() {
         ) : null}
 
         {!error && branches.length > 0 ? (
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 flex flex-col gap-3">
             {branches.map((branch) => (
               <button
                 key={branch.id}
